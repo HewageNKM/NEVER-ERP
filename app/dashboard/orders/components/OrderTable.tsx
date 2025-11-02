@@ -19,6 +19,7 @@ import {
   Chip,
   Button,
   Tooltip,
+  CircularProgress,
 } from "@mui/material";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { getOrders, setPage, setSize } from "@/lib/ordersSlice/ordersSlice";
@@ -66,135 +67,138 @@ const OrderTable = () => {
         </IconButton>
       </Box>
 
-      {/* Table */}
-      <TableContainer
-        component={Paper}
-        sx={{
-          borderRadius: 2,
-          boxShadow: 1,
-          overflowX: "auto",
-          position: "relative",
-        }}
-      >
-        <Table
-          stickyHeader
+      {isLoading ? (
+        <Box textAlign="center" py={4}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <TableContainer
+          component={Paper}
           sx={{
-            "& thead": {
-              backgroundColor: "grey.100",
-              "& th": {
-                fontWeight: 700,
-                fontSize: "0.875rem",
-                textTransform: "uppercase",
-              },
-            },
-            "& tbody tr:hover": {
-              backgroundColor: "grey.50",
-            },
+            borderRadius: 2,
+            boxShadow: 1,
+            overflowX: "auto",
+            position: "relative",
           }}
         >
-          <TableHead>
-            <TableRow>
-              <TableCell>Order ID</TableCell>
-              <TableCell>Customer</TableCell>
-              <TableCell>Method</TableCell>
-              <TableCell>Payment Status</TableCell>
-              <TableCell>Total</TableCell>
-              <TableCell>Items</TableCell>
-              <TableCell>From</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Integrity</TableCell>
-              <TableCell>Created At</TableCell>
-              <TableCell align="center">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {orders.map((order) => (
-              <TableRow key={order.orderId} hover>
-                <TableCell>#{order.orderId}</TableCell>
-                <TableCell>{order.customer?.name || "N/A"}</TableCell>
-                <TableCell>{order.paymentMethod || "—"}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={order.paymentStatus?.toUpperCase() || "UNKNOWN"}
-                    color={
-                      order.paymentStatus?.toLowerCase() === "paid"
-                        ? "success"
-                        : order.paymentStatus?.toLowerCase() === "pending"
-                        ? "warning"
-                        : order.paymentStatus?.toLowerCase() === "failed"
-                        ? "error"
-                        : order.paymentStatus?.toLowerCase() === "refunded"
-                        ? "warning"
-                        : "default"
-                    }
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>LKR {order.total}</TableCell>
-                <TableCell>{order.items.length}</TableCell>
-                <TableCell>{order.from}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={order.status?.toUpperCase() || "UNKNOWN"}
-                    color={
-                      order.status?.toLowerCase() === "processing"
-                        ? "warning"
-                        : order.status?.toLowerCase() === "complete"
-                        ? "success"
-                        : "default"
-                    }
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell align="center">
-                  {order.integrity ? (
-                    <IoCheckmark color="green" size={20} />
-                  ) : (
-                    <IoClose color="red" size={20} />
-                  )}
-                </TableCell>
-                <TableCell>{order.createdAt}</TableCell>
-                <TableCell align="center">
-                  <Stack direction="row" spacing={1} justifyContent="center">
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      onClick={() =>
-                        router.push(
-                          `/dashboard/orders/${order.orderId}/invoice`
-                        )
-                      }
-                    >
-                      Invoice
-                    </Button>
-
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      onClick={() => handleView(order.orderId)}
-                    >
-                      View
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="contained"
-                      onClick={() => handleEdit(order.orderId)}
-                    >
-                      Edit
-                    </Button>
-                  </Stack>
-                </TableCell>
+          <Table
+            stickyHeader
+            sx={{
+              "& thead": {
+                backgroundColor: "grey.100",
+                "& th": {
+                  fontWeight: 700,
+                  fontSize: "0.875rem",
+                  textTransform: "uppercase",
+                },
+              },
+              "& tbody tr:hover": {
+                backgroundColor: "grey.50",
+              },
+            }}
+          >
+            <TableHead>
+              <TableRow>
+                <TableCell>Order ID</TableCell>
+                <TableCell>Customer</TableCell>
+                <TableCell>Method</TableCell>
+                <TableCell>Payment Status</TableCell>
+                <TableCell>Total</TableCell>
+                <TableCell>Items</TableCell>
+                <TableCell>From</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Integrity</TableCell>
+                <TableCell>Created At</TableCell>
+                <TableCell align="center">Actions</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        {orders.length === 0 && !isLoading && (
-          <EmptyState title="No Orders" subtitle="No orders available." />
-        )}
-        {isLoading && (
-          <ComponentsLoader position="absolute" title="Loading Orders" />
-        )}
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {orders.map((order) => (
+                <TableRow key={order.orderId} hover>
+                  <TableCell>#{order.orderId}</TableCell>
+                  <TableCell>{order.customer?.name || "N/A"}</TableCell>
+                  <TableCell>{order.paymentMethod || "—"}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={order.paymentStatus?.toUpperCase() || "UNKNOWN"}
+                      color={
+                        order.paymentStatus?.toLowerCase() === "paid"
+                          ? "success"
+                          : order.paymentStatus?.toLowerCase() === "pending"
+                          ? "warning"
+                          : order.paymentStatus?.toLowerCase() === "failed"
+                          ? "error"
+                          : order.paymentStatus?.toLowerCase() === "refunded"
+                          ? "warning"
+                          : "default"
+                      }
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>LKR {order.total}</TableCell>
+                  <TableCell>{order.items.length}</TableCell>
+                  <TableCell>{order.from}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={order.status?.toUpperCase() || "UNKNOWN"}
+                      color={
+                        order.status?.toLowerCase() === "processing"
+                          ? "warning"
+                          : order.status?.toLowerCase() === "complete"
+                          ? "success"
+                          : "default"
+                      }
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell align="center">
+                    {order.integrity ? (
+                      <IoCheckmark color="green" size={20} />
+                    ) : (
+                      <IoClose color="red" size={20} />
+                    )}
+                  </TableCell>
+                  <TableCell>{order.createdAt}</TableCell>
+                  <TableCell align="center">
+                    <Stack direction="row" spacing={1} justifyContent="center">
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() =>
+                          router.push(
+                            `/dashboard/orders/${order.orderId}/invoice`
+                          )
+                        }
+                      >
+                        Invoice
+                      </Button>
+
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => handleView(order.orderId)}
+                      >
+                        View
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        onClick={() => handleEdit(order.orderId)}
+                      >
+                        Edit
+                      </Button>
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {orders.length === 0 && !isLoading && (
+            <EmptyState title="No Orders" subtitle="No orders available." />
+          )}
+        </TableContainer>
+      )}
+      {/* Table */}
 
       {/* Pagination & Page Size */}
       <Box

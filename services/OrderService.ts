@@ -5,6 +5,8 @@ import {
   validateDocumentIntegrity,
 } from "./IntegrityService";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { InventoryItem } from "@/model/InventoryItem";
+import { Product } from "@/model/Product";
 
 const ORDERS_COLLECTION = "orders";
 
@@ -33,46 +35,59 @@ function toSafeLocaleString(val: any): string | null {
   }
 }
 
-export const getOrders = async (pageNumber: number = 1, size: number = 20) => {
+export const getOrders = async (
+  pageNumber: number = 1,
+  size: number = 20,
+  from?: string,
+  to?: string,
+  status?: string,
+  paymentStatus?: string
+) => {
   try {
     const offset = (pageNumber - 1) * size;
-    const ordersSnapshot = await adminFirestore
-      .collection(ORDERS_COLLECTION)
-      .orderBy("createdAt", "desc") // OrderBy must come before limit/offset
-      .limit(size)
-      .offset(offset)
-      .get();
+    let query = adminFirestore.collection(ORDERS_COLLECTION);
+    if (from && to) {
+      const startTimestamp = Timestamp.fromDate(new Date(from));
+      const endTimestamp = Timestamp.fromDate(new Date(to));
+      query = query.where("createdAt", ">=", startTimestamp);
+      query = query.where("createdAt", "<=", endTimestamp);
+    }
+    if (status) {
+      query = query.where("status", "==", status);
+    }
+    if (paymentStatus) {
+      query = query.where("paymentStatus", "==", paymentStatus);
+    }
+    const ordersSnapshot = await query.limit(size).offset(offset).get();
 
     const orders: Order[] = [];
-
-    // 1. Replaced forEach with a for...of loop to handle async/await
     for (const doc of ordersSnapshot.docs) {
-      const orderData = doc.data() as Order;
-
-      // 2. Passed 'adminFirestore' as the first argument
-      const integrity = await validateDocumentIntegrity(
+      const data = doc.data() as Order;
+      const integrityResult = await validateDocumentIntegrity(
         ORDERS_COLLECTION,
         doc.id
       );
 
       const order: Order = {
-        ...orderData,
-        orderId: doc.id, // 3. Set orderId to the document ID
-        integrity: integrity, // 4. Added the integrity check result
-        customer: orderData.customer
+        ...data,
+        orderId: doc.id,
+        integrity: integrityResult,
+        customer: data.customer
           ? {
-              ...orderData.customer,
-              // 5. Use safe date conversion
-              createdAt: toSafeLocaleString(orderData.customer.createdAt),
-              updatedAt: toSafeLocaleString(orderData.customer.updatedAt),
+              ...data.customer,
+              updatedAt: data.customer.updatedAt
+                ? toSafeLocaleString(data.customer.updatedAt)
+                : null,
             }
           : null,
-        createdAt: toSafeLocaleString(orderData.createdAt),
-        updatedAt: toSafeLocaleString(orderData.updatedAt),
+        createdAt: toSafeLocaleString(data.createdAt),
+        updatedAt: toSafeLocaleString(data.updatedAt),
+        restockedAt: data.restockedAt
+          ? toSafeLocaleString(data.restockedAt)
+          : null,
       };
       orders.push(order);
     }
-
     console.log(`Fetched ${orders.length} orders on page ${pageNumber}`);
     return orders;
   } catch (error: any) {
@@ -170,6 +185,152 @@ export const updateOrder = async (order: Order, orderId: string) => {
     console.log(`✅ Order with ID ${orderId} updated and hashed successfully`);
   } catch (error) {
     console.error("❌ Error updating order:", error);
+    throw error;
+  }
+};
+
+export const addOrder = async (order: Partial<Order>) => {
+  try {
+    if (!order.orderId) throw new Error("Order ID is required");
+    if (!order.items || order.items.length === 0)
+      throw new Error("Order items are required");
+
+    const orderRef = adminFirestore.collection("orders").doc(order.orderId);
+
+    const orderData: Order = {
+      ...order,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // --- Run transaction ---
+    await adminFirestore.runTransaction(async (transaction) => {
+      // --- STORE ORDER ---
+      if (order.from?.toLowerCase() === "store") {
+        if (!order.stockId)
+          throw new Error("Stock ID is required for store orders");
+
+        for (const item of order.items!) {
+          // ✅ Fix: Firestore query uses chained .where() correctly
+          const inventoryQuery = adminFirestore
+            .collection("stock_inventory")
+            .where("productId", "==", item.itemId)
+            .where("variantId", "==", item.variantId)
+            .where("size", "==", item.size)
+            .where("stockId", "==", order.stockId);
+
+          const querySnap = await transaction.get(inventoryQuery);
+
+          if (querySnap.empty) {
+            console.warn(
+              `⚠️ Inventory not found for ${item.name} (${item.size}) in stock ${order.stockId}`
+            );
+            continue;
+          }
+
+          const invDoc = querySnap.docs[0];
+          const invData = invDoc.data() as InventoryItem;
+          const newQty = (invData.quantity ?? 0) - item.quantity;
+
+          // Allow negative quantity for store, but warn
+          if (newQty < 0) {
+            console.warn(
+              `⚠️ Store order exceeds stock for ${item.name}. Available: ${invData.quantity}, Ordered: ${item.quantity}`
+            );
+          }
+
+          transaction.update(invDoc.ref, { quantity: newQty });
+          console.log(
+            `🛒 Store order → updated stock for ${item.name}: ${newQty}`
+          );
+        }
+      }
+
+      // --- WEBSITE ORDER ---
+      else if (order.from?.toLowerCase() === "website") {
+        if (!order.stockId)
+          throw new Error("Stock ID is required for website orders");
+
+        for (const item of order.items!) {
+          //1️⃣ Also reduce stock from respective stock_inventory
+          const inventoryQuery = adminFirestore
+            .collection("stock_inventory")
+            .where("productId", "==", item.itemId)
+            .where("variantId", "==", item.variantId)
+            .where("size", "==", item.size)
+            .where("stockId", "==", order.stockId);
+
+          const invSnap = await transaction.get(inventoryQuery);
+
+          if (invSnap.empty) {
+            console.warn(
+              `⚠️ No stock_inventory found for ${item.name} (${item.size}) under stockId: ${order.stockId}`
+            );
+            continue;
+          }
+
+          const invDoc = invSnap.docs[0];
+          const invData = invDoc.data() as InventoryItem;
+
+          if (invData.quantity < item.quantity) {
+            throw new Error(
+              `Insufficient stock in stock_inventory for ${item.name}. Available: ${invData.quantity}, Requested: ${item.quantity}`
+            );
+          }
+
+          const newStockQty = invData.quantity - item.quantity;
+
+          transaction.update(invDoc.ref, { quantity: newStockQty });
+          //4️⃣Fetch the product document
+          const productRef = adminFirestore
+            .collection("products")
+            .doc(item.itemId);
+          const prodSnap = await transaction.get(productRef);
+
+          if (!prodSnap.exists) {
+            throw new Error(`Product ${item.itemId} not found`);
+          }
+
+          const productData = prodSnap.data() as Product;
+          const availableStock = productData.totalStock ?? 0;
+
+          // 2️⃣ Validate global stock
+          if (availableStock < item.quantity) {
+            throw new Error(
+              `Insufficient stock for ${item.name}. Available: ${availableStock}, Requested: ${item.quantity}`
+            );
+          }
+
+          const newTotalStock = availableStock - item.quantity;
+
+          // 3️⃣ Update product total stock
+          transaction.update(productRef, {
+            totalStock: newTotalStock,
+            inStock: newTotalStock > 0,
+            updatedAt: new Date(),
+          });
+
+          console.log(
+            `🌐 Website order → updated global product stock for ${item.name}: ${newTotalStock}`
+          );
+          console.log(
+            `🏬 Website order → reduced stock_inventory for ${item.name}: ${newStockQty}`
+          );
+        }
+      } else {
+        throw new Error(`Unknown order source: ${order.from}`);
+      }
+
+      // ✅ Save order AFTER successful stock updates
+      transaction.set(orderRef, orderData);
+    });
+
+    console.log(
+      `✅ Order ${order.orderId} successfully added from ${order.from}`
+    );
+    return { success: true, orderId: order.orderId };
+  } catch (error) {
+    console.error("❌ Error adding order:", error);
     throw error;
   }
 };

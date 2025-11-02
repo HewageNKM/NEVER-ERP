@@ -4,7 +4,7 @@ export async function middleware(req: Request) {
   const origin = req.headers.get("origin");
 
   // Define allowed origins
-  const allowedOrigins = ["https://admin.neverbe.lk"];
+  const allowedOrigins = ["https://admin.neverbe.lk", "http://neverbe.lk","https://pos.neverbe.lk"];
 
   // Handle CORS for all requests
   if (req.method === "OPTIONS") {
