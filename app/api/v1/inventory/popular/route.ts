@@ -10,7 +10,6 @@ export const GET = async (req: Request) => {
         }
         const size = Number.parseInt(new URLSearchParams(req.url).get('size') || "10");
         const month = Number.parseInt(new URLSearchParams(req.url).get('month') || "0");
-        console.log(size, month);
         const items = await getPopularItems(size,month);
         return NextResponse.json(items);
     } catch (error: any) {
