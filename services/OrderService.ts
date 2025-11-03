@@ -323,6 +323,7 @@ export const addOrder = async (order: Partial<Order>) => {
 
       // ✅ Save order AFTER successful stock updates
       transaction.set(orderRef, orderData);
+      await updateOrAddOrderHash(orderData);
     });
 
     console.log(
