@@ -323,9 +323,11 @@ export const addOrder = async (order: Partial<Order>) => {
 
       // ✅ Save order AFTER successful stock updates
       transaction.set(orderRef, orderData);
-      await updateOrAddOrderHash(orderData);
     });
-
+    const orderDoc = await orderRef.get();
+    const data = orderDoc.data();
+    if (!data) console.warn(`Order with ID ${data.orderId} not found`);
+    await updateOrAddOrderHash(data);
     console.log(
       `✅ Order ${order.orderId} successfully added from ${order.from}`
     );
