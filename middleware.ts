@@ -26,7 +26,7 @@ export async function middleware(req: Request) {
     return NextResponse.next(); // Allow the request
   }
 
-  if (origin === "https://admin.neverbe.lk") {
+  if (allowedOrigins.includes(origin)) {
     // Cross-origin request from allowed origin
     console.log(`Allowed: Cross-origin request from ${origin}`);
     return NextResponse.next(); // Allow the request
