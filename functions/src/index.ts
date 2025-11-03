@@ -2,70 +2,17 @@ import * as admin from "firebase-admin";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as crypto from "crypto";
 import * as stringify from "json-stable-stringify";
+import { defineSecret } from "firebase-functions/params";
 
 admin.initializeApp();
-
 const db = admin.firestore();
+const HASH_SECRET = defineSecret("HASH_SECRET");
+
 
 // ==========================
-// 🔧 Constants & Interfaces
+// 🔧 Constants & Enums
 // ==========================
 const BATCH_LIMIT = 450;
-
-interface Size {
-  size: string;
-  stock: number;
-}
-
-interface Variant {
-  variantId: string;
-  variantName: string;
-  images: string[];
-  sizes: Size[];
-}
-
-interface OrderItem {
-  itemId: string;
-  variantId: string;
-  name: string;
-  variantName: string;
-  size: string;
-  quantity: number;
-  price: number;
-}
-
-interface Item {
-  itemId: string;
-  type: string;
-  brand: string;
-  thumbnail: string;
-  variants: Variant[];
-  manufacturer: string;
-  name: string;
-  sellingPrice: number;
-  discount: number;
-  createdAt: FirebaseFirestore.Timestamp;
-  updatedAt: FirebaseFirestore.Timestamp;
-}
-
-interface Order {
-  orderId: string;
-  paymentId: string;
-  items: OrderItem[];
-  fee: number;
-  userId?: string;
-  shippingFee: number;
-  status: string;
-  paymentMethodId: string;
-  paymentStatus: string;
-  discount: number;
-  restocked?: boolean;
-  restockedAt?: FirebaseFirestore.Timestamp;
-  cleanupProcessed?: boolean;
-  paymentMethod: string;
-  createdAt: FirebaseFirestore.Timestamp;
-  updatedAt: FirebaseFirestore.Timestamp;
-}
 
 enum PaymentStatus {
   Pending = "Pending",
@@ -75,40 +22,28 @@ enum PaymentStatus {
 }
 
 // ==========================
-// 🧮 Utility Functions
+// 🧩 Utility Functions
 // ==========================
-const calculateTotal = (items: OrderItem[]): number => {
-  return items.reduce((total, item) => total + item.price * item.quantity, 0);
-};
-
 const commitBatch = async (
   batch: FirebaseFirestore.WriteBatch,
   opCount: number
-): Promise<FirebaseFirestore.WriteBatch> => {
+): Promise<[FirebaseFirestore.WriteBatch, number]> => {
   if (opCount >= BATCH_LIMIT) {
     await batch.commit();
-    console.log(`Committed a batch of ${opCount} operations.`);
-    return admin.firestore().batch();
+    console.log(`💾 Committed batch of ${opCount} operations`);
+    return [db.batch(), 0];
   }
-  return batch;
+  return [batch, opCount];
 };
 
 const generateDocumentHash = (docData: any) => {
-  const dataToHash = { ...docData };
-  const canonicalString = stringify(dataToHash)
-  const hash = crypto
-    .createHash("sha256")
-    //@ts-ignore
-    .update(canonicalString)
-    .digest("hex");
-  return hash;
+  const canonical = stringify(docData);
+  const hashingString = `${canonical}${HASH_SECRET}`
+  return crypto.createHash("sha256").update(hashingString).digest("hex");
 };
 
 // ==========================
-// 🕒 Scheduled Function
-// ==========================
-// ==========================
-// 🕒 Scheduled Function (Completed)
+// 🕒 Scheduled Cleanup
 // ==========================
 export const SheduleOrdersCleanup = onSchedule(
   {
@@ -117,169 +52,161 @@ export const SheduleOrdersCleanup = onSchedule(
     region: "asia-south1",
     memory: "512MiB",
     timeoutSeconds: 540,
+    secrets: ["HASH_SECRET"],
   },
   async () => {
     try {
-      console.log("🧹 Starting scheduled Firestore cleanup job...");
+      console.log("🧹 Starting new restock cleanup job...");
 
-      const orderCollection = db.collection("orders");
-      const inventoryCollection = db.collection("inventory");
-      const cleanupLogCollection = db.collection("cleanup_logs");
-      const hashLedgerCollection = db.collection("hash_ledger");
+      const ordersRef = db.collection("orders");
+      const hashLedgerRef = db.collection("hash_ledger");
+      const logsRef = db.collection("cleanup_logs");
 
-      const timeFrame = admin.firestore.Timestamp.fromDate(
+      const cutoff = admin.firestore.Timestamp.fromDate(
         new Date(Date.now() - 4 * 60 * 60 * 1000)
       );
 
-      const ordersSnap = await orderCollection
-        .where("createdAt", "<=", timeFrame)
-        .where("paymentStatus", "in", [
-          PaymentStatus.Failed,
-          PaymentStatus.Refunded,
-        ])
+      const snapshot = await ordersRef
+        .where("createdAt", "<=", cutoff)
+        .where("paymentStatus", "in", [PaymentStatus.Failed, PaymentStatus.Refunded])
         .get();
 
-      if (ordersSnap.empty) {
-        console.log("✅ No failed or refunded orders to clean up.");
+      if (snapshot.empty) {
+        console.log("✅ No failed/refunded orders to restock.");
         return;
       }
 
-      const targetOrders = ordersSnap.docs.filter((doc) => {
-        const data = doc.data() as Order;
-        return !data?.restocked;
-      });
-
-      if (!targetOrders.length) {
-        console.log("✅ All orders are already restocked.");
+      const targets = snapshot.docs.filter((d) => !(d.data()?.restocked));
+      if (!targets.length) {
+        console.log("✅ All failed/refunded orders already processed.");
         return;
       }
 
-      console.log(`⚠️ Found ${targetOrders.length} orders to process.`);
+      console.log(`⚙️ Processing ${targets.length} orders for restock.`);
 
       let batch = db.batch();
       let opCount = 0;
       const logs: any[] = [];
 
-      for (const orderDoc of targetOrders) {
-        const orderData = orderDoc.data() as Order;
+      for (const orderDoc of targets) {
+        const order = orderDoc.data();
         const orderId = orderDoc.id;
-        const hashId = `hash_${orderId}`;
-        const hashDocRef = hashLedgerCollection.doc(hashId);
 
-        const total =
-          calculateTotal(orderData.items) +
-          (orderData?.shippingFee || 0) +
-          (orderData?.fee || 0) -
-          (orderData?.discount || 0);
+        const stockId = order.stockId;
+        if (!stockId) {
+          console.warn(`❗ Missing stockId for order ${orderId}`);
+          continue;
+        }
 
-        // 🔄 Restock inventory items
-        for (const orderItem of orderData.items) {
-          const inventoryDocRef = inventoryCollection.doc(orderItem.itemId);
-          const inventorySnap = await inventoryDocRef.get();
-          if (!inventorySnap.exists) {
-            console.warn(`❗ Missing inventory item: ${orderItem.itemId}`);
+        for (const item of order.items ?? []) {
+          // 1️⃣ Restock stock_inventory
+          const invQuery = db
+            .collection("stock_inventory")
+            .where("productId", "==", item.itemId)
+            .where("variantId", "==", item.variantId)
+            .where("size", "==", item.size)
+            .where("stockId", "==", stockId);
+
+          const invSnap = await invQuery.get();
+          if (invSnap.empty) {
+            console.warn(
+              `⚠️ No stock_inventory found for ${item.name} (${item.size}) in stock ${stockId}`
+            );
             continue;
           }
 
-          const inventoryData = inventorySnap.data() as Item;
-          const variant = inventoryData.variants.find(
-            (v) => v.variantId === orderItem.variantId
-          );
-          if (!variant) continue;
-          const size = variant.sizes.find((s) => s.size === orderItem.size);
-          if (!size) continue;
+          const invDoc = invSnap.docs[0];
+          const invData = invDoc.data();
+          const newQty = (invData.quantity ?? 0) + item.quantity;
 
-          size.stock += orderItem.quantity;
-          batch.set(inventoryDocRef, inventoryData, { merge: true });
+          batch.update(invDoc.ref, {
+            quantity: newQty,
+            updatedAt: new Date(),
+          });
           opCount++;
-          if (opCount >= BATCH_LIMIT) {
-            batch = await commitBatch(batch, opCount);
-            opCount = 0;
+
+          // 2️⃣ Restock product totalStock
+          const productRef = db.collection("products").doc(item.itemId);
+          const productSnap = await productRef.get();
+          if (productSnap.exists) {
+            const productData = productSnap.data()!;
+            const totalStock = (productData.totalStock ?? 0) + item.quantity;
+
+            batch.update(productRef, {
+              totalStock,
+              inStock: totalStock > 0,
+              updatedAt: new Date(),
+            });
+            opCount++;
           }
+
+          [batch, opCount] = await commitBatch(batch, opCount);
         }
 
-        // 🔖 Prepare cleanup log
-        logs.push({
-          context: "order_cleanup",
-          entityType: "order",
-          refId: orderId,
-          userId: orderData.userId ?? null,
-          total: total ?? 0,
-          reason:
-            orderData.paymentStatus === PaymentStatus.Refunded
-              ? "Refunded order restocked"
-              : "Payment failed for more than 4 hours",
-          action: "restock",
-          paymentStatus: orderData.paymentStatus,
-          metadata: {
-            items: orderData.items ?? [],
-            createdAt: orderData.createdAt ?? null,
-            paymentMethod: orderData.paymentMethod ?? null,
-          },
-          deletedAt: admin.firestore.Timestamp.now(),
-          timestamp: admin.firestore.Timestamp.now(),
-        });
+        // 3️⃣ Update or delete order + hash ledger
+        const hashDocRef = hashLedgerRef.doc(`hash_${orderId}`);
 
-        // 🔄 Update or delete orders based on paymentStatus
-        if (orderData.paymentStatus === PaymentStatus.Failed) {
+        if (order.paymentStatus === PaymentStatus.Failed) {
           batch.delete(orderDoc.ref);
           batch.delete(hashDocRef);
-        } else if (orderData.paymentStatus === PaymentStatus.Refunded) {
-          const orderUpdate = {
+        } else if (order.paymentStatus === PaymentStatus.Refunded) {
+          batch.update(orderDoc.ref, {
             restocked: true,
             restockedAt: admin.firestore.Timestamp.now(),
             cleanupProcessed: true,
-          };
-          batch.update(orderDoc.ref, orderUpdate);
+          });
 
-          // Update hash ledger
-          const updatedOrderData = await orderCollection.doc(orderId).get();
-          if (updatedOrderData.exists) {
-            const data = updatedOrderData.data();
-            const hash = generateDocumentHash(data);
-            batch.set(
-              hashDocRef,
-              {
-                id: hashDocRef.id,
-                hashValue: hash,
-                sourceCollection: "orders",
-                sourceDocId: orderId,
-                paymentStatus: orderData.paymentStatus,
-                updatedAt: admin.firestore.Timestamp.now(),
-                createdAt: admin.firestore.Timestamp.now(),
-                cleanupFlag: true,
-              },
-              { merge: true }
-            );
-          }
+          const newHash = generateDocumentHash(order);
+          batch.set(
+            hashDocRef,
+            {
+              id: hashDocRef.id,
+              sourceCollection: "orders",
+              sourceDocId: orderId,
+              hashValue: newHash,
+              updatedAt: admin.firestore.Timestamp.now(),
+              cleanupFlag: true,
+            },
+            { merge: true }
+          );
         }
 
-        opCount++;
-        if (opCount >= BATCH_LIMIT) {
-          batch = await commitBatch(batch, opCount);
-          opCount = 0;
-        }
+        [batch, opCount] = await commitBatch(batch, opCount);
+
+        // 4️⃣ Log cleanup
+        logs.push({
+          context: "order_cleanup",
+          refId: orderId,
+          userId: order.userId ?? null,
+          reason:
+            order.paymentStatus === PaymentStatus.Refunded
+              ? "Refunded order restocked"
+              : "Failed payment over 4 hours",
+          paymentStatus: order.paymentStatus,
+          stockId,
+          items: order.items ?? [],
+          timestamp: admin.firestore.Timestamp.now(),
+        });
       }
 
-      // Commit any remaining batch operations
       if (opCount > 0) {
         await batch.commit();
-        console.log(`💾 Committed final batch of ${opCount} operations.`);
+        console.log(`💾 Final batch committed (${opCount} ops).`);
       }
 
-      // 🔖 Commit logs
-      if (logs.length > 0) {
+      // 5️⃣ Write logs
+      if (logs.length) {
         const logBatch = db.batch();
         for (const log of logs) {
-          logBatch.set(cleanupLogCollection.doc(), log);
+          logBatch.set(logsRef.doc(), log);
         }
         await logBatch.commit();
-        console.log(`🗂️ Logged ${logs.length} cleanup entries.`);
+        console.log(`🧾 Logged ${logs.length} cleanup entries.`);
       }
 
-      console.log("✅ Firestore cleanup and restock completed successfully.");
-    } catch (error) {
-      console.error("❌ Error during scheduledOrdersCleanup:", error);
+      console.log("✅ Restock cleanup completed successfully.");
+    } catch (err) {
+      console.error("❌ Error during restock cleanup:", err);
     }
   }
 );
