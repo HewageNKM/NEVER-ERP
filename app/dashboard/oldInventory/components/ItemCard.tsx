@@ -22,6 +22,7 @@ const ItemCard = ({ item, onEdit }: { item: Item; onEdit: any }) => {
 
   return (
     <Card
+      onClick={() => router.push(`/dashboard/oldInventory/${item.itemId}`)}
       sx={{
         position: "relative",
         borderRadius: 3,
@@ -50,7 +51,6 @@ const ItemCard = ({ item, onEdit }: { item: Item; onEdit: any }) => {
             objectFit: "cover",
             cursor: "pointer",
           }}
-          onClick={() => router.push(`/dashboard/inventory/${item.itemId}`)}
         />
 
         {/* Hover Overlay */}
