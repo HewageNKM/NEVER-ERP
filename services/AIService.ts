@@ -1,7 +1,6 @@
-import { GoogleGenerativeAI, TaskType } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
 if (!GEMINI_API_KEY) {
   throw new Error("GEMINI_API_KEY environment variable is not set.");
 }
@@ -9,29 +8,40 @@ if (!GEMINI_API_KEY) {
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 /**
- * Calls the Gemini API to create an embedding for a search query.
- * @param text The user's search string.
- * @returns A vector (array of numbers).
+ * Global AI method to generate tags/keywords from any text.
+ * @param contextDescription - A description of what the AI should extract (e.g., "Extract tags for a product").
+ * @param content - The actual text/content to extract tags from.
+ * @param maxTags - Optional maximum number of tags to return (default 15)
+ * @returns Array of unique, lowercase tags
  */
-export const getEmbedding = async (text: string): Promise<number[]> => {
+export const generateTags = async (
+  contextDescription: string,
+  content: string,
+  maxTags: number = 15
+): Promise<string[]> => {
   try {
-    const model = genAI.getGenerativeModel({
-      model: "text-embedding-004",
-    });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
 
-    const result = await model.embedContent({
-      content: { parts: [{ text }], role: "user" },
-      taskType: TaskType.RETRIEVAL_QUERY,
-    });
+    const prompt = `
+      ${contextDescription}
 
-    const embedding = result.embedding;
-    if (!embedding?.values) {
-      throw new Error("No embedding returned from Gemini API.");
-    }
+      Content: ${content}
 
-    return embedding.values;
+      Extract up to ${maxTags} short, lowercase, comma-separated keywords/tags.
+      Avoid generic words like "item" or "product". 
+    `;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text().toLowerCase();
+
+    const tags = text
+      .split(/[,|\n]/)
+      .map((t) => t.trim())
+      .filter((t) => t.length > 1);
+
+    return Array.from(new Set(tags));
   } catch (error) {
-    console.error("Error creating embedding:", error);
-    throw new Error("Failed to generate search embedding.");
+    console.error("Error generating tags:", error);
+    return [];
   }
 };
