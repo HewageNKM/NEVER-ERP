@@ -2,42 +2,38 @@ import { NextResponse } from "next/server";
 
 export async function middleware(req: Request) {
   const origin = req.headers.get("origin");
+  const allowedOrigins = [
+    "https://admin.neverbe.lk",
+    "https://erp.neverbe.lk",
+    "http://neverbe.lk",
+    "https://pos.neverbe.lk",
+  ];
 
-  // Define allowed origins
-  const allowedOrigins = ["https://admin.neverbe.lk", "https://erp.neverbe.lk","http://neverbe.lk","https://pos.neverbe.lk"];
+  const isAllowedOrigin = origin && allowedOrigins.includes(origin);
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": isAllowedOrigin ? origin! : "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
 
-  // Handle CORS for all requests
+  // ✅ Handle preflight request
   if (req.method === "OPTIONS") {
     return new NextResponse(null, {
       status: 204,
-      headers: {
-        "Access-Control-Allow-Origin":
-          origin && allowedOrigins.includes(origin) ? origin : "*",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      },
+      headers: corsHeaders,
     });
   }
 
-  // Same-origin request handling
-  if (!origin) {
-    // No Origin header indicates a same-origin request
-    console.log("Allowed: Same-origin request");
-    return NextResponse.next(); // Allow the request
-  }
+  // ✅ For all other requests, continue and attach CORS headers
+  const response = NextResponse.next();
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    response.headers.set(key, value);
+  });
 
-  if (allowedOrigins.includes(origin)) {
-    // Cross-origin request from allowed origin
-    console.log(`Allowed: Cross-origin request from ${origin}`);
-    return NextResponse.next(); // Allow the request
-  }
-
-  // Block requests from other origins
-  console.log(`Blocked: Request from unknown origin: ${origin}`);
-  return new NextResponse("Forbidden", { status: 403 });
+  return response;
 }
 
-// Apply the middleware to all API routes
+// ✅ Apply to all API routes
 export const config = {
   matcher: "/api/:path*",
 };
