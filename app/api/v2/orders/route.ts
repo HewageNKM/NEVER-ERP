@@ -1,7 +1,10 @@
-import {NextResponse} from "next/server";
+import {NextRequest, NextResponse} from "next/server";
 import {authorizeRequest, getOrders} from "@/firebase/firebaseAdmin";
+import { addOrder } from "@/services/OrderService";
+import { authorizeOrderRequest } from "@/services/AuthService";
+import { Order } from "@/model";
 
-export const GET = async (req: Request) => {
+export const GET = async (req: NextRequest) => {
     try {
         // Verify the ID token
         const response = await authorizeRequest(req);
@@ -29,4 +32,18 @@ export const GET = async (req: Request) => {
         return NextResponse.json({message: 'Error fetching orders', error: error.message}, {status: 500});
     }
 };
-export const dynamic = 'force-dynamic';
+
+export const POST = async (req: NextRequest) => {
+  try {
+    const authorization = await authorizeOrderRequest(req);
+    if (!authorization) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const orderData: Partial<Order> = await req.json();
+    const res = addOrder(orderData);
+    return NextResponse.json(res);
+  } catch (error) {
+    console.log(error);
+    return NextResponse.json({ error: error });
+  }
+};
