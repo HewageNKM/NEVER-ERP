@@ -328,17 +328,15 @@ export const addOrder = async (order: Partial<Order>) => {
     const data = orderDoc.data();
     if (!data) console.warn(`Order with ID ${data?.orderId} not found`);
     await updateOrAddOrderHash(data);
-    await clearPosCart()
+    await clearPosCart();
     console.log(
       `✅ Order ${order.orderId} successfully added from ${order.from}`
     );
-    return { success: true, orderId: order.orderId };
   } catch (error) {
     console.error("❌ Error adding order:", error);
     throw error;
   }
 };
-
 
 const clearPosCart = async () => {
   try {

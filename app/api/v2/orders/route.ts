@@ -40,8 +40,8 @@ export const POST = async (req: NextRequest) => {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const orderData: Partial<Order> = await req.json();
-    const res = await addOrder(orderData);
-    return NextResponse.json(res);
+    await addOrder(orderData);
+    return NextResponse.json("Order Created Successfully");
   } catch (error) {
     console.log(error);
     return NextResponse.json({ error: error });
