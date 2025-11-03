@@ -285,7 +285,7 @@ const OrderView = ({ orderId }: { orderId: string }) => {
                     <TableCell align="right">Rs.{subtotal.toFixed(2)}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell colSpan={6} align="right">
+                    <TableCell colSpan={6} align="right" sx={{ color: "red" }}>
                       Discount
                     </TableCell>
                     <TableCell align="right" sx={{ color: "red" }}>
