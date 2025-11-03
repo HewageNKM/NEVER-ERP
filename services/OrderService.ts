@@ -326,14 +326,30 @@ export const addOrder = async (order: Partial<Order>) => {
     });
     const orderDoc = await orderRef.get();
     const data = orderDoc.data();
-    if (!data) console.warn(`Order with ID ${data.orderId} not found`);
+    if (!data) console.warn(`Order with ID ${data?.orderId} not found`);
     await updateOrAddOrderHash(data);
+    await clearPosCart()
     console.log(
       `✅ Order ${order.orderId} successfully added from ${order.from}`
     );
     return { success: true, orderId: order.orderId };
   } catch (error) {
     console.error("❌ Error adding order:", error);
+    throw error;
+  }
+};
+
+
+const clearPosCart = async () => {
+  try {
+    const snap = await adminFirestore.collection("posCart").get();
+    if (snap.empty) return;
+    const batch = adminFirestore.batch();
+    snap.docs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+    console.log("POS cart cleared");
+  } catch (error) {
+    console.error("clearPosCart failed:", error);
     throw error;
   }
 };
