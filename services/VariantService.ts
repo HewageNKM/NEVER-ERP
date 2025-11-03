@@ -4,7 +4,6 @@ import { ProductVariant } from "@/model/ProductVariant";
 import { Img } from "@/model/Img";
 import { nanoid } from "nanoid";
 import { FieldValue } from "firebase-admin/firestore";
-import { generateTags } from "./ProductService";
 
 const PRODUCTS_COLLECTION = "products";
 const BUCKET = adminStorageBucket;
@@ -80,13 +79,8 @@ export const addVariant = async (
       // We don't have the new server timestamp here, but generateTags shouldn't need it
     };
 
-    // --- Step 6: Regenerate tags based on updated product data ---
-    // Ensure generateTags considers only non-deleted variants if necessary
-    const newTags = generateTags(updatedProductData);
-
     // --- Step 7: Update tags on the product ---
     await productRef.update({
-      tags: newTags,
       updatedAt: FieldValue.serverTimestamp(), // Update timestamp again
     });
 
@@ -158,12 +152,8 @@ export const updateVariant = async (
       variants: newVariantsArray,
     };
 
-    // --- Step 7: Regenerate tags ---
-    const newTags = generateTags(updatedProductData);
-
     // --- Step 8: Update tags ---
     await productRef.update({
-      tags: newTags,
       updatedAt: new Date(),
     });
 
@@ -219,14 +209,8 @@ export const deleteVariant = async (
       variants: updatedVariantsArray,
     };
 
-    // --- Step 5: Regenerate tags ---
-    // IMPORTANT: Ensure your generateTags function correctly handles/ignores
-    // variants where isDeleted === true when generating keywords.
-    const newTags = generateTags(updatedProductData);
-
     // --- Step 6: Update tags ---
     await productRef.update({
-      tags: newTags,
       updatedAt: new Date(),
     });
 
