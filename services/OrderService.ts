@@ -192,8 +192,7 @@ export const updateOrder = async (order: Order, orderId: string) => {
 export const addOrder = async (order: Partial<Order>) => {
   try {
     if (!order.orderId) throw new Error("Order ID is required");
-    if (!order.items || order.items.length === 0)
-      throw new Error("Order items are required");
+    if (!order.items?.length) throw new Error("Order items are required");
 
     const orderRef = adminFirestore.collection("orders").doc(order.orderId);
 
@@ -203,135 +202,77 @@ export const addOrder = async (order: Partial<Order>) => {
       updatedAt: new Date(),
     };
 
-    // --- Run transaction ---
     await adminFirestore.runTransaction(async (transaction) => {
-      // --- STORE ORDER ---
-      if (order.from?.toLowerCase() === "store") {
-        if (!order.stockId)
-          throw new Error("Stock ID is required for store orders");
+      const inventoryDocs: FirebaseFirestore.QueryDocumentSnapshot[] = [];
+      const productDocs: FirebaseFirestore.QueryDocumentSnapshot[] = [];
 
-        for (const item of order.items!) {
-          // ✅ Fix: Firestore query uses chained .where() correctly
-          const inventoryQuery = adminFirestore
-            .collection("stock_inventory")
-            .where("productId", "==", item.itemId)
-            .where("variantId", "==", item.variantId)
-            .where("size", "==", item.size)
-            .where("stockId", "==", order.stockId);
+      for (const item of order.items!) {
+        const inventoryQuery = adminFirestore
+          .collection("stock_inventory")
+          .where("productId", "==", item.itemId)
+          .where("variantId", "==", item.variantId)
+          .where("size", "==", item.size)
+          .where("stockId", "==", order.stockId);
 
-          const querySnap = await transaction.get(inventoryQuery);
+        const invSnap = await transaction.get(inventoryQuery);
+        if (invSnap.empty) continue;
+        inventoryDocs.push(invSnap.docs[0]);
 
-          if (querySnap.empty) {
-            console.warn(
-              `⚠️ Inventory not found for ${item.name} (${item.size}) in stock ${order.stockId}`
-            );
-            continue;
-          }
-
-          const invDoc = querySnap.docs[0];
-          const invData = invDoc.data() as InventoryItem;
-          const newQty = (invData.quantity ?? 0) - item.quantity;
-
-          // Allow negative quantity for store, but warn
-          if (newQty < 0) {
-            console.warn(
-              `⚠️ Store order exceeds stock for ${item.name}. Available: ${invData.quantity}, Ordered: ${item.quantity}`
-            );
-          }
-
-          transaction.update(invDoc.ref, { quantity: newQty });
-          console.log(
-            `🛒 Store order → updated stock for ${item.name}: ${newQty}`
-          );
+        // Only fetch product docs for website orders
+        if (order.from?.toLowerCase() === "website") {
+          const productRef = adminFirestore.collection("products").doc(item.itemId);
+          const prodSnap = await transaction.get(productRef);
+          if (!prodSnap.exists) throw new Error(`Product ${item.itemId} not found`);
+          productDocs.push(prodSnap);
         }
       }
 
-      // --- WEBSITE ORDER ---
-      else if (order.from?.toLowerCase() === "website") {
-        if (!order.stockId)
-          throw new Error("Stock ID is required for website orders");
+      for (const item of order.items!) {
+        const invDoc = inventoryDocs.find(
+          (d) =>
+            d.data().productId === item.itemId &&
+            d.data().variantId === item.variantId &&
+            d.data().size === item.size
+        );
 
-        for (const item of order.items!) {
-          //1️⃣ Also reduce stock from respective stock_inventory
-          const inventoryQuery = adminFirestore
-            .collection("stock_inventory")
-            .where("productId", "==", item.itemId)
-            .where("variantId", "==", item.variantId)
-            .where("size", "==", item.size)
-            .where("stockId", "==", order.stockId);
+        if (!invDoc) {
+          console.warn(`⚠️ No inventory found for ${item.name} (${item.size})`);
+          continue;
+        }
 
-          const invSnap = await transaction.get(inventoryQuery);
+        const invData = invDoc.data() as InventoryItem;
+        const newQty = (invData.quantity ?? 0) - item.quantity;
 
-          if (invSnap.empty) {
-            console.warn(
-              `⚠️ No stock_inventory found for ${item.name} (${item.size}) under stockId: ${order.stockId}`
-            );
-            continue;
-          }
+        transaction.update(invDoc.ref, { quantity: newQty });
 
-          const invDoc = invSnap.docs[0];
-          const invData = invDoc.data() as InventoryItem;
+        // --- WEBSITE ORDER STOCK DEDUCTION ---
+        if (order.from?.toLowerCase() === "website") {
+          const productDoc = productDocs.find((d) => d.id === item.itemId);
+          if (!productDoc) continue;
 
-          if (invData.quantity < item.quantity) {
-            throw new Error(
-              `Insufficient stock in stock_inventory for ${item.name}. Available: ${invData.quantity}, Requested: ${item.quantity}`
-            );
-          }
+          const productData = productDoc.data() as Product;
+          const newTotalStock = (productData.totalStock ?? 0) - item.quantity;
 
-          const newStockQty = invData.quantity - item.quantity;
-
-          transaction.update(invDoc.ref, { quantity: newStockQty });
-          //4️⃣Fetch the product document
-          const productRef = adminFirestore
-            .collection("products")
-            .doc(item.itemId);
-          const prodSnap = await transaction.get(productRef);
-
-          if (!prodSnap.exists) {
-            throw new Error(`Product ${item.itemId} not found`);
-          }
-
-          const productData = prodSnap.data() as Product;
-          const availableStock = productData.totalStock ?? 0;
-
-          // 2️⃣ Validate global stock
-          if (availableStock < item.quantity) {
-            throw new Error(
-              `Insufficient stock for ${item.name}. Available: ${availableStock}, Requested: ${item.quantity}`
-            );
-          }
-
-          const newTotalStock = availableStock - item.quantity;
-
-          // 3️⃣ Update product total stock
-          transaction.update(productRef, {
+          transaction.update(productDoc.ref, {
             totalStock: newTotalStock,
             inStock: newTotalStock > 0,
             updatedAt: new Date(),
           });
-
-          console.log(
-            `🌐 Website order → updated global product stock for ${item.name}: ${newTotalStock}`
-          );
-          console.log(
-            `🏬 Website order → reduced stock_inventory for ${item.name}: ${newStockQty}`
-          );
         }
-      } else {
-        throw new Error(`Unknown order source: ${order.from}`);
       }
 
-      // ✅ Save order AFTER successful stock updates
       transaction.set(orderRef, orderData);
     });
+
     const orderDoc = await orderRef.get();
     const data = orderDoc.data();
-    if (!data) console.warn(`Order with ID ${data?.orderId} not found`);
+
+    if (!data) console.warn(`Order with ID ${order.orderId} not found`);
+
     await updateOrAddOrderHash(data);
     await clearPosCart();
-    console.log(
-      `✅ Order ${order.orderId} successfully added from ${order.from}`
-    );
+
+    console.log(`✅ Order ${order.orderId} successfully added from ${order.from}`);
   } catch (error) {
     console.error("❌ Error adding order:", error);
     throw error;
