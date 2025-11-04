@@ -323,13 +323,17 @@ export const addOrder = async (order: Partial<Order>) => {
       transaction.set(orderRef, orderData);
     });
 
+    await clearPosCart();
+
     // --- POST-TRANSACTION ---
     const orderDoc = await orderRef.get();
     const data = orderDoc.data();
-    if (!data) console.warn(`Order with ID ${order.orderId} not found`);
+    if (!data) {
+      console.warn(`Order with ID ${order.orderId} not found`);
+      return;
+    }
 
     await updateOrAddOrderHash(data);
-    await clearPosCart();
 
     console.log(
       `✅ Order ${order.orderId} successfully added from ${order.from}`
