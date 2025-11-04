@@ -206,6 +206,14 @@ export const addOrder = async (order: Partial<Order>) => {
       const inventoryDocs: FirebaseFirestore.QueryDocumentSnapshot[] = [];
       const productDocs: FirebaseFirestore.QueryDocumentSnapshot[] = [];
 
+      const fromSource = order.from?.toLowerCase();
+      if (!fromSource) throw new Error("Order 'from' field is required");
+      if (!order.stockId)
+        throw new Error(
+          "Stock ID is required for both store and website orders"
+        );
+
+      // --- 1️⃣ COLLECT ALL READS FIRST ---
       for (const item of order.items!) {
         const inventoryQuery = adminFirestore
           .collection("stock_inventory")
@@ -215,18 +223,25 @@ export const addOrder = async (order: Partial<Order>) => {
           .where("stockId", "==", order.stockId);
 
         const invSnap = await transaction.get(inventoryQuery);
-        if (invSnap.empty) continue;
+        if (invSnap.empty) {
+          console.warn(
+            `⚠️ No stock_inventory found for ${item.name} (${item.size}) under stockId: ${order.stockId}`
+          );
+          continue;
+        }
         inventoryDocs.push(invSnap.docs[0]);
 
-        // Only fetch product docs for website orders
-        if (order.from?.toLowerCase() === "website") {
-          const productRef = adminFirestore.collection("products").doc(item.itemId);
-          const prodSnap = await transaction.get(productRef);
-          if (!prodSnap.exists) throw new Error(`Product ${item.itemId} not found`);
-          productDocs.push(prodSnap);
-        }
+        // Always read product document (both store + website)
+        const productRef = adminFirestore
+          .collection("products")
+          .doc(item.itemId);
+        const prodSnap = await transaction.get(productRef);
+        if (!prodSnap.exists)
+          throw new Error(`Product ${item.itemId} not found`);
+        productDocs.push(prodSnap);
       }
 
+      // --- 2️⃣ APPLY WRITES AFTER ALL READS ---
       for (const item of order.items!) {
         const invDoc = inventoryDocs.find(
           (d) =>
@@ -235,44 +250,90 @@ export const addOrder = async (order: Partial<Order>) => {
             d.data().size === item.size
         );
 
-        if (!invDoc) {
-          console.warn(`⚠️ No inventory found for ${item.name} (${item.size})`);
-          continue;
-        }
+        if (!invDoc) continue;
 
         const invData = invDoc.data() as InventoryItem;
-        const newQty = (invData.quantity ?? 0) - item.quantity;
+        const oldInvQty = invData.quantity ?? 0;
+        const newInvQty = oldInvQty - item.quantity;
 
-        transaction.update(invDoc.ref, { quantity: newQty });
+        const productDoc = productDocs.find((d) => d.id === item.itemId);
+        if (!productDoc) continue;
+        const productData = productDoc.data() as Product;
+        const oldTotalStock = productData.totalStock ?? 0;
+        const newTotalStock = oldTotalStock - item.quantity;
 
-        // --- WEBSITE ORDER STOCK DEDUCTION ---
-        if (order.from?.toLowerCase() === "website") {
-          const productDoc = productDocs.find((d) => d.id === item.itemId);
-          if (!productDoc) continue;
+        // --- STORE ORDER ---
+        if (fromSource === "store") {
+          if (newInvQty < 0) {
+            console.warn(
+              `⚠️ Store order exceeds stock for ${item.name}. Available in inventory: ${oldInvQty}, Ordered: ${item.quantity}`
+            );
+          }
 
-          const productData = productDoc.data() as Product;
-          const newTotalStock = (productData.totalStock ?? 0) - item.quantity;
+          // Always update inventory (even if negative)
+          transaction.update(invDoc.ref, { quantity: newInvQty });
 
+          // Update global stock only if result won't go below zero
+          if (newTotalStock >= 0) {
+            transaction.update(productDoc.ref, {
+              totalStock: newTotalStock,
+              inStock: newTotalStock > 0,
+              updatedAt: new Date(),
+            });
+            console.log(
+              `🏬 Store order → updated stock_inventory: ${newInvQty}, global: ${newTotalStock}`
+            );
+          } else {
+            console.warn(
+              `⚠️ Skipped global stock update for ${item.name} (would go negative).`
+            );
+          }
+        }
+
+        // --- WEBSITE ORDER ---
+        else if (fromSource === "website") {
+          if (oldInvQty < item.quantity) {
+            throw new Error(
+              `Insufficient stock in stock_inventory for ${item.name}. Available: ${oldInvQty}, Requested: ${item.quantity}`
+            );
+          }
+          if (oldTotalStock < item.quantity) {
+            throw new Error(
+              `Insufficient total stock for ${item.name}. Available: ${oldTotalStock}, Requested: ${item.quantity}`
+            );
+          }
+
+          // Update both inventory and global stock
+          transaction.update(invDoc.ref, { quantity: newInvQty });
           transaction.update(productDoc.ref, {
             totalStock: newTotalStock,
             inStock: newTotalStock > 0,
             updatedAt: new Date(),
           });
+
+          console.log(
+            `🌐 Website order → reduced inventory: ${newInvQty}, global: ${newTotalStock}`
+          );
+        } else {
+          throw new Error(`Unknown order source: ${order.from}`);
         }
       }
 
+      // --- 3️⃣ SAVE ORDER DOCUMENT LAST ---
       transaction.set(orderRef, orderData);
     });
 
+    // --- POST-TRANSACTION ---
     const orderDoc = await orderRef.get();
     const data = orderDoc.data();
-
     if (!data) console.warn(`Order with ID ${order.orderId} not found`);
 
     await updateOrAddOrderHash(data);
     await clearPosCart();
 
-    console.log(`✅ Order ${order.orderId} successfully added from ${order.from}`);
+    console.log(
+      `✅ Order ${order.orderId} successfully added from ${order.from}`
+    );
   } catch (error) {
     console.error("❌ Error adding order:", error);
     throw error;
