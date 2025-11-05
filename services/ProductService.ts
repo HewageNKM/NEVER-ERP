@@ -46,12 +46,11 @@ export const addProducts = async (product: Partial<Product>, file: File) => {
     const textContext = `
       Name: ${product.name || ""}
       Description: ${product.description || ""}
-      Category: ${product.category || ""}
-      Brand: ${product.brand || ""}
       Variants: ${(product.variants || []).map((v) => v.variantName).join(", ")}
     `;
     const tags = await generateTags("Extract product tags", textContext);
-
+    tags.push(product.brand?.toLocaleLowerCase());
+    tags.push(product.category?.toLocaleLowerCase());
     const newProductDocument: Product = {
       ...(product as Product), // Cast after filling required fields
       id: id,
@@ -89,11 +88,11 @@ export const updateProduct = async (
     const textContext = `
       Name: ${product.name || ""}
       Description: ${product.description || ""}
-      Category: ${product.category || ""}
-      Brand: ${product.brand || ""}
       Variants: ${(product.variants || []).map((v) => v.variantName).join(", ")}
     `;
     const tags = await generateTags("Extract product tags", textContext);
+    tags.push(product.brand?.toLocaleLowerCase());
+    tags.push(product.category?.toLocaleLowerCase());
     let thumbnail = product.thumbnail; // Keep old thumbnail by default
 
     if (file) {
@@ -150,26 +149,53 @@ export const getProducts = async (
   listing?: boolean
 ): Promise<{ dataList: Omit<Product, "isDeleted">[]; rowCount: number }> => {
   try {
-    let query: FirebaseFirestore.Query = adminFirestore.collection(PRODUCTS_COLLECTION).where("isDeleted", "==", false);
-    let countQuery: FirebaseFirestore.Query = adminFirestore.collection(PRODUCTS_COLLECTION).where("isDeleted", "==", false);
+    let query: FirebaseFirestore.Query = adminFirestore
+      .collection(PRODUCTS_COLLECTION)
+      .where("isDeleted", "==", false);
+    let countQuery: FirebaseFirestore.Query = adminFirestore
+      .collection(PRODUCTS_COLLECTION)
+      .where("isDeleted", "==", false);
 
     // Filters
-    if (brand) { query = query.where("brand", "==", brand); countQuery = countQuery.where("brand", "==", brand); }
-    if (category) { query = query.where("category", "==", category); countQuery = countQuery.where("category", "==", category); }
-    if (typeof status === "boolean") { query = query.where("status", "==", status); countQuery = countQuery.where("status", "==", status); }
-    if (typeof listing === "boolean") { query = query.where("listing", "==", listing); countQuery = countQuery.where("listing", "==", listing); }
+    if (brand) {
+      query = query.where("brand", "==", brand);
+      countQuery = countQuery.where("brand", "==", brand);
+    }
+    if (category) {
+      query = query.where("category", "==", category);
+      countQuery = countQuery.where("category", "==", category);
+    }
+    if (typeof status === "boolean") {
+      query = query.where("status", "==", status);
+      countQuery = countQuery.where("status", "==", status);
+    }
+    if (typeof listing === "boolean") {
+      query = query.where("listing", "==", listing);
+      countQuery = countQuery.where("listing", "==", listing);
+    }
 
     // Search using AI-generated tags
     if (search) {
       const searchContext = `Name: ${search}\nDescription: ${search}`;
-      const searchTags = await generateTags("Extract product tags for search", searchContext);
+      const searchTags = await generateTags(
+        "Extract product tags for search",
+        searchContext
+      );
 
       if (searchTags.length > 0) {
         query = query.where("tags", "array-contains-any", searchTags);
         countQuery = countQuery.where("tags", "array-contains-any", searchTags);
       } else {
-        query = query.where("tags", "array-contains", `__no_match__${nanoid()}`);
-        countQuery = countQuery.where("tags", "array-contains", `__no_match__${nanoid()}`);
+        query = query.where(
+          "tags",
+          "array-contains",
+          `__no_match__${nanoid()}`
+        );
+        countQuery = countQuery.where(
+          "tags",
+          "array-contains",
+          `__no_match__${nanoid()}`
+        );
       }
     }
 
@@ -182,14 +208,18 @@ export const getProducts = async (
 
     const products = productsSnapshot.docs.map((doc) => {
       const data = doc.data() as any;
-      const activeVariants = (data.variants || []).filter((v: ProductVariant & { isDeleted?: boolean }) => !v.isDeleted);
+      const activeVariants = (data.variants || []).filter(
+        (v: ProductVariant & { isDeleted?: boolean }) => !v.isDeleted
+      );
 
       return {
         ...data,
         productId: doc.id,
         variants: activeVariants,
-        createdAt: data.createdAt?.toDate?.().toISOString() || new Date().toISOString(),
-        updatedAt: data.updatedAt?.toDate?.().toISOString() || new Date().toISOString(),
+        createdAt:
+          data.createdAt?.toDate?.().toISOString() || new Date().toISOString(),
+        updatedAt:
+          data.updatedAt?.toDate?.().toISOString() || new Date().toISOString(),
       } as Omit<Product, "isDeleted">;
     });
 
@@ -203,13 +233,22 @@ export const getProducts = async (
 // Get product by ID
 export const getProductById = async (id: string): Promise<Product | null> => {
   try {
-    const docSnap = await adminFirestore.collection(PRODUCTS_COLLECTION).doc(id).get();
+    const docSnap = await adminFirestore
+      .collection(PRODUCTS_COLLECTION)
+      .doc(id)
+      .get();
     if (!docSnap.exists || docSnap.data()?.isDeleted) return null;
 
     const data = docSnap.data() as any;
-    const activeVariants = (data.variants || []).filter((v: ProductVariant & { isDeleted?: boolean }) => !v.isDeleted);
+    const activeVariants = (data.variants || []).filter(
+      (v: ProductVariant & { isDeleted?: boolean }) => !v.isDeleted
+    );
 
-    return { ...data, productId: docSnap.id, variants: activeVariants } as Product;
+    return {
+      ...data,
+      productId: docSnap.id,
+      variants: activeVariants,
+    } as Product;
   } catch (error) {
     console.error("Get Product By ID Error:", error);
     throw error;
@@ -219,7 +258,8 @@ export const getProductById = async (id: string): Promise<Product | null> => {
 // Get product dropdown for active products
 export const getProductDropdown = async () => {
   try {
-    const snapshot = await adminFirestore.collection(PRODUCTS_COLLECTION)
+    const snapshot = await adminFirestore
+      .collection(PRODUCTS_COLLECTION)
       .where("isDeleted", "==", false)
       .where("status", "==", true)
       .get();

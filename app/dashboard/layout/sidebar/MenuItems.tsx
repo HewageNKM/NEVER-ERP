@@ -50,12 +50,6 @@ const Menuitems = [
   },
   {
     id: uniqueId(),
-    title: "Old Inventory",
-    icon: IconList,
-    href: "/dashboard/oldInventory",
-  },
-  {
-    id: uniqueId(),
     title: "Inventory",
     icon: IconList,
     href: "/dashboard/inventory",
