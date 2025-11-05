@@ -239,7 +239,10 @@ export const addOrder = async (order: Partial<Order>) => {
               if (!prodData)
                 throw new Error(`Product not found: ${item.itemId}`);
 
-              const newInvQty = Math.max((invData.quantity ?? 0) - item.quantity, 0);
+              const newInvQty = Math.max(
+                (invData.quantity ?? 0) - item.quantity,
+                0
+              );
               const newTotalStock = Math.max(
                 (prodData.totalStock ?? 0) - item.quantity,
                 0
@@ -260,7 +263,9 @@ export const addOrder = async (order: Partial<Order>) => {
           batch.set(orderRef, orderData);
           await batch.commit();
 
-          console.log(`🏬 Store order ${order.orderId} committed (attempt ${attempt})`);
+          console.log(
+            `🏬 Store order ${order.orderId} committed (attempt ${attempt})`
+          );
           break;
         } catch (err) {
           if (attempt === 3) throw err;
@@ -273,6 +278,15 @@ export const addOrder = async (order: Partial<Order>) => {
     // --- WEBSITE ORDER (Strict Transaction) ---
     else if (fromSource === "website") {
       let success = false;
+      const settingsSnap = await adminFirestore
+        .collection("app_settings")
+        .doc("erp_settings")
+        .get();
+
+      const stockId = settingsSnap.data()?.onlineStockId;
+      if (!settingsSnap.exists || !settingsSnap.data()?.onlineStockId)
+        throw new Error("ERP settings or onlineStockId missing");
+      order.stockId = stockId;
       for (let attempt = 1; attempt <= 3 && !success; attempt++) {
         try {
           await adminFirestore.runTransaction(async (tx) => {
@@ -327,18 +341,16 @@ export const addOrder = async (order: Partial<Order>) => {
       }
     }
 
-    // --- Shared post-commit cleanup ---
-    await Promise.allSettled([
-      clearPosCart(),
-      updateOrAddOrderHash(orderData),
-    ]);
+    await Promise.allSettled([clearPosCart()]);
+
+    const orderForHashSnap = await orderRef.get();
+    const orderForHash = orderForHashSnap.data();
+    if (orderForHash) await updateOrAddOrderHash(orderForHash);
   } catch (error) {
     console.error("❌ addOrder failed:", error);
     throw error;
   }
 };
-
-
 
 const clearPosCart = async () => {
   try {
