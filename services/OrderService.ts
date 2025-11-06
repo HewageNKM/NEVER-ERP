@@ -1,4 +1,5 @@
 import { adminFirestore } from "@/firebase/firebaseAdmin";
+import admin from "firebase-admin";
 import { Order } from "@/model";
 import {
   updateOrAddOrderHash,
@@ -199,11 +200,10 @@ export const addOrder = async (order: Partial<Order>) => {
     throw new Error(`Invalid order source: ${order.from}`);
 
   const orderRef = adminFirestore.collection("orders").doc(order.orderId);
-  const now = new Date();
+  const now = admin.firestore.Timestamp.now();
   const orderData: Order = { ...order, createdAt: now, updatedAt: now };
 
   try {
-    // ✅ Pre-fetch all product docs in parallel
     const productRefs = order.items.map((i) =>
       adminFirestore.collection("products").doc(i.itemId)
     );
@@ -328,11 +328,11 @@ export const addOrder = async (order: Partial<Order>) => {
 
             tx.set(orderRef, {
               ...orderData,
-              customer:{
+              customer: {
                 ...order.customer,
                 updatedAt: now,
-                createdAt: now
-              }
+                createdAt: now,
+              },
             });
           });
 
