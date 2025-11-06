@@ -193,7 +193,6 @@ export const addOrder = async (order: Partial<Order>) => {
   if (!order.orderId) throw new Error("Order ID is required");
   if (!order.items?.length) throw new Error("Order items are required");
   if (!order.from) throw new Error("Order 'from' field is required");
-  if (!order.stockId) throw new Error("Stock ID is required");
 
   const fromSource = order.from.toLowerCase();
   if (!["store", "website"].includes(fromSource))
@@ -215,6 +214,7 @@ export const addOrder = async (order: Partial<Order>) => {
 
     // --- STORE ORDER (Batch, with retry) ---
     if (fromSource === "store") {
+      if (!order.stockId) throw new Error("Stock ID is required");
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
           const batch = adminFirestore.batch();
