@@ -326,7 +326,14 @@ export const addOrder = async (order: Partial<Order>) => {
               );
             }
 
-            tx.set(orderRef, orderData);
+            tx.set(orderRef, {
+              ...orderData,
+              customer:{
+                ...order.customer,
+                updatedAt: now,
+                createdAt: now
+              }
+            });
           });
 
           console.log(
