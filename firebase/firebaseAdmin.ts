@@ -21,6 +21,7 @@ import {
   updateOrAddOrderHash,
   validateDocumentIntegrity,
 } from "@/services/IntegrityService";
+import { toSafeLocaleString } from "@/services/UtilService";
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -41,24 +42,6 @@ export const adminStorageBucket = admin
 // const adminFirestore = admin.firestore();
 
 // --- Helper Functions (from previous conversation) ---
-
-// This helper is needed to safely convert Firestore Timestamps or strings
-function toSafeLocaleString(
-  val: admin.firestore.Timestamp | string | null | undefined
-): string | null {
-  if (!val) {
-    return null;
-  }
-  if (typeof (val as any)?.toDate === "function") {
-    // It's a Firestore Timestamp
-    return (val as admin.firestore.Timestamp).toDate().toLocaleString();
-  }
-  if (typeof val === "string") {
-    // It's already a string, return as-is or try to parse
-    return new Date(val).toLocaleString();
-  }
-  return null;
-}
 
 export const getOrders = async (pageNumber: number = 1, size: number = 20) => {
   try {
