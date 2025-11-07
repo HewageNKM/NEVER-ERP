@@ -1,4 +1,5 @@
 import { adminFirestore } from "@/firebase/firebaseAdmin";
+import { FieldValue } from "firebase-admin/firestore";
 import { nanoid } from "nanoid";
 
 export interface Category {
@@ -25,8 +26,8 @@ export const createCategory = async (category: Category) => {
         id,
         active: category.active ?? true,
         isDeleted: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       });
     return { success: true, id };
   } catch (error) {
@@ -114,7 +115,7 @@ export const updateCategory = async (id: string, data: Partial<Category>) => {
     await adminFirestore
       .collection(COLLECTION)
       .doc(id)
-      .update({ ...data, updatedAt: new Date() });
+      .update({ ...data, updatedAt: FieldValue.serverTimestamp() });
     return { success: true };
   } catch (error) {
     console.error("Update Category Error:", error);
@@ -128,7 +129,7 @@ export const softDeleteCategory = async (id: string) => {
     await adminFirestore
       .collection(COLLECTION)
       .doc(id)
-      .update({ isDeleted: true, updatedAt: new Date() });
+      .update({ isDeleted: true, updatedAt: FieldValue.serverTimestamp() });
     return { success: true };
   } catch (error) {
     console.error("Soft Delete Error:", error);
@@ -142,7 +143,7 @@ export const restoreCategory = async (id: string) => {
     await adminFirestore
       .collection(COLLECTION)
       .doc(id)
-      .update({ isDeleted: false, updatedAt: new Date() });
+      .update({ isDeleted: false, updatedAt: FieldValue.serverTimestamp() });
     return { success: true };
   } catch (error) {
     console.error("Restore Category Error:", error);
@@ -152,10 +153,11 @@ export const restoreCategory = async (id: string) => {
 
 export const getCategoriesForDropdown = async () => {
   try {
-    const snapshot = await adminFirestore.collection(COLLECTION)
-    .where("isDeleted", "==", false)
-    .where("status", "==", true)
-    .get();
+    const snapshot = await adminFirestore
+      .collection(COLLECTION)
+      .where("isDeleted", "==", false)
+      .where("status", "==", true)
+      .get();
     const categories = snapshot.docs.map((doc) => ({
       id: doc.id,
       label: doc.data().name,

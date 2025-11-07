@@ -3,6 +3,8 @@ import { Product } from "@/model/Product";
 import { ProductVariant } from "@/model/ProductVariant";
 import { nanoid } from "nanoid";
 import { generateTags } from "./AIService";
+import { FieldValue } from "firebase-admin/firestore";
+import { toSafeLocaleString } from "./UtilService";
 
 const PRODUCTS_COLLECTION = "products";
 const BUCKET = adminStorageBucket;
@@ -58,8 +60,8 @@ export const addProducts = async (product: Partial<Product>, file: File) => {
       thumbnail: thumbnail,
       tags: tags,
       isDeleted: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     };
 
     await adminFirestore
@@ -93,12 +95,11 @@ export const updateProduct = async (
     const tags = await generateTags("Extract product tags", textContext);
     tags.push(product.brand?.toLocaleLowerCase());
     tags.push(product.category?.toLocaleLowerCase());
-    let thumbnail = product.thumbnail; // Keep old thumbnail by default
+    let thumbnail = product.thumbnail;
 
     if (file) {
-      // Note: getProductById now also filters variants, which is fine
       const oldProduct = await getProductById(id);
-      const oldPath = oldProduct?.thumbnail?.file; // Use .file for the storage path
+      const oldPath = oldProduct?.thumbnail?.file; 
       if (oldPath) {
         try {
           await BUCKET.file(oldPath).delete();
@@ -216,10 +217,8 @@ export const getProducts = async (
         ...data,
         productId: doc.id,
         variants: activeVariants,
-        createdAt:
-          data.createdAt?.toDate?.().toISOString() || new Date().toISOString(),
-        updatedAt:
-          data.updatedAt?.toDate?.().toISOString() || new Date().toISOString(),
+        createdAt:toSafeLocaleString(data.createdAt),
+        updatedAt:toSafeLocaleString(data.updatedAt),
       } as Omit<Product, "isDeleted">;
     });
 

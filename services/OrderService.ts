@@ -8,33 +8,10 @@ import {
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { InventoryItem } from "@/model/InventoryItem";
 import { Product } from "@/model/Product";
+import { toSafeLocaleString } from "./UtilService";
 
 const ORDERS_COLLECTION = "orders";
 
-/**
- * Helper to safely convert Firestore Timestamps or strings to a locale string.
- * Prevents crashes if the field is null, undefined, or not a date.
- */
-function toSafeLocaleString(val: any): string | null {
-  if (!val) {
-    return null;
-  }
-  // Check if it's a Firestore Timestamp
-  if (typeof (val as Timestamp)?.toDate === "function") {
-    return (val as Timestamp).toDate().toLocaleString();
-  }
-  // Check if it's a string or number that can be parsed
-  try {
-    const date = new Date(val);
-    // Check if the date is valid before converting
-    if (!isNaN(date.getTime())) {
-      return date.toLocaleString();
-    }
-    return String(val); // Return original value if not a valid date
-  } catch (e) {
-    return String(val); // Fallback
-  }
-}
 
 export const getOrders = async (
   pageNumber: number = 1,
@@ -135,7 +112,7 @@ export const getOrder = async (orderId: string): Promise<Order | null> => {
       restockedAt: data.restockedAt
         ? toSafeLocaleString(data.restockedAt)
         : null,
-    } as Order;
+    };
   } catch (error) {
     console.error("Error fetching order:", error);
     throw error;

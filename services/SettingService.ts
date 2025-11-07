@@ -25,6 +25,5 @@ export const updateERPSettings = async (data: any) => {
   } catch (error) {
     console.log(error);
     throw error;
-    I;
   }
 };

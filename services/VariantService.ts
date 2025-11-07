@@ -37,7 +37,9 @@ export const addVariant = async (
   variantData: Partial<ProductVariant>,
   newImageFiles: File[]
 ): Promise<ProductVariant> => {
-  const productRef = adminFirestore.collection(PRODUCTS_COLLECTION).doc(productId);
+  const productRef = adminFirestore
+    .collection(PRODUCTS_COLLECTION)
+    .doc(productId);
   try {
     // --- Step 1: Get current product data ---
     const productSnap = await productRef.get();
@@ -84,7 +86,9 @@ export const addVariant = async (
       updatedAt: FieldValue.serverTimestamp(), // Update timestamp again
     });
 
-    console.log(`Variant ${variantId} added and tags updated for product ${productId}`);
+    console.log(
+      `Variant ${variantId} added and tags updated for product ${productId}`
+    );
     return newVariant;
   } catch (error) {
     console.error("Error adding variant:", error);
@@ -102,7 +106,9 @@ export const updateVariant = async (
   variantData: Partial<ProductVariant>,
   newImageFiles: File[]
 ): Promise<ProductVariant> => {
-  const productRef = adminFirestore.collection(PRODUCTS_COLLECTION).doc(productId);
+  const productRef = adminFirestore
+    .collection(PRODUCTS_COLLECTION)
+    .doc(productId);
   try {
     // --- Step 1: Get current product data ---
     const productSnap = await productRef.get();
@@ -112,9 +118,13 @@ export const updateVariant = async (
     const currentProductData = productSnap.data() as Product;
     const existingVariants = currentProductData.variants || [];
 
-    const variantIndex = existingVariants.findIndex((v) => v.variantId === variantId);
+    const variantIndex = existingVariants.findIndex(
+      (v) => v.variantId === variantId
+    );
     if (variantIndex === -1) {
-      throw new Error(`Variant with ID ${variantId} not found in product ${productId}.`);
+      throw new Error(
+        `Variant with ID ${variantId} not found in product ${productId}.`
+      );
     }
 
     // --- Step 2: Prepare and upload new images ---
@@ -129,10 +139,10 @@ export const updateVariant = async (
     // --- Step 3: Create the fully updated variant object ---
     const updatedVariant: ProductVariant = {
       ...existingVariants[variantIndex], // Start with existing
-      ...variantData,                  // Apply changes from form
-      variantId: variantId,            // Ensure ID isn't overwritten
-      images: finalImages,             // Set final image list
-      isDeleted: false,                // Ensure isDeleted is false on update
+      ...variantData, // Apply changes from form
+      variantId: variantId, // Ensure ID isn't overwritten
+      images: finalImages, // Set final image list
+      isDeleted: false, // Ensure isDeleted is false on update
     };
 
     // --- Step 4: Construct the new variants array ---
@@ -154,10 +164,12 @@ export const updateVariant = async (
 
     // --- Step 8: Update tags ---
     await productRef.update({
-      updatedAt: new Date(),
+      updatedAt: FieldValue.serverTimestamp(),
     });
 
-    console.log(`Variant ${variantId} updated and tags updated for product ${productId}`);
+    console.log(
+      `Variant ${variantId} updated and tags updated for product ${productId}`
+    );
     return updatedVariant;
   } catch (error) {
     console.error("Error updating variant:", error);
@@ -173,7 +185,9 @@ export const deleteVariant = async (
   productId: string,
   variantId: string
 ): Promise<boolean> => {
-  const productRef = adminFirestore.collection(PRODUCTS_COLLECTION).doc(productId);
+  const productRef = adminFirestore
+    .collection(PRODUCTS_COLLECTION)
+    .doc(productId);
   try {
     // --- Step 1: Get current product data ---
     const productSnap = await productRef.get();
@@ -183,9 +197,13 @@ export const deleteVariant = async (
     const currentProductData = productSnap.data() as Product;
     const existingVariants = currentProductData.variants || [];
 
-    const variantIndex = existingVariants.findIndex((v) => v.variantId === variantId);
+    const variantIndex = existingVariants.findIndex(
+      (v) => v.variantId === variantId
+    );
     if (variantIndex === -1) {
-      console.warn(`Variant ${variantId} not found for deletion in product ${productId}.`);
+      console.warn(
+        `Variant ${variantId} not found for deletion in product ${productId}.`
+      );
       return false;
     }
 
@@ -211,12 +229,14 @@ export const deleteVariant = async (
 
     // --- Step 6: Update tags ---
     await productRef.update({
-      updatedAt: new Date(),
+      updatedAt: FieldValue.serverTimestamp(),
     });
 
     // TODO: Optionally delete images from storage here or via a scheduled function later
 
-    console.log(`Variant ${variantId} marked deleted and tags updated for product ${productId}`);
+    console.log(
+      `Variant ${variantId} marked deleted and tags updated for product ${productId}`
+    );
     return true;
   } catch (error) {
     console.error("Error deleting variant:", error);
@@ -225,10 +245,11 @@ export const deleteVariant = async (
   }
 };
 
-export  const getProductVariantsForDropdown = async (productId: string) => {
-    
+export const getProductVariantsForDropdown = async (productId: string) => {
   try {
-    const productRef = adminFirestore.collection(PRODUCTS_COLLECTION).doc(productId);
+    const productRef = adminFirestore
+      .collection(PRODUCTS_COLLECTION)
+      .doc(productId);
     const productSnap = await productRef.get();
 
     if (!productSnap.exists) {
@@ -251,5 +272,4 @@ export  const getProductVariantsForDropdown = async (productId: string) => {
     console.error("Get Product Variants For Dropdown Error:", error);
     return [];
   }
-
-}
+};

@@ -72,8 +72,8 @@ export const addStock = async (data: Omit<Stock, 'id' | 'createdAt' | 'updatedAt
     const newStock: Omit<Stock, 'id'> & { createdAt: FieldValue, updatedAt: FieldValue, tags: string[], isDeleted: boolean } = {
       ...data,
       isDeleted: false,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp()
     };
 
     await adminFirestore.collection(STOCKS_COLLECTION).doc(id).set(newStock);

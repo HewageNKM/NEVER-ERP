@@ -1,5 +1,6 @@
 import { adminFirestore, adminStorageBucket } from "@/firebase/firebaseAdmin";
 import { Brand } from "@/model/Brand";
+import { FieldValue } from "firebase-admin/firestore";
 import { nanoid } from "nanoid";
 
 const COLLECTION = "brands";
@@ -136,7 +137,7 @@ export const updateBrand = async (
   const updatedData = {
     ...updates,
     logoUrl,
-    updatedAt: new Date(),
+    updatedAt:FieldValue.serverTimestamp(),
   };
 
   await ref.update(updatedData);
@@ -153,7 +154,7 @@ export const deleteBrand = async (id: string) => {
 
   await ref.update({
     isDeleted: true,
-    updatedAt: new Date(),
+    updatedAt: FieldValue.serverTimestamp(),
   });
 
   return { success: true };

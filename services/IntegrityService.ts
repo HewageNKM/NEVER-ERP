@@ -1,5 +1,6 @@
 import { adminFirestore } from "@/firebase/firebaseAdmin";
 import crypto from "crypto";
+import { FieldValue } from "firebase-admin/firestore";
 import stringify from "json-stable-stringify";
 
 const HASH_LEDGER_COLLECTION = "hash_ledger";
@@ -77,8 +78,8 @@ export const updateOrAddOrderHash = async (data: any) => {
         hashValue: hashValue,
         sourceCollection: "orders",
         sourceDocId: data.orderId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true }
     );
