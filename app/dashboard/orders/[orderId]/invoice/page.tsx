@@ -18,12 +18,11 @@ import {
 } from "@mui/material";
 import { Breadcrumbs, Link } from "@mui/material";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { Order } from "@/model";
 import Image from "next/image";
 import axios from "axios";
 import { getToken } from "@/firebase/firebaseClient";
-import { useParams } from "next/navigation";
 import { useAppSelector } from "@/lib/hooks";
 import { PrintOutlined } from "@mui/icons-material";
 import { Logo } from "@/assets/images";
@@ -37,9 +36,7 @@ const OrderInvoice = () => {
   const router = useRouter();
 
   useEffect(() => {
-    if (orderId && currentUser) {
-      fetchOrderById();
-    }
+    if (orderId && currentUser) fetchOrderById();
   }, [orderId, currentUser]);
 
   const fetchOrderById = async () => {
@@ -57,11 +54,9 @@ const OrderInvoice = () => {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = () => window.print();
 
-  if (loading) {
+  if (loading)
     return (
       <Box
         sx={{
@@ -75,15 +70,13 @@ const OrderInvoice = () => {
         <Typography sx={{ ml: 2 }}>Loading Invoice...</Typography>
       </Box>
     );
-  }
 
-  if (!order) {
+  if (!order)
     return (
       <Typography sx={{ textAlign: "center", mt: 4 }}>
         Order not found or still loading.
       </Typography>
     );
-  }
 
   return (
     <>
@@ -97,6 +90,8 @@ const OrderInvoice = () => {
           }
         `}
       </style>
+
+      {/* Breadcrumbs */}
       <Box sx={{ mb: 3 }}>
         <Breadcrumbs
           separator={<NavigateNextIcon fontSize="small" />}
@@ -123,6 +118,7 @@ const OrderInvoice = () => {
           </Typography>
         </Breadcrumbs>
       </Box>
+
       <Box
         sx={{
           p: { xs: 2, md: 4 },
@@ -143,6 +139,7 @@ const OrderInvoice = () => {
               Print Invoice
             </Button>
           </Box>
+
           <Paper id="printable-area" sx={{ p: { xs: 3, sm: 6 } }}>
             {/* Header */}
             <Grid
@@ -163,6 +160,7 @@ const OrderInvoice = () => {
                 <Typography variant="body2">+94 70 520 8999</Typography>
                 <Typography variant="body2">+94 72 924 9999</Typography>
               </Grid>
+
               <Grid item xs={12} sm={6} sx={{ textAlign: { sm: "right" } }}>
                 <Typography
                   variant="h4"
@@ -185,7 +183,10 @@ const OrderInvoice = () => {
                 </Typography>
               </Grid>
             </Grid>
+
             <Divider sx={{ my: 4 }} />
+
+            {/* Customer Info */}
             <Stack direction="row" justifyContent={"space-between"}>
               <Grid item xs={12} sx={{ mb: 4 }}>
                 <Typography variant="h6" gutterBottom>
@@ -217,7 +218,7 @@ const OrderInvoice = () => {
                   {order.customer?.shippingName || "N/A"}
                 </Typography>
                 <Typography variant="body2">
-                  {order.customer?.address || "N/A"},{" "}
+                  {order.customer?.shippingAddress || "N/A"},{" "}
                   {order.customer?.shippingCity || "N/A"}
                 </Typography>
                 <Typography variant="body2">
@@ -256,18 +257,20 @@ const OrderInvoice = () => {
                       <TableCell>{item.name}</TableCell>
                       <TableCell>{item.variantName}</TableCell>
                       <TableCell>{item.size}</TableCell>
-                      <TableCell align="right">{item.quantity}</TableCell>
                       <TableCell align="right">
-                        Rs. {item.price.toFixed(2)}
+                        {Number(item.quantity) || 0}
                       </TableCell>
                       <TableCell align="right">
-                        Rs. {item.discount.toFixed(2)}
+                        Rs. {(Number(item.price) || 0).toFixed(2)}
+                      </TableCell>
+                      <TableCell align="right">
+                        Rs. {(Number(item.discount) || 0).toFixed(2)}
                       </TableCell>
                       <TableCell align="right">
                         Rs.{" "}
                         {(
-                          item.price * item.quantity -
-                          item.discount * item.quantity
+                          (Number(item.price) || 0) * (Number(item.quantity) || 0) -
+                          (Number(item.discount) || 0) * (Number(item.quantity) || 0)
                         ).toFixed(2)}
                       </TableCell>
                     </TableRow>
@@ -275,6 +278,7 @@ const OrderInvoice = () => {
                 </TableBody>
               </Table>
             </TableContainer>
+
             {/* Summary */}
             <Grid container justifyContent="flex-end" sx={{ mt: 3 }}>
               <Grid item xs={12} sm={5} md={4}>
@@ -286,51 +290,53 @@ const OrderInvoice = () => {
                   }}
                 >
                   <Typography>Subtotal:</Typography>
-                  <Typography>Rs. {order.items.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2)}</Typography>
-                </Box>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    mb: 1,
-                  }}
-                >
-                  <Typography>Total Discount:</Typography>
-                  <Typography>Rs. {order?.discount.toFixed(2)}</Typography>
-                </Box>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    mb: 1,
-                  }}
-                >
-                  <Typography>Shipping Fee:</Typography>
                   <Typography>
-                    Rs. {(order.shippingFee || 0).toFixed(2)}
+                    Rs.{" "}
+                    {order.items
+                      .reduce(
+                        (acc, item) =>
+                          acc +
+                          (Number(item.price) || 0) * (Number(item.quantity) || 0),
+                        0
+                      )
+                      .toFixed(2)}
                   </Typography>
                 </Box>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    mb: 1,
-                  }}
-                >
-                  <Typography>Fee:</Typography>
-                  <Typography>Rs. {(order.fee || 0).toFixed(2)}</Typography>
+
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+                  <Typography>Total Discount:</Typography>
+                  <Typography>
+                    Rs. {(Number(order?.discount) || 0).toFixed(2)}
+                  </Typography>
                 </Box>
+
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+                  <Typography>Shipping Fee:</Typography>
+                  <Typography>
+                    Rs. {(Number(order?.shippingFee) || 0).toFixed(2)}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+                  <Typography>Fee:</Typography>
+                  <Typography>
+                    Rs. {(Number(order?.fee) || 0).toFixed(2)}
+                  </Typography>
+                </Box>
+
                 <Divider sx={{ my: 1.5 }} />
+
                 <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                   <Typography variant="h6" fontWeight="bold">
                     Grand Total:
                   </Typography>
                   <Typography variant="h6" fontWeight="bold">
-                    Rs. {order?.total.toFixed(2)}
+                    Rs. {(Number(order?.total) || 0).toFixed(2)}
                   </Typography>
                 </Box>
               </Grid>
             </Grid>
+
             {/* Footer */}
             <Box sx={{ mt: 6, textAlign: "center" }}>
               <Typography variant="body1" gutterBottom>
@@ -346,4 +352,5 @@ const OrderInvoice = () => {
     </>
   );
 };
+
 export default OrderInvoice;

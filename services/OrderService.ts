@@ -264,7 +264,7 @@ export const addOrder = async (order: Partial<Order>) => {
       const stockId = settingsSnap.data()?.onlineStockId;
       if (!settingsSnap.exists || !settingsSnap.data()?.onlineStockId)
         throw new Error("ERP settings or onlineStockId missing");
-      order.stockId = stockId;
+      orderData.stockId = stockId;
       for (let attempt = 1; attempt <= 3 && !success; attempt++) {
         try {
           await adminFirestore.runTransaction(async (tx) => {
