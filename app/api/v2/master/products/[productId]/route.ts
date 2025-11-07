@@ -28,7 +28,7 @@ const parseProductFromFormData = async (
     } else if (key === "status" || key === "listing") {
       product[key as "status" | "listing"] = value === "true";
     } else if (
-      ["buyingPrice", "sellingPrice", "marketPrice", "discount"].includes(key)
+      ["buyingPrice", "sellingPrice", "marketPrice", "discount","weight"].includes(key)
     ) {
       product[key as "buyingPrice"] = parseFloat(value as string) || 0;
     } else {
