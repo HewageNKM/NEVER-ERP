@@ -166,6 +166,7 @@ export const updateOrder = async (order: Order, orderId: string) => {
         customer: {
           ...order.customer,
           updatedAt: FieldValue.serverTimestamp(),
+          createdAt: FieldValue.serverTimestamp(),
         },
       }),
     };
