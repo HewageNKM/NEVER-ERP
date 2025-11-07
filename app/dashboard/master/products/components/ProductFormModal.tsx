@@ -22,6 +22,8 @@ import { DropdownOption } from "../page";
 import { ProductVariant } from "@/model/ProductVariant";
 import VariantList from "./VariantList";
 import VariantFormModal from "./VariantFormModal";
+import Image from "next/image";
+import { useSnackbar } from "@/contexts/SnackBarContext";
 
 const emptyProduct: Omit<Product, "itemId"> & { itemId: string | null } = {
   itemId: null,
@@ -77,6 +79,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [editingVariantIndex, setEditingVariantIndex] = useState<number | null>(
     null
   );
+  const {showNotification}  = useSnackbar();
   const [errors, setErrors] = useState<ProductErrors>({});
   const isEditing = !!product; // This determines if we are editing or creating
 
@@ -229,6 +232,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
       }
     } catch (error) {
       console.error("Save failed in modal:", error);
+      showNotification("Failed to save product", "error");
     }
   };
 
@@ -255,7 +259,90 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            {/* --- Form Fields (Name, Weight, Desc, Thumbnail, etc.) --- */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Product Thumbnail
+              </Typography>
+
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: 2,
+                  border: "1px dashed",
+                  borderColor: "divider",
+                  borderRadius: 2,
+                  p: 2,
+                  backgroundColor: "background.paper",
+                }}
+              >
+                {/* Upload Button */}
+                <Button
+                  variant="contained"
+                  component="label"
+                  disabled={saving}
+                  sx={{
+                    flexShrink: 0,
+                    minWidth: 150,
+                  }}
+                >
+                  Upload Image
+                  <input
+                    type="file"
+                    hidden
+                    accept="image/webp, image/png, image/jpeg"
+                    onChange={handleFileChange}
+                  />
+                </Button>
+
+                {/* File / Status Text */}
+                <Box sx={{ flex: 1, minWidth: 200 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {thumbnailFile
+                      ? thumbnailFile.name
+                      : isEditing && formData.thumbnail?.url
+                      ? "Current image will be kept"
+                      : "No file selected"}
+                  </Typography>
+
+                  {errors.thumbnail && (
+                    <FormHelperText error>{errors.thumbnail}</FormHelperText>
+                  )}
+                </Box>
+
+                {/* Image Preview */}
+                {(thumbnailFile || (isEditing && formData.thumbnail?.url)) && (
+                  <Box
+                    sx={{
+                      position: "relative",
+                      width: 150,
+                      height: 150,
+                      borderRadius: 2,
+                      overflow: "hidden",
+                      border: "1px solid",
+                      borderColor: "divider",
+                    }}
+                  >
+                    <Image
+                      width={1000}
+                      height={1000}
+                      src={
+                        thumbnailFile
+                          ? URL.createObjectURL(thumbnailFile)
+                          : formData.thumbnail?.url
+                      }
+                      alt="Thumbnail Preview"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  </Box>
+                )}
+              </Box>
+            </Grid>
             <Grid item xs={12} sm={8}>
               <TextField
                 name="name"
@@ -295,42 +382,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 disabled={saving} // Add disabled
               />
             </Grid>
-            <Grid item xs={12}>
-              <Button
-                variant="contained"
-                component="label"
-                disabled={saving} // Add disabled
-              >
-                Upload Thumbnail
-                <input
-                  type="file"
-                  hidden
-                  accept="image/webp, image/png, image/jpeg"
-                  onChange={handleFileChange}
-                />
-              </Button>
-              <Box component="span" sx={{ ml: 2 }}>
-                {thumbnailFile
-                  ? thumbnailFile.name
-                  : isEditing && formData.thumbnail?.url
-                  ? "Current image will be kept"
-                  : "No file selected"}
-              </Box>
-              {errors.thumbnail && (
-                <FormHelperText error>{errors.thumbnail}</FormHelperText>
-              )}
-              {isEditing && formData.thumbnail?.url && (
-                <Box sx={{ mt: 1 }}>
-                  <Typography variant="caption">Current Image:</Typography>
-                  <img
-                    src={formData.thumbnail.url}
-                    alt="Thumbnail"
-                    height="60"
-                    style={{ borderRadius: "4px", marginLeft: "8px" }}
-                  />
-                </Box>
-              )}
-            </Grid>
+
             <Grid item xs={12} sm={6}>
               <Autocomplete
                 options={categories}
