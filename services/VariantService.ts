@@ -16,7 +16,7 @@ const uploadVariantImage = async (
   productId: string,
   variantId: string
 ): Promise<Img> => {
-  const fileId = nanoid(8);
+  const fileId = nanoid(8).toLowerCase();
   const fileName = `${fileId}-${file.name}`;
   const filePath = `products/${productId}/variants/${variantId}/${fileName}`;
   const fileRef = BUCKET.file(filePath);
@@ -49,7 +49,7 @@ export const addVariant = async (
     const currentProductData = productSnap.data() as Product;
 
     // --- Step 2: Prepare and upload images ---
-    const variantId = `var-${nanoid(8)}`;
+    const variantId = `var-${nanoid(8)}`.toLowerCase();
     const uploadPromises = newImageFiles.map((file) =>
       uploadVariantImage(file, productId, variantId)
     );

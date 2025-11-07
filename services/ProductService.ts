@@ -40,7 +40,7 @@ const uploadThumbnail = async (
  */
 export const addProducts = async (product: Partial<Product>, file: File) => {
   try {
-    const id = `p-${nanoid(8)}`;
+    const id = `p-${nanoid(8)}`.toLowerCase();
 
     // 1. Upload thumbnail
     const thumbnail = await uploadThumbnail(file, id);
