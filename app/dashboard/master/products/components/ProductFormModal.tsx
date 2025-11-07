@@ -26,7 +26,6 @@ import Image from "next/image";
 import { useSnackbar } from "@/contexts/SnackBarContext";
 
 const emptyProduct: Omit<Product, "itemId"> & { itemId: string | null } = {
-  itemId: null,
   name: "",
   category: "",
   brand: "",

@@ -23,7 +23,7 @@ const parseProductFromFormData = async (
       // Parse string booleans
       product[key as "status" | "listing"] = value === "true";
     } else if (
-      ["buyingPrice", "sellingPrice", "marketPrice", "discount"].includes(key)
+      ["buyingPrice", "sellingPrice", "marketPrice", "discount","weight"].includes(key)
     ) {
       // Parse numbers
       product[key as "buyingPrice"] = parseFloat(value as string) || 0;
