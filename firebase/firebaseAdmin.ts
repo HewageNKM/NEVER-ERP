@@ -468,7 +468,7 @@ export const getPopularItems = async (limit: number = 10, month: number) => {
     const itemIds = Array.from(itemsMap.keys());
     const itemDocs = await Promise.all(
       itemIds.map((itemId) =>
-        adminFirestore.collection("inventory").doc(itemId).get()
+        adminFirestore.collection("products").doc(itemId).get()
       )
     );
     const popularItem: PopularItem[] = itemDocs.map((doc) => {
