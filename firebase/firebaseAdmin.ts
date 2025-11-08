@@ -103,7 +103,7 @@ export const getInventoryItems = async (
 
     // Fetch inventory items with pagination
     const inventorySnapshot = await adminFirestore
-      .collection("inventory")
+      .collection("products")
       .orderBy("createdAt", "desc" as any)
       .limit(size)
       .offset(offset)
@@ -173,7 +173,7 @@ export const getOrder = async (orderId: string): Promise<Order | null> => {
 export const getItemById = async (itemId: string) => {
   try {
     const itemDoc = await adminFirestore
-      .collection("inventory")
+      .collection("products")
       .doc(itemId)
       .get();
     if (!itemDoc.exists) {
@@ -676,7 +676,7 @@ export const getOverview = async (start: Timestamp, end: Timestamp) => {
     // Fetch all inventory documents in parallel
     const inventoryDocs = await Promise.all(
       itemIds.map((itemId) =>
-        adminFirestore.collection("inventory").doc(itemId).get()
+        adminFirestore.collection("products").doc(itemId).get()
       )
     );
 
