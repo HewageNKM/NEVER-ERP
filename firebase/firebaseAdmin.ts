@@ -476,8 +476,8 @@ export const getPopularItems = async (limit: number = 10, month: number) => {
       return {
         item: {
           ...item,
-          createdAt: item.createdAt.toDate().toLocaleString(),
-          updatedAt: item.updatedAt.toDate().toLocaleString(),
+          createdAt: null,
+          updatedAt: null
         },
         soldCount: itemsMap.get(item.itemId) || 0,
       };
