@@ -12,7 +12,6 @@ import { toSafeLocaleString } from "./UtilService";
 
 const ORDERS_COLLECTION = "orders";
 
-
 export const getOrders = async (
   pageNumber: number = 1,
   size: number = 20,
@@ -274,7 +273,7 @@ export const addOrder = async (order: Partial<Order>) => {
                 .where("productId", "==", item.itemId)
                 .where("variantId", "==", item.variantId)
                 .where("size", "==", item.size)
-                .where("stockId", "==", order.stockId)
+                .where("stockId", "==", stockId)
                 .limit(1);
 
               const invSnap = await tx.get(invQuery);
@@ -306,6 +305,7 @@ export const addOrder = async (order: Partial<Order>) => {
 
             tx.set(orderRef, {
               ...orderData,
+              stockId,
               customer: {
                 ...order.customer,
                 updatedAt: now,
