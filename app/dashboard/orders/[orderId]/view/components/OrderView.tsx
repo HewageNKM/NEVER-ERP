@@ -344,7 +344,7 @@ const OrderView = ({ orderId }: { orderId: string }) => {
                     <TableCell align="right">
                       Rs.
                       {(
-                        (order?.total || 0) - (order?.transactionFeeCharge || 0)
+                        (order?.total || 0) - (order?.transactionFeeCharge || 0) - (order?.shippingFee || 0)
                       ).toFixed(2)}
                     </TableCell>
                   </TableRow>
