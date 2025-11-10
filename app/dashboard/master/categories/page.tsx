@@ -36,6 +36,7 @@ import DashboardCard from "../../components/shared/DashboardCard";
 import { getToken } from "@/firebase/firebaseClient";
 import { useAppSelector } from "@/lib/hooks";
 import { Category } from "@/model/Category";
+import { useConfirmationDialog } from "@/contexts/ConfirmationDialogContext";
 
 // Emotion styles
 const actionsBar = css`
@@ -84,6 +85,7 @@ const CategoryPage: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [form, setForm] = useState({ name: "", description: "", status: true });
+  const { showConfirmation } = useConfirmationDialog();
 
   // Fetch categories
   const fetchCategories = async () => {
@@ -159,19 +161,24 @@ const CategoryPage: React.FC = () => {
 
   // Soft Delete
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this category?")) return;
-    try {
-      setDeletingId(id);
-      const token = await getToken();
-      await axios.delete(`/api/v1/master/categories/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      await fetchCategories();
-    } catch (e) {
-      console.error("Failed to delete category", e);
-    } finally {
-      setDeletingId(null);
-    }
+    showConfirmation({
+      title: "Delete Category",
+      message: "Are you sure you want to delete this category?",
+      onSuccess: async () => {
+        try {
+          setDeletingId(id);
+          const token = await getToken();
+          await axios.delete(`/api/v1/master/categories/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          await fetchCategories();
+        } catch (e) {
+          console.error("Failed to delete category", e);
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
   };
 
   return (

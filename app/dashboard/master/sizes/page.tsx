@@ -36,6 +36,7 @@ import PageContainer from "../../components/container/PageContainer";
 import DashboardCard from "../../components/shared/DashboardCard";
 import { getToken } from "@/firebase/firebaseClient";
 import { useAppSelector } from "@/lib/hooks";
+import { useConfirmationDialog } from "@/contexts/ConfirmationDialogContext";
 
 const actionsBar = css`
   display: flex;
@@ -76,6 +77,7 @@ const SizePage: React.FC = () => {
   );
 
   const { showNotification } = useSnackbar();
+  const { showConfirmation } = useConfirmationDialog();
 
   const [open, setOpen] = useState(false);
   const [editingSize, setEditingSize] = useState<Size | null>(null);
@@ -157,22 +159,27 @@ const SizePage: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this size?")) return;
-    try {
-      setDeletingId(id);
-      const token = await getToken();
-      await axios({
-        method: "DELETE",
-        url: `/api/v1/master/sizes/${id}`,
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      await fetchSizes();
-    } catch (e) {
-      console.error("Failed to delete size", e);
-      showNotification("Failed to delete size", "error");
-    } finally {
-      setDeletingId(null);
-    }
+    showConfirmation({
+      title: "Delete Size",
+      message: "Are you sure you want to delete this size?",
+      onSuccess: async () => {
+        try {
+          setDeletingId(id);
+          const token = await getToken();
+          await axios({
+            method: "DELETE",
+            url: `/api/v1/master/sizes/${id}`,
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          await fetchSizes();
+        } catch (e) {
+          console.error("Failed to delete size", e);
+          showNotification("Failed to delete size", "error");
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
   };
 
   return (

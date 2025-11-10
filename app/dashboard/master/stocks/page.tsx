@@ -22,7 +22,7 @@ import StockListTable from "./components/StockListTable";
 import PageContainer from "../../components/container/PageContainer";
 import DashboardCard from "../../components/shared/DashboardCard";
 import StockFormModal from "./components/StockForm";
-
+import { useConfirmationDialog } from "@/contexts/ConfirmationDialogContext";
 
 // --- MAIN PAGE COMPONENT ---
 const StockPage: React.FC = () => {
@@ -35,9 +35,10 @@ const StockPage: React.FC = () => {
     (state) => state.authSlice
   );
   const { showNotification } = useSnackbar();
+  const { showConfirmation } = useConfirmationDialog();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingLocation, setEditingLocation] = useState<Stock| null>(null);
+  const [editingLocation, setEditingLocation] = useState<Stock | null>(null);
 
   // --- Data Fetching ---
   const fetchLocations = async () => {
@@ -89,7 +90,6 @@ const StockPage: React.FC = () => {
     fetchLocations(); // Re-fetch with cleared filters
   };
 
-
   const handleOpenCreateModal = () => {
     setEditingLocation(null);
     setIsModalOpen(true);
@@ -105,7 +105,9 @@ const StockPage: React.FC = () => {
     setEditingLocation(null);
   };
 
-  const handleSaveLocation = async (locationData: Omit<Stock, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleSaveLocation = async (
+    locationData: Omit<Stock, "id" | "createdAt" | "updatedAt">
+  ) => {
     const isEditing = !!editingLocation;
     // **ASSUMED API ENDPOINTS**
     const url = isEditing
@@ -121,38 +123,49 @@ const StockPage: React.FC = () => {
         data: locationData,
         headers: { Authorization: `Bearer ${token}` },
       });
-      showNotification(`Location ${isEditing ? 'updated' : 'added'} successfully!`, "success");
+      showNotification(
+        `Location ${isEditing ? "updated" : "added"} successfully!`,
+        "success"
+      );
       handleCloseModal();
       fetchLocations(); // Refetch data
     } catch (error: any) {
       console.error("Error saving location:", error);
-      const message = error.response?.data?.message || "Failed to save location";
+      const message =
+        error.response?.data?.message || "Failed to save location";
       showNotification(message, "error");
       // Keep modal open on error?
     }
   };
 
   const handleDeleteLocation = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this stock location? This is usually an irreversible action.")) {
-      try {
-        const token = await getToken();
-        // **ASSUMED API ENDPOINT**
-        await axios.delete(`/api/v2/master/stocks/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        showNotification("Location deleted successfully!", "success");
-        fetchLocations(); // Refetch data
-      } catch (error: any) {
-        console.error("Error deleting location:", error);
-        const message = error.response?.data?.message || "Failed to delete location";
-        showNotification(message, "error");
-      }
-    }
+    showConfirmation({
+      title: "Delete Location",
+      message: "Are you sure you want to delete this location?",
+      onSuccess: async () => {
+        try {
+          const token = await getToken();
+          // **ASSUMED API ENDPOINT**
+          await axios.delete(`/api/v2/master/stocks/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          showNotification("Location deleted successfully!", "success");
+          fetchLocations(); // Refetch data
+        } catch (error: any) {
+          console.error("Error deleting location:", error);
+          const message =
+            error.response?.data?.message || "Failed to delete location";
+          showNotification(message, "error");
+        }
+      },
+    });
   };
 
-
   return (
-    <PageContainer title="Stock Locations" description="Manage Warehouses and Stores">
+    <PageContainer
+      title="Stock Locations"
+      description="Manage Warehouses and Stores"
+    >
       <DashboardCard
         title="Manage Stock Locations"
         action={
@@ -190,21 +203,23 @@ const StockPage: React.FC = () => {
           </FormControl>
           <Button
             variant="contained"
-            startIcon={loading ? <CircularProgress size={16} /> : <IconSearch />}
+            startIcon={
+              loading ? <CircularProgress size={16} /> : <IconSearch />
+            }
             onClick={handleFilter}
             disabled={loading}
           >
             {loading ? "Filtering..." : "Filter"}
           </Button>
-           <Button
-              variant="outlined"
-              color="secondary"
-              startIcon={<IconX />}
-              onClick={handleClearFilters}
-              disabled={loading}
-            >
-              Clear
-            </Button>
+          <Button
+            variant="outlined"
+            color="secondary"
+            startIcon={<IconX />}
+            onClick={handleClearFilters}
+            disabled={loading}
+          >
+            Clear
+          </Button>
         </Box>
 
         {/* --- TABLE & PAGINATION --- */}

@@ -21,6 +21,7 @@ import { getToken } from "@/firebase/firebaseClient";
 import { useAppSelector } from "@/lib/hooks";
 import axios from "axios";
 import { useSnackbar } from "@/contexts/SnackBarContext"; // Import snackbar
+import { useConfirmationDialog } from "@/contexts/ConfirmationDialogContext";
 
 export interface DropdownOption {
   id: string;
@@ -49,6 +50,7 @@ const ProductPage = () => {
   // Maps for faster lookups in the table
   const [brandMap, setBrandMap] = useState(new Map<string, string>());
   const [categoryMap, setCategoryMap] = useState(new Map<string, string>());
+  const { showConfirmation } = useConfirmationDialog();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -254,33 +256,37 @@ const ProductPage = () => {
   };
 
   const handleDeleteProduct = async (itemId: string) => {
-    if (window.confirm("Are you sure you want to delete this product?")) {
-      setLoading(true); // Use main table loader for delete
-      try {
-        const token = await getToken();
-        const response = await axios.delete(
-          `/api/v2/master/products/${itemId}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        if (response.status !== 200)
-          throw new Error("Failed to delete product");
+    showConfirmation({
+      title: "Delete Product",
+      message: "Are you sure you want to delete this product?",
+      onSuccess: async () => {
+        setLoading(true); // Use main table loader for delete
+        try {
+          const token = await getToken();
+          const response = await axios.delete(
+            `/api/v2/master/products/${itemId}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+          if (response.status !== 200)
+            throw new Error("Failed to delete product");
 
-        // --- Show success notification ---
-        showNotification("Product deleted successfully", "success");
-        fetchProducts(); // Refetch products
-      } catch (error: any) {
-        console.error("Error deleting product:", error);
-        // --- Show error notification ---
-        showNotification(
-          error.message || "An error occurred while deleting",
-          "error"
-        );
-      } finally {
-        setLoading(false); // Stop table loader
-      }
-    }
+          // --- Show success notification ---
+          showNotification("Product deleted successfully", "success");
+          fetchProducts(); // Refetch products
+        } catch (error: any) {
+          console.error("Error deleting product:", error);
+          // --- Show error notification ---
+          showNotification(
+            error.message || "An error occurred while deleting",
+            "error"
+          );
+        } finally {
+          setLoading(false); // Stop table loader
+        }
+      },
+    });
   };
 
   return (

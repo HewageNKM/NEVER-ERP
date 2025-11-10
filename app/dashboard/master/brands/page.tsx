@@ -38,6 +38,7 @@ import { getToken } from "@/firebase/firebaseClient";
 import { useAppSelector } from "@/lib/hooks";
 import { Brand } from "@/model/Brand";
 import { useSnackbar } from "@/contexts/SnackBarContext";
+import { useConfirmationDialog } from "@/contexts/ConfirmationDialogContext";
 
 const actionsBar = css`
   display: flex;
@@ -74,6 +75,7 @@ const BrandPage: React.FC = () => {
   const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
   const [pagination, setPagination] = useState({ page: 1, size: 10, total: 0 });
   const { showNotification } = useSnackbar();
+  const { showConfirmation } = useConfirmationDialog();
 
   const { currentUser, loading: authLoading } = useAppSelector(
     (state) => state.authSlice
@@ -185,20 +187,25 @@ const BrandPage: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this brand?")) return;
-    try {
-      setDeletingId(id);
-      const token = await getToken();
-      await axios.delete(`/api/v1/master/brands/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      await fetchBrands();
-    } catch (e) {
-      console.error("Failed to delete brand", e);
-      showNotification("Failed to delete brand", "error");
-    } finally {
-      setDeletingId(null);
-    }
+    showConfirmation({
+      title: "Delete Brand",
+      message: "Are you sure you want to delete this brand?",
+      onSuccess: async () => {
+        try {
+          setDeletingId(id);
+          const token = await getToken();
+          await axios.delete(`/api/v1/master/brands/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          await fetchBrands();
+        } catch (e) {
+          console.error("Failed to delete brand", e);
+          showNotification("Failed to delete brand", "error");
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
   };
 
   return (
