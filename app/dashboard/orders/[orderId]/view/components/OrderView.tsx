@@ -111,6 +111,31 @@ const OrderView = ({ orderId }: { orderId: string }) => {
         <Typography color="text.primary">View</Typography>
       </Breadcrumbs>
 
+      {/* ⚠️ Integrity Warning */}
+      {order && order.integrity === false && (
+        <Box
+          sx={{
+            backgroundColor: "#fee2e2", // light red background
+            border: "1px solid #fca5a5",
+            borderRadius: "8px",
+            padding: "12px 16px",
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            mb: 2,
+            mt: 2,
+          }}
+        >
+          <Typography
+            variant="body1"
+            sx={{ color: "#b91c1c", fontWeight: 500 }}
+          >
+            This order has been <b>tampered with</b>. Please review carefully
+            before proceeding.
+          </Typography>
+        </Box>
+      )}
+
       <Stack spacing={3} marginTop={3}>
         {/* Header */}
         <Stack direction={"row"} spacing={1}>
@@ -139,9 +164,9 @@ const OrderView = ({ orderId }: { orderId: string }) => {
               <Grid item xs={12} sm={6}>
                 <Typography>
                   <b>Payment Method:</b>{" "}
-                  {`${order?.paymentMethod || "—"} - ${
+                  {`${order?.paymentMethod || "—"}(${
                     order?.paymentMethodId?.toUpperCase() || "N/A"
-                  }`}
+                  })`}
                 </Typography>
                 <Typography>
                   <b>Payment ID:</b> {order?.paymentId || "N/A"}
@@ -180,12 +205,10 @@ const OrderView = ({ orderId }: { orderId: string }) => {
 
               <Grid item xs={12} sm={6}>
                 <Typography>
-                  <b>Created:</b>{" "}
-                  {order?.createdAt || "—"}
+                  <b>Created:</b> {order?.createdAt || "—"}
                 </Typography>
                 <Typography>
-                  <b>Updated:</b>{" "}
-                  {order?.updatedAt || "—"}
+                  <b>Updated:</b> {order?.updatedAt || "—"}
                 </Typography>
 
                 {order?.restocked !== undefined && (
@@ -206,8 +229,7 @@ const OrderView = ({ orderId }: { orderId: string }) => {
                       )}
                     </Typography>
                     <Typography>
-                      <b>Restocked At:</b>{" "}
-                      {order?.restockedAt || "—"}
+                      <b>Restocked At:</b> {order?.restockedAt || "—"}
                     </Typography>
                     <Typography>
                       <b>Cleanup Processed:</b>{" "}
@@ -228,24 +250,54 @@ const OrderView = ({ orderId }: { orderId: string }) => {
         {order?.customer && (
           <Card variant="outlined" className="shadow-sm border border-gray-100">
             <CardContent>
-              <Typography variant="h6" className="font-medium text-gray-800 mb-3">
+              <Typography
+                variant="h6"
+                className="font-medium text-gray-800 mb-3"
+              >
                 Customer Details
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
-                  <Typography><b>Name:</b> {order?.customer?.name || "—"}</Typography>
-                  <Typography><b>Email:</b> {order?.customer?.email || "—"}</Typography>
-                  <Typography><b>Phone:</b> {order?.customer?.phone || "—"}</Typography>
-                  <Typography><b>Address:</b> {order?.customer?.address || "—"}</Typography>
-                  <Typography><b>City:</b> {order?.customer?.city || "—"}</Typography>
-                  <Typography><b>ZIP:</b> {order?.customer?.zip || "—"}</Typography>
+                  <Typography>
+                    <b>Name:</b> {order?.customer?.name || "—"}
+                  </Typography>
+                  <Typography>
+                    <b>Email:</b> {order?.customer?.email || "—"}
+                  </Typography>
+                  <Typography>
+                    <b>Phone:</b> {order?.customer?.phone || "—"}
+                  </Typography>
+                  <Typography>
+                    <b>Address:</b> {order?.customer?.address || "—"}
+                  </Typography>
+                  <Typography>
+                    <b>City:</b> {order?.customer?.city || "—"}
+                  </Typography>
+                  <Typography>
+                    <b>ZIP:</b> {order?.customer?.zip || "—"}
+                  </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Typography><b>Shipping Name:</b> {order?.customer?.shippingName || "—"}</Typography>
-                  <Typography><b>Shipping Address:</b> {order?.customer?.shippingAddress || "—"}</Typography>
-                  <Typography><b>Shipping City:</b> {order?.customer?.shippingCity || "—"}</Typography>
-                  <Typography><b>Shipping ZIP:</b> {order?.customer?.shippingZip || "—"}</Typography>
-                  <Typography><b>Shipping Phone:</b> {order?.customer?.shippingPhone || "—"}</Typography>
+                  <Typography>
+                    <b>Shipping Name:</b>{" "}
+                    {order?.customer?.shippingName || "—"}
+                  </Typography>
+                  <Typography>
+                    <b>Shipping Address:</b>{" "}
+                    {order?.customer?.shippingAddress || "—"}
+                  </Typography>
+                  <Typography>
+                    <b>Shipping City:</b>{" "}
+                    {order?.customer?.shippingCity || "—"}
+                  </Typography>
+                  <Typography>
+                    <b>Shipping ZIP:</b>{" "}
+                    {order?.customer?.shippingZip || "—"}
+                  </Typography>
+                  <Typography>
+                    <b>Shipping Phone:</b>{" "}
+                    {order?.customer?.shippingPhone || "—"}
+                  </Typography>
                 </Grid>
               </Grid>
             </CardContent>
@@ -275,13 +327,18 @@ const OrderView = ({ orderId }: { orderId: string }) => {
                   {order?.items?.map((item, i) => (
                     <TableRow key={i} hover>
                       <TableCell>{item?.name || "—"}</TableCell>
-                      <TableCell>{item?.variantName?.toUpperCase() || "—"}</TableCell>
+                      <TableCell>
+                        {item?.variantName?.toUpperCase() || "—"}
+                      </TableCell>
                       <TableCell align="right">{item?.size || "—"}</TableCell>
                       <TableCell align="right">{item?.quantity || 0}</TableCell>
                       <TableCell align="right">
                         Rs.{(item?.price || 0).toFixed(2)}
                       </TableCell>
-                      <TableCell align="right" sx={{ color: "red", fontWeight: "bold" }}>
+                      <TableCell
+                        align="right"
+                        sx={{ color: "red", fontWeight: "bold" }}
+                      >
                         - Rs.{(item?.discount || 0).toFixed(2)}
                       </TableCell>
                       <TableCell align="right">
@@ -296,11 +353,19 @@ const OrderView = ({ orderId }: { orderId: string }) => {
 
                   {/* Totals */}
                   <TableRow>
-                    <TableCell colSpan={6} align="right">Subtotal</TableCell>
-                    <TableCell align="right">Rs.{subtotal.toFixed(2)}</TableCell>
+                    <TableCell colSpan={6} align="right">
+                      Subtotal
+                    </TableCell>
+                    <TableCell align="right">
+                      Rs.{subtotal.toFixed(2)}
+                    </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell colSpan={6} align="right" sx={{ color: "red" }}>
+                    <TableCell
+                      colSpan={6}
+                      align="right"
+                      sx={{ color: "red" }}
+                    >
                       Discount
                     </TableCell>
                     <TableCell align="right" sx={{ color: "red" }}>
@@ -322,15 +387,26 @@ const OrderView = ({ orderId }: { orderId: string }) => {
                     <TableCell align="right">Rs.{fee.toFixed(2)}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell colSpan={6} align="right" className="font-bold">
+                    <TableCell
+                      colSpan={6}
+                      align="right"
+                      className="font-bold"
+                    >
                       Grand Total
                     </TableCell>
-                    <TableCell align="right" className="font-bold text-primary-600">
+                    <TableCell
+                      align="right"
+                      className="font-bold text-primary-600"
+                    >
                       Rs.{(order?.total || 0).toFixed(2)}
                     </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell colSpan={6} align="right" sx={{ color: "red" }}>
+                    <TableCell
+                      colSpan={6}
+                      align="right"
+                      sx={{ color: "red" }}
+                    >
                       Transaction Fee
                     </TableCell>
                     <TableCell align="right" sx={{ color: "red" }}>
@@ -344,7 +420,9 @@ const OrderView = ({ orderId }: { orderId: string }) => {
                     <TableCell align="right">
                       Rs.
                       {(
-                        (order?.total || 0) - (order?.transactionFeeCharge || 0) - (order?.shippingFee || 0)
+                        (order?.total || 0) -
+                        (order?.transactionFeeCharge || 0) -
+                        (order?.shippingFee || 0)
                       ).toFixed(2)}
                     </TableCell>
                   </TableRow>

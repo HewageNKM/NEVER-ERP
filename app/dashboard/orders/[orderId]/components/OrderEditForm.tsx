@@ -25,6 +25,7 @@ import { IoCheckmark, IoClose } from "react-icons/io5";
 import { useSnackbar } from "@/contexts/SnackBarContext";
 import axios from "axios";
 import { getToken } from "@/firebase/firebaseClient";
+import { useConfirmationDialog } from "@/contexts/ConfirmationDialogContext";
 
 interface OrderEditFormProps {
   order: Order;
@@ -39,6 +40,7 @@ export const OrderEditForm: React.FC<OrderEditFormProps> = ({
 
   const [formData, setFormData] = useState<Order>(order);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { showConfirmation } = useConfirmationDialog();
 
   const handleStatusChange = (event: SelectChangeEvent<string>) => {
     setFormData((prev) => ({
@@ -72,25 +74,38 @@ export const OrderEditForm: React.FC<OrderEditFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      setIsSubmitting(true);
-      const token = await getToken();
 
-      await axios.put(`/api/v1/orders/${order.orderId}`, formData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    showConfirmation({
+      title: "Update Order",
+      message:
+        order?.integrity === false
+          ? "⚠️ This order has been tampered with. Are you absolutely sure you want to proceed with the update?"
+          : "Are you sure you want to update this order?",
+      onSuccess: async () => {
+        try {
+          setIsSubmitting(true);
+          const token = await getToken();
 
-      showNotification(
-        `Order #${order.orderId} updated successfully.`,
-        "success"
-      );
-      onRefresh?.(); // refresh parent data if provided
-    } catch (error: any) {
-      console.error(error);
-      showNotification(error.response?.data?.message || "Failed to update order", "error");
-    } finally {
-      setIsSubmitting(false);
-    }
+          await axios.put(`/api/v1/orders/${order.orderId}`, formData, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          showNotification(
+            `Order #${order.orderId} updated successfully.`,
+            "success"
+          );
+          onRefresh?.();
+        } catch (error: any) {
+          console.error(error);
+          showNotification(
+            error.response?.data?.message || "Failed to update order",
+            "error"
+          );
+        } finally {
+          setIsSubmitting(false);
+        }
+      },
+    });
   };
 
   const formatDate = (timestamp: any) => {
@@ -104,6 +119,29 @@ export const OrderEditForm: React.FC<OrderEditFormProps> = ({
   return (
     <form onSubmit={handleSubmit}>
       <Stack gap={5}>
+        {/* ⚠️ Tampered Order Warning */}
+        {order && order.integrity === false && (
+          <Box
+            sx={{
+              backgroundColor: "#fee2e2",
+              border: "1px solid #fca5a5",
+              borderRadius: "8px",
+              padding: "12px 16px",
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+            }}
+          >
+            <Typography
+              variant="body1"
+              sx={{ color: "#b91c1c", fontWeight: 500 }}
+            >
+              This order has been <b>tampered with</b>. Please review carefully
+              before making any changes.
+            </Typography>
+          </Box>
+        )}
+
         {/* 🧾 Order Summary */}
         <Card variant="outlined" className="shadow-sm border border-gray-100">
           <CardHeader
@@ -144,7 +182,8 @@ export const OrderEditForm: React.FC<OrderEditFormProps> = ({
                     }
                   />
                 </Typography>
-                 <Typography>
+
+                <Typography>
                   <span className="font-semibold">Status:</span>{" "}
                   <Chip
                     size="small"
