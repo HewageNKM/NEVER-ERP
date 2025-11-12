@@ -5,12 +5,12 @@ import {DatePicker} from '@mui/x-date-pickers/DatePicker';
 import {LocalizationProvider} from '@mui/x-date-pickers';
 import {AdapterDayjs} from '@mui/x-date-pickers/AdapterDayjs';
 import {useAppSelector} from "@/lib/hooks";
-import SaleReport from "@/app/dashboard/reports/components/SaleReport";
+import SaleReport from "@/app/dashboard/oldReports/components/SaleReport";
 import {getCashReportAction, getExpenseReportAction, getMonthlyOverviewAction, getSalesReportAction, getStocksReportAction} from "@/actions/reportsActions";
-import StockReport from "@/app/dashboard/reports/components/StockReport";
+import StockReport from "@/app/dashboard/oldReports/components/StockReport";
 import {SalesReport} from "@/model";
-import CashStatementReport from "@/app/dashboard/reports/components/CashStatementReport";
-import ExpenseReport from "@/app/dashboard/reports/components/ExpenseReport";
+import CashStatementReport from "@/app/dashboard/oldReports/components/CashStatementReport";
+import ExpenseReport from "@/app/dashboard/oldReports/components/ExpenseReport";
 import {useSnackbar} from "@/contexts/SnackBarContext";
 
 const Header = () => {

@@ -1,26 +1,102 @@
-"use client"
-import React from 'react';
-import DashboardCard from "@/app/dashboard/components/shared/DashboardCard";
-import {Stack} from "@mui/material";
-import PageContainer from "@/app/dashboard/components/container/PageContainer";
-import Header from "@/app/dashboard/reports/components/Header";
+"use client";
+import React from "react";
+import Link from "next/link";
+import PageContainer from "../components/container/PageContainer";
+import {
+  Box,
+  Grid,
+  Typography,
+  Link as MUILink,
+  Divider,
+} from "@mui/material";
 
-const Page = () => {
-    return (
-        <PageContainer title="Reports" description="Reports Management">
-            <DashboardCard title="Reports Page">
-                <Stack sx={{
-                    position: "relative",
-                    padding: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 3
-                }}>
-                    <Header />
-                </Stack>
-            </DashboardCard>
-        </PageContainer>
-    );
+const Reports = () => {
+  const reportSections = [
+    {
+      category: "Sales Reports",
+      reports: [
+        { title: "Total Sales", link: "/dashboard/reports/sales/sale" },
+        { title: "Orders Summary", link: "/dashboard/reports/sales/orders" },
+      ],
+    },
+    {
+      category: "Stock Reports",
+      reports: [
+        { title: "Live Stock", link: "/dashboard/reports/stocks/live-stock" },
+        { title: "Low Stock Items", link: "/dashboard/reports/stocks/low-stock" },
+        { title: "Out of Stock", link: "/dashboard/reports/stocks/out-of-stock" },
+      ],
+    },
+    {
+      category: "Finance Reports",
+      reports: [
+        { title: "Expense Overview", link: "/dashboard/reports/finance/expenses" },
+        { title: "Profit & Loss", link: "/dashboard/reports/finance/profit-loss" },
+        { title: "Balance Sheet", link: "/dashboard/reports/finance/balance-sheet" },
+      ],
+    },
+    {
+      category: "Revenue Reports",
+      reports: [
+        { title: "Monthly Revenue", link: "/reports/revenue/revenue-monthly" },
+        { title: "Yearly Revenue", link: "/reports/revenue/revenue-yearly" },
+      ],
+    },
+  ];
+
+  return (
+    <PageContainer title="Reports">
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {reportSections.map((section, i) => (
+          <Box key={i}>
+            {/* Category Title */}
+            <Typography
+              variant="h5"
+              fontWeight={700}
+              color="text.primary"
+              sx={{ mb: 2 }}
+            >
+              {section.category}
+            </Typography>
+            <Divider sx={{ mb: 3 }} />
+
+            {/* Grid of Links */}
+            <Grid container spacing={2}>
+              {section.reports.map((report, index) => (
+                <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
+                  <MUILink
+                    component={Link}
+                    href={report.link}
+                    underline="hover"
+                    color="primary"
+                    sx={{
+                      fontSize: 16,
+                      fontWeight: 500,
+                      pl: 2.5,
+                      position: "relative",
+                      display: "inline-block",
+                      "&::before": {
+                        content: '"•"',
+                        position: "absolute",
+                        left: 0,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: "primary.main",
+                        fontSize: 20,
+                        lineHeight: 1,
+                      },
+                    }}
+                  >
+                    {report.title}
+                  </MUILink>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        ))}
+      </Box>
+    </PageContainer>
+  );
 };
 
-export default Page;
+export default Reports;

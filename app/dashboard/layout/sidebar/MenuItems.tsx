@@ -74,6 +74,12 @@ const Menuitems = [
     id: uniqueId(),
     title: "Reports & Analytics",
     icon: IconFileInvoice,
+    href: "/dashboard/oldReports",
+  },
+  {
+    id: uniqueId(),
+    title: "Reports",
+    icon: IconReportMoney,
     href: "/dashboard/reports",
   },
     {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authorizeRequest, getOrders } from "@/firebase/firebaseAdmin";
-import { addOrder } from "@/services/OrderService";
+import { authorizeRequest } from "@/firebase/firebaseAdmin";
+import { addOrder, getOrders } from "@/services/OrderService";
 import { authorizeOrderRequest } from "@/services/AuthService";
 import { Order } from "@/model";
 
@@ -19,10 +19,19 @@ export const GET = async (req: NextRequest) => {
     const fromData = url.searchParams.get("from");
     const toData = url.searchParams.get("to");
     const status = url.searchParams.get("status");
-    const paymentStatus = url.searchParams.get("paymentStatus");
+    const payment = url.searchParams.get("payment");
+    const orderId = url.searchParams.get("search");
 
     console.log(`Page number: ${pageNumber}, Size: ${size}`);
-    const orders = await getOrders(pageNumber, size);
+    const orders = await getOrders(
+      pageNumber,
+      size,
+      fromData,
+      toData,
+      status,
+      payment,
+      orderId
+    );
     console.log(`Orders: ${orders.length}`);
     // Return a response with the orders
     return NextResponse.json(orders);

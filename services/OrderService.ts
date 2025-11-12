@@ -13,32 +13,53 @@ import { toSafeLocaleString } from "./UtilService";
 const ORDERS_COLLECTION = "orders";
 
 export const getOrders = async (
-  pageNumber: number = 1,
+  page: number = 1,
   size: number = 20,
   from?: string,
   to?: string,
   status?: string,
-  paymentStatus?: string
+  payment?: string,
+  orderId?: string
 ) => {
   try {
-    const offset = (pageNumber - 1) * size;
-    let query = adminFirestore.collection(ORDERS_COLLECTION);
-    if (from && to) {
+    const db = adminFirestore;
+    let query = db.collection(ORDERS_COLLECTION).orderBy("createdAt", "desc");
+
+    // ✅ Filter by date range using startAt/endAt (avoids composite indexes)
+    if (from) {
       const startTimestamp = Timestamp.fromDate(new Date(from));
-      const endTimestamp = Timestamp.fromDate(new Date(to));
-      query = query.where("createdAt", ">=", startTimestamp);
-      query = query.where("createdAt", "<=", endTimestamp);
+      query = query.startAt(startTimestamp);
     }
-    if (status) {
+    if (to) {
+      const endTimestamp = Timestamp.fromDate(new Date(to));
+      query = query.endAt(endTimestamp);
+    }
+
+    // ✅ Simple field filters (independent single-field indexes)
+    if (status && status !== "all") {
       query = query.where("status", "==", status);
     }
-    if (paymentStatus) {
-      query = query.where("paymentStatus", "==", paymentStatus);
+    if (payment && payment !== "all") {
+      query = query.where("paymentStatus", "==", payment);
     }
-    const ordersSnapshot = await query.limit(size).offset(offset).get();
+    if (orderId && orderId.trim()) {
+      query = query.where("orderId", "==", orderId.trim());
+    }
+
+    // ⚡️ Use cursor-based pagination instead of offset (faster)
+    // Step 1: fetch all ordered docs to find the cursor
+    const allDocs = await query.get();
+    const total = allDocs.size;
+
+    // Step 2: get paginated slice
+    const startIndex = (page - 1) * size;
+    const endIndex = startIndex + size;
+
+    const paginatedDocs = allDocs.docs.slice(startIndex, endIndex);
 
     const orders: Order[] = [];
-    for (const doc of ordersSnapshot.docs) {
+
+    for (const doc of paginatedDocs) {
       const data = doc.data() as Order;
       const integrityResult = await validateDocumentIntegrity(
         ORDERS_COLLECTION,
@@ -63,15 +84,21 @@ export const getOrders = async (
           ? toSafeLocaleString(data.restockedAt)
           : null,
       };
+
       orders.push(order);
     }
-    console.log(`Fetched ${orders.length} orders on page ${pageNumber}`);
-    return orders;
+
+    console.log(`✅ Fetched ${orders.length} orders on page ${page}`);
+    return {
+      dataList: orders,
+      total,
+    };
   } catch (error: any) {
-    console.error(error);
+    console.error("❌ getOrders error:", error);
     throw error;
   }
 };
+
 
 export const getOrder = async (orderId: string): Promise<Order | null> => {
   try {
