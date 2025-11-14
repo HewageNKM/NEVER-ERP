@@ -594,4 +594,154 @@ export const getSalesVsDiscount = async (
   }
 };
 
+const normalizeKey = (str: string = "") => {
+  return str
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " "); // clean double spaces
+};
 
+/** Converts normalized key ("bank transfer") → Display Name ("Bank Transfer") */
+const toTitleCase = (str: string = "") => {
+  return str.replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
+export const getSalesByPaymentMethod = async (from?: string, to?: string) => {
+  try {
+    let query = adminFirestore
+      .collection("orders")
+      .where("paymentStatus", "==", "Paid");
+
+    if (from && to) {
+      const start = new Date(from);
+      const end = new Date(to);
+      end.setHours(23, 59, 59, 999);
+
+      query = query
+        .where("createdAt", ">=", start)
+        .where("createdAt", "<=", end);
+    }
+
+    const snap = await query.get();
+    const map: Record<string, any> = {};
+
+    snap.docs.forEach((doc) => {
+      const order = doc.data() as any;
+
+      // === CASE 1: Split payments ===
+      if (order.paymentReceived?.length) {
+        order.paymentReceived.forEach((p: any) => {
+          const normalized = normalizeKey(p.paymentMethod || "unknown");
+
+          if (!map[normalized]) {
+            map[normalized] = {
+              paymentMethod: toTitleCase(normalized),
+              totalAmount: 0,
+              totalOrders: 0,
+              transactions: 0,
+            };
+          }
+
+          map[normalized].totalAmount += p.amount || 0;
+          map[normalized].transactions += 1;
+        });
+
+        // count order for each method used
+        order.paymentReceived.forEach((p: any) => {
+          const normalized = normalizeKey(p.paymentMethod || "unknown");
+          map[normalized].totalOrders += 1;
+        });
+      }
+
+      // === CASE 2: Single payment method ===
+      else {
+        const normalized = normalizeKey(order.paymentMethod || "unknown");
+
+        if (!map[normalized]) {
+          map[normalized] = {
+            paymentMethod: toTitleCase(normalized),
+            totalAmount: 0,
+            totalOrders: 0,
+            transactions: 0,
+          };
+        }
+
+        map[normalized].totalAmount += order.total || 0;
+        map[normalized].totalOrders += 1;
+        map[normalized].transactions += 1;
+      }
+    });
+
+    return {
+      paymentMethods: Object.values(map).sort(
+        (a, b) => b.totalAmount - a.totalAmount
+      ),
+    };
+  } catch (err) {
+    console.error("Sales by payment method error:", err);
+    throw err;
+  }
+};
+
+
+export const getRefundsAndReturns = async (from?: string, to?: string) => {
+  try {
+    let query = adminFirestore.collection("orders")
+      .where("paymentStatus", "in", ["Returned", "Refunded"]);
+
+    if (from && to) {
+      const start = new Date(from);
+      const end = new Date(to);
+      end.setHours(23, 59, 59, 999);
+
+      query = query
+        .where("createdAt", ">=", start)
+        .where("createdAt", "<=", end);
+    }
+
+    const snap = await query.get();
+
+    const result = {
+      totalOrders: 0,
+      totalRefundAmount: 0,
+      totalRestockedItems: 0,
+      items: [] as any[],
+    };
+
+    snap.docs.forEach((doc) => {
+      const order = doc.data() as any;
+
+      let refundAmount = 0;
+
+      // If split payments exist → sum all reversed/refunded amounts
+      if (order.paymentReceived?.length) {
+        refundAmount = order.paymentReceived
+          .filter((p: any) => p.amount < 0) // refunded amounts are negative
+          .reduce((sum: number, p: any) => sum + Math.abs(p.amount), 0);
+      } else {
+        // Old structure (full refund)
+        if (order.paymentStatus === "Refunded") refundAmount = order.total;
+      }
+
+      const restockedItems = order.items?.length ?? 0;
+
+      result.totalOrders++;
+      result.totalRefundAmount += refundAmount;
+      if (order.restocked) result.totalRestockedItems += restockedItems;
+
+      result.items.push({
+        orderId: order.orderId,
+        status: order.status,
+        refundAmount,
+        restocked: order.restocked || false,
+        restockedAt: toSafeLocaleString(order.restockedAt) || null,
+        createdAt: toSafeLocaleString(order.createdAt),
+      });
+    });
+
+    return result;
+  } catch (err) {
+    console.error("Refunds & Returns report error:", err);
+    throw err;
+  }
+};

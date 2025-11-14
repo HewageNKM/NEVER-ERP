@@ -34,14 +34,14 @@ const Reports = () => {
           title: "Sales vs Discount",
           link: "/dashboard/reports/sales/sales-vs-discount",
         },
-        // {
-        //   title: "Sales by Payment Method",
-        //   link: "/dashboard/reports/sales/by-payment-method",
-        // },
-        // {
-        //   title: "Refunds & Returns",
-        //   link: "/dashboard/reports/sales/refunds-returns",
-        // },
+        {
+          title: "Sales by Payment Method",
+          link: "/dashboard/reports/sales/by-payment-method",
+        },
+        {
+          title: "Refunds & Returns",
+          link: "/dashboard/reports/sales/refunds-returns",
+        },
       ],
     },
     // {
