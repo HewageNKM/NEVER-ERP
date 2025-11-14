@@ -6,7 +6,6 @@ import {
   IconUser,
   IconLayoutDashboard,
   IconList,
-  
   IconFileInvoice,
   IconSettings,
 } from "@tabler/icons-react";
@@ -73,16 +72,10 @@ const Menuitems = [
   {
     id: uniqueId(),
     title: "Reports & Analytics",
-    icon: IconFileInvoice,
-    href: "/dashboard/oldReports",
-  },
-  {
-    id: uniqueId(),
-    title: "Reports",
     icon: IconReportMoney,
     href: "/dashboard/reports",
   },
-    {
+  {
     subHeader: "Seetings",
     navLabel: true,
   },
@@ -91,7 +84,7 @@ const Menuitems = [
     title: "Setting",
     icon: IconSettings,
     href: "/dashboard/settings",
-  }
+  },
 ];
 
 export default Menuitems;

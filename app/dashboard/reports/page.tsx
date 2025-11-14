@@ -2,37 +2,77 @@
 import React from "react";
 import Link from "next/link";
 import PageContainer from "../components/container/PageContainer";
-import {
-  Box,
-  Grid,
-  Typography,
-  Link as MUILink,
-  Divider,
-} from "@mui/material";
+import { Box, Grid, Typography, Link as MUILink, Divider } from "@mui/material";
 
 const Reports = () => {
   const reportSections = [
     {
       category: "Sales Reports",
       reports: [
-        { title: "Total Sales", link: "/dashboard/reports/sales/sale" },
-        { title: "Orders Summary", link: "/dashboard/reports/sales/orders" },
+        {
+          title: "Daily Summary",
+          link: "/dashboard/reports/sales/daily-summary",
+        },
+        {
+          title: "Monthly Summary",
+          link: "/dashboard/reports/sales/monthly-summary",
+        },
+        {
+          title: "Yearly Summary",
+          link: "/dashboard/reports/sales/yearly-summary",
+        },
+        {
+          title: "Top Selling Products",
+          link: "/dashboard/reports/sales/top-products",
+        },
+        {
+          title: "Sales by Category",
+          link: "/dashboard/reports/sales/by-category",
+        },
+        { title: "Sales by Brand", link: "/dashboard/reports/sales/by-brand" },
+        {
+          title: "Sales vs Discount",
+          link: "/dashboard/reports/sales/sales-vs-discount",
+        },
+        {
+          title: "Sales by Payment Method",
+          link: "/dashboard/reports/sales/by-payment-method",
+        },
+        {
+          title: "Refunds & Returns",
+          link: "/dashboard/reports/sales/refunds-returns",
+        },
       ],
     },
     {
       category: "Stock Reports",
       reports: [
         { title: "Live Stock", link: "/dashboard/reports/stocks/live-stock" },
-        { title: "Low Stock Items", link: "/dashboard/reports/stocks/low-stock" },
-        { title: "Out of Stock", link: "/dashboard/reports/stocks/out-of-stock" },
+        {
+          title: "Low Stock Items",
+          link: "/dashboard/reports/stocks/low-stock",
+        },
+        {
+          title: "Out of Stock",
+          link: "/dashboard/reports/stocks/out-of-stock",
+        },
       ],
     },
     {
       category: "Finance Reports",
       reports: [
-        { title: "Expense Overview", link: "/dashboard/reports/finance/expenses" },
-        { title: "Profit & Loss", link: "/dashboard/reports/finance/profit-loss" },
-        { title: "Balance Sheet", link: "/dashboard/reports/finance/balance-sheet" },
+        {
+          title: "Expense Overview",
+          link: "/dashboard/reports/finance/expenses",
+        },
+        {
+          title: "Profit & Loss",
+          link: "/dashboard/reports/finance/profit-loss",
+        },
+        {
+          title: "Balance Sheet",
+          link: "/dashboard/reports/finance/balance-sheet",
+        },
       ],
     },
     {
