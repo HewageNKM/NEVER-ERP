@@ -34,54 +34,54 @@ const Reports = () => {
           title: "Sales vs Discount",
           link: "/dashboard/reports/sales/sales-vs-discount",
         },
-        {
-          title: "Sales by Payment Method",
-          link: "/dashboard/reports/sales/by-payment-method",
-        },
-        {
-          title: "Refunds & Returns",
-          link: "/dashboard/reports/sales/refunds-returns",
-        },
+        // {
+        //   title: "Sales by Payment Method",
+        //   link: "/dashboard/reports/sales/by-payment-method",
+        // },
+        // {
+        //   title: "Refunds & Returns",
+        //   link: "/dashboard/reports/sales/refunds-returns",
+        // },
       ],
     },
-    {
-      category: "Stock Reports",
-      reports: [
-        { title: "Live Stock", link: "/dashboard/reports/stocks/live-stock" },
-        {
-          title: "Low Stock Items",
-          link: "/dashboard/reports/stocks/low-stock",
-        },
-        {
-          title: "Out of Stock",
-          link: "/dashboard/reports/stocks/out-of-stock",
-        },
-      ],
-    },
-    {
-      category: "Finance Reports",
-      reports: [
-        {
-          title: "Expense Overview",
-          link: "/dashboard/reports/finance/expenses",
-        },
-        {
-          title: "Profit & Loss",
-          link: "/dashboard/reports/finance/profit-loss",
-        },
-        {
-          title: "Balance Sheet",
-          link: "/dashboard/reports/finance/balance-sheet",
-        },
-      ],
-    },
-    {
-      category: "Revenue Reports",
-      reports: [
-        { title: "Monthly Revenue", link: "/reports/revenue/revenue-monthly" },
-        { title: "Yearly Revenue", link: "/reports/revenue/revenue-yearly" },
-      ],
-    },
+    // {
+    //   category: "Stock Reports",
+    //   reports: [
+    //     { title: "Live Stock", link: "/dashboard/reports/stocks/live-stock" },
+    //     {
+    //       title: "Low Stock Items",
+    //       link: "/dashboard/reports/stocks/low-stock",
+    //     },
+    //     {
+    //       title: "Out of Stock",
+    //       link: "/dashboard/reports/stocks/out-of-stock",
+    //     },
+    //   ],
+    // },
+    // {
+    //   category: "Finance Reports",
+    //   reports: [
+    //     {
+    //       title: "Expense Overview",
+    //       link: "/dashboard/reports/finance/expenses",
+    //     },
+    //     {
+    //       title: "Profit & Loss",
+    //       link: "/dashboard/reports/finance/profit-loss",
+    //     },
+    //     {
+    //       title: "Balance Sheet",
+    //       link: "/dashboard/reports/finance/balance-sheet",
+    //     },
+    //   ],
+    // },
+    // {
+    //   category: "Revenue Reports",
+    //   reports: [
+    //     { title: "Monthly Revenue", link: "/reports/revenue/revenue-monthly" },
+    //     { title: "Yearly Revenue", link: "/reports/revenue/revenue-yearly" },
+    //   ],
+    // },
   ];
 
   return (
