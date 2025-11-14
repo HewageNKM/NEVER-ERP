@@ -44,20 +44,12 @@ const Reports = () => {
         },
       ],
     },
-    // {
-    //   category: "Stock Reports",
-    //   reports: [
-    //     { title: "Live Stock", link: "/dashboard/reports/stocks/live-stock" },
-    //     {
-    //       title: "Low Stock Items",
-    //       link: "/dashboard/reports/stocks/low-stock",
-    //     },
-    //     {
-    //       title: "Out of Stock",
-    //       link: "/dashboard/reports/stocks/out-of-stock",
-    //     },
-    //   ],
-    // },
+    {
+      category: "Stock Reports",
+      reports: [
+        { title: "Live Stock", link: "/dashboard/reports/stocks/live-stock" },
+      ],
+    },
     // {
     //   category: "Finance Reports",
     //   reports: [

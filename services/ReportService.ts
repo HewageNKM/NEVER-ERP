@@ -745,3 +745,89 @@ export const getRefundsAndReturns = async (from?: string, to?: string) => {
     throw err;
   }
 };
+
+export interface LiveStockItem {
+  id: string;
+  productId: string;
+  productName: string;
+  variantId: string;
+  variantName: string;
+  size: string;
+  stockId: string;
+  stockName: string;
+  quantity: number;
+}
+
+export const fetchLiveStock = async (
+  page: number = 1,
+  size: number = 20
+): Promise<{ stock: LiveStockItem[]; total: number }> => {
+  try {
+    // Fetch paginated inventory
+    const inventorySnap = await adminFirestore
+      .collection("stock_inventory")
+      .orderBy("productId")
+      .offset((page - 1) * size)
+      .limit(size)
+      .get();
+
+    const totalSnap = await adminFirestore.collection("stock_inventory").get();
+    const total = totalSnap.size;
+
+    const stockList: LiveStockItem[] = [];
+
+    // Get product IDs and stock IDs for lookup
+    const productIds = inventorySnap.docs.map((d) => d.data().productId);
+    const stockIds = inventorySnap.docs.map((d) => d.data().stockId);
+
+    // Fetch products
+    const productSnaps = await adminFirestore
+      .collection("products")
+      .where("productId", "in", productIds)
+      .get();
+    const productMap: Record<string, any> = {};
+    productSnaps.docs.forEach((p) => {
+      const data = p.data();
+      productMap[data.productId] = data;
+    });
+
+    // Fetch stocks
+    const stockSnaps = await adminFirestore
+      .collection("stocks")
+      .where("id", "in", stockIds)
+      .get();
+    const stockMap: Record<string, any> = {};
+    stockSnaps.docs.forEach((s) => {
+      const data = s.data();
+      stockMap[data.id] = data;
+    });
+
+    inventorySnap.docs.forEach((d) => {
+      const data = d.data();
+      const product = productMap[data.productId];
+      const stock = stockMap[data.stockId];
+
+      // Find variant name from product
+      const variant =
+        product?.variants?.find((v: any) => v.variantId === data.variantId) || {};
+
+      stockList.push({
+        id: d.id,
+        productId: data.productId,
+        productName: product?.name || "",
+        variantId: data.variantId,
+        variantName: variant?.variantName || data.variantName || "",
+        size: data.size,
+        stockId: data.id,
+        stockName: stock?.name || "", // <-- get stock name from stocks collection
+        quantity: data.quantity || 0,
+      });
+    });
+
+    return { stock: stockList, total };
+  } catch (err) {
+    console.error("Live Stock Service Error:", err);
+    throw err;
+  }
+};
+
