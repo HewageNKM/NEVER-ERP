@@ -2,7 +2,7 @@ import { adminFirestore } from "@/firebase/firebaseAdmin";
 import { Timestamp } from "firebase-admin/firestore";
 import { toSafeLocaleString } from "./UtilService";
 
-export const getSaleReport = async (from: string, to: string) => {
+export const getDailySaleReport = async (from: string, to: string) => {
   try {
     let query = adminFirestore
       .collection("orders")
@@ -29,9 +29,13 @@ export const getSaleReport = async (from: string, to: string) => {
       updatedAt: toSafeLocaleString(d.data().updatedAt),
     }));
 
+    // Helper: subtotal = total - shipping
+    const getSales = (o: any) =>
+      (o.total || 0) - (o.shippingFee || 0);
+
     // ---------- MAIN SUMMARY ----------
     const totalOrders = orders.length;
-    const totalSales = orders.reduce((s, o) => s + (o.total || 0), 0);
+    const totalSales = orders.reduce((s, o) => s + getSales(o), 0); // FIXED
     const totalShipping = orders.reduce((s, o) => s + (o.shippingFee || 0), 0);
     const totalDiscount = orders.reduce((s, o) => s + (o.discount || 0), 0);
     const totalTransactionFee = orders.reduce(
@@ -73,7 +77,10 @@ export const getSaleReport = async (from: string, to: string) => {
       }
 
       dailyMap[dateKey].orders += 1;
-      dailyMap[dateKey].sales += o.total || 0;
+
+      // FIXED: deduct shipping from sales
+      dailyMap[dateKey].sales += getSales(o);
+
       dailyMap[dateKey].shipping += o.shippingFee || 0;
       dailyMap[dateKey].discount += o.discount || 0;
       dailyMap[dateKey].transactionFee += o.transactionFeeCharge || 0;
@@ -122,18 +129,22 @@ export const getMonthlySummary = async (from: string, to: string) => {
         .where("createdAt", "<=", Timestamp.fromDate(end));
     }
 
-    query = query.orderBy("createdAt", "asc"); // ascending for monthly summary
+    query = query.orderBy("createdAt", "asc");
     const snap = await query.get();
 
     const orders = snap.docs.map((d) => ({
       orderId: d.id,
       ...d.data(),
-      createdAt: d.data().createdAt.toDate(), // Keep as Date
+      createdAt: d.data().createdAt.toDate(),
     }));
+
+    // Helper: subtotal (sales) = total - shippingFee
+    const getSales = (o: any) =>
+      (o.total || 0) - (o.shippingFee || 0);
 
     // ---------- MAIN SUMMARY ----------
     const totalOrders = orders.length;
-    const totalSales = orders.reduce((s, o) => s + (o.total || 0), 0);
+    const totalSales = orders.reduce((s, o) => s + getSales(o), 0); // FIXED
     const totalShipping = orders.reduce((s, o) => s + (o.shippingFee || 0), 0);
     const totalDiscount = orders.reduce((s, o) => s + (o.discount || 0), 0);
     const totalTransactionFee = orders.reduce(
@@ -141,7 +152,8 @@ export const getMonthlySummary = async (from: string, to: string) => {
       0
     );
     const totalItemsSold = orders.reduce(
-      (count, o) => count + (o.items?.reduce((c, i) => c + i.quantity, 0) || 0),
+      (count, o) =>
+        count + (o.items?.reduce((c, i) => c + i.quantity, 0) || 0),
       0
     );
 
@@ -161,9 +173,11 @@ export const getMonthlySummary = async (from: string, to: string) => {
 
     orders.forEach((o) => {
       const date = o.createdAt as Date;
-      if (!date || isNaN(date.getTime())) return; // skip invalid dates
+      if (!date || isNaN(date.getTime())) return;
 
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      const monthKey = `${date.getFullYear()}-${String(
+        date.getMonth() + 1
+      ).padStart(2, "0")}`;
 
       if (!monthlyMap[monthKey]) {
         monthlyMap[monthKey] = {
@@ -178,15 +192,21 @@ export const getMonthlySummary = async (from: string, to: string) => {
       }
 
       monthlyMap[monthKey].orders += 1;
-      monthlyMap[monthKey].sales += o.total || 0;
+
+      // FIXED: subtract shipping from sales
+      monthlyMap[monthKey].sales += getSales(o);
+
       monthlyMap[monthKey].shipping += o.shippingFee || 0;
       monthlyMap[monthKey].discount += o.discount || 0;
       monthlyMap[monthKey].transactionFee += o.transactionFeeCharge || 0;
-      monthlyMap[monthKey].itemsSold += o.items?.reduce((c, i) => c + i.quantity, 0) || 0;
+      monthlyMap[monthKey].itemsSold +=
+        o.items?.reduce((c, i) => c + i.quantity, 0) || 0;
     });
 
     const monthly = Object.values(monthlyMap).sort(
-      (a, b) => new Date(a.month + "-01").getTime() - new Date(b.month + "-01").getTime()
+      (a, b) =>
+        new Date(a.month + "-01").getTime() -
+        new Date(b.month + "-01").getTime()
     );
 
     return {
@@ -207,6 +227,7 @@ export const getMonthlySummary = async (from: string, to: string) => {
     throw error;
   }
 };
+
 
 export const getYearlySummary = async (from: string, to: string) => {
   try {
@@ -230,12 +251,16 @@ export const getYearlySummary = async (from: string, to: string) => {
     const orders = snap.docs.map((d) => ({
       orderId: d.id,
       ...d.data(),
-      createdAt: d.data().createdAt.toDate(), // keep as Date
+      createdAt: d.data().createdAt.toDate(),
     }));
+
+    // Helper: correct sales value
+    const getSales = (o: any) =>
+      (o.total || 0) - (o.shippingFee || 0);
 
     // ---------- MAIN SUMMARY ----------
     const totalOrders = orders.length;
-    const totalSales = orders.reduce((s, o) => s + (o.total || 0), 0);
+    const totalSales = orders.reduce((s, o) => s + getSales(o), 0); // FIXED
     const totalShipping = orders.reduce((s, o) => s + (o.shippingFee || 0), 0);
     const totalDiscount = orders.reduce((s, o) => s + (o.discount || 0), 0);
     const totalTransactionFee = orders.reduce(
@@ -247,7 +272,7 @@ export const getYearlySummary = async (from: string, to: string) => {
       0
     );
 
-    // ---------- YEARLY & MONTHLY SUMMARY ----------
+    // ---------- YEARLY SUMMARY ----------
     const yearlyMap: Record<
       string,
       {
@@ -275,7 +300,9 @@ export const getYearlySummary = async (from: string, to: string) => {
       if (!date || isNaN(date.getTime())) return;
 
       const yearKey = `${date.getFullYear()}`;
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      const monthKey = `${date.getFullYear()}-${String(
+        date.getMonth() + 1
+      ).padStart(2, "0")}`;
 
       if (!yearlyMap[yearKey]) {
         yearlyMap[yearKey] = {
@@ -290,21 +317,25 @@ export const getYearlySummary = async (from: string, to: string) => {
         };
       }
 
-      // Update yearly totals
+      // ---- YEARLY TOTALS (FIXED) ----
       yearlyMap[yearKey].orders += 1;
-      yearlyMap[yearKey].sales += o.total || 0;
+      yearlyMap[yearKey].sales += getSales(o); // FIXED
       yearlyMap[yearKey].shipping += o.shippingFee || 0;
       yearlyMap[yearKey].discount += o.discount || 0;
       yearlyMap[yearKey].transactionFee += o.transactionFeeCharge || 0;
-      yearlyMap[yearKey].itemsSold += o.items?.reduce((c, i) => c + i.quantity, 0) || 0;
+      yearlyMap[yearKey].itemsSold +=
+        o.items?.reduce((c, i) => c + i.quantity, 0) || 0;
 
-      // Update monthly inside year
-      const monthlyIndex = yearlyMap[yearKey].monthly.findIndex((m) => m.month === monthKey);
+      // ---- MONTHLY TOTALS (INSIDE YEAR — FIXED) ----
+      const monthlyIndex = yearlyMap[yearKey].monthly.findIndex(
+        (m) => m.month === monthKey
+      );
+
       if (monthlyIndex === -1) {
         yearlyMap[yearKey].monthly.push({
           month: monthKey,
           orders: 1,
-          sales: o.total || 0,
+          sales: getSales(o), // FIXED
           shipping: o.shippingFee || 0,
           discount: o.discount || 0,
           transactionFee: o.transactionFeeCharge || 0,
@@ -313,15 +344,16 @@ export const getYearlySummary = async (from: string, to: string) => {
       } else {
         const m = yearlyMap[yearKey].monthly[monthlyIndex];
         m.orders += 1;
-        m.sales += o.total || 0;
+        m.sales += getSales(o); // FIXED
         m.shipping += o.shippingFee || 0;
         m.discount += o.discount || 0;
         m.transactionFee += o.transactionFeeCharge || 0;
-        m.itemsSold += o.items?.reduce((c, i) => c + i.quantity, 0) || 0;
+        m.itemsSold +=
+          o.items?.reduce((c, i) => c + i.quantity, 0) || 0;
       }
     });
 
-    // Convert to array sorted by year ascending
+    // Sort years
     const yearly = Object.values(yearlyMap).sort(
       (a, b) => parseInt(a.year) - parseInt(b.year)
     );
@@ -329,7 +361,9 @@ export const getYearlySummary = async (from: string, to: string) => {
     // Sort months inside each year
     yearly.forEach((y) => {
       y.monthly.sort(
-        (a, b) => new Date(a.month + "-01").getTime() - new Date(b.month + "-01").getTime()
+        (a, b) =>
+          new Date(a.month + "-01").getTime() -
+          new Date(b.month + "-01").getTime()
       );
     });
 
@@ -351,6 +385,7 @@ export const getYearlySummary = async (from: string, to: string) => {
     throw error;
   }
 };
+
 
 export const getTopSellingProducts = async (
   from?: string,
@@ -375,8 +410,20 @@ export const getTopSellingProducts = async (
 
     snap.docs.forEach((doc) => {
       const order = doc.data();
+      const shippingFee = order.shippingFee || 0;
+
+      // Calculate total item cost before removing shipping
+      const totalItemValue = order.items?.reduce(
+        (s: number, i: any) => s + (i.price || 0) * i.quantity,
+        0
+      ) || 0;
+
+      // Allocate shipping removal proportionally
+      const shippingRatio =
+        totalItemValue > 0 ? shippingFee / totalItemValue : 0;
+
       order.items?.forEach((item: any) => {
-        const key = item.itemId + (item.variantId || ""); // differentiate variants
+        const key = item.itemId + (item.variantId || "");
 
         if (!productMap[key]) {
           productMap[key] = {
@@ -390,14 +437,20 @@ export const getTopSellingProducts = async (
           };
         }
 
+        const rawSales = (item.price || 0) * item.quantity;
+
+        // Deduct proportionally allocated shipping from item sales
+        const adjustedSales = rawSales - rawSales * shippingRatio;
+
         productMap[key].totalQuantity += item.quantity;
-        productMap[key].totalSales += (item.price || 0) * item.quantity;
+        productMap[key].totalSales += adjustedSales;
         productMap[key].totalDiscount += (item.discount || 0) * item.quantity;
       });
     });
 
-    // Convert map to array and sort by totalQuantity
-    const allProducts = Object.values(productMap).sort((a, b) => b.totalQuantity - a.totalQuantity);
+    const allProducts = Object.values(productMap).sort(
+      (a, b) => b.totalQuantity - a.totalQuantity
+    );
 
     const total = allProducts.length;
     const startIndex = (page - 1) * size;
@@ -416,6 +469,7 @@ export const getTopSellingProducts = async (
   }
 };
 
+
 export const getSalesByCategory = async (from?: string, to?: string) => {
   try {
     let query = adminFirestore.collection("orders").where("paymentStatus", "==", "Paid");
@@ -433,19 +487,34 @@ export const getSalesByCategory = async (from?: string, to?: string) => {
     const snap = await query.get();
 
     const categoryMap: Record<string, any> = {};
-    const productCache: Record<string, any> = {}; // cache products to reduce reads
+    const productCache: Record<string, any> = {}; // cache products
 
     for (const doc of snap.docs) {
       const order = doc.data();
-      for (const item of order.items || []) {
-        let product: any;
 
-        // Check cache first
+      const shippingFee = order.shippingFee || 0;
+
+      // 1. Calculate total raw item sales for the order
+      const totalItemSales =
+        order.items?.reduce(
+          (s: number, i: any) => s + (i.price || 0) * i.quantity,
+          0
+        ) || 0;
+
+      // 2. Determine proportional deduction ratio
+      const deductionRatio =
+        totalItemSales > 0 ? shippingFee / totalItemSales : 0;
+
+      for (const item of order.items || []) {
+        // 3. Fetch product (with cache)
+        let product: any;
         if (productCache[item.itemId]) {
           product = productCache[item.itemId];
         } else {
-          // Fetch product from "products" collection
-          const productSnap = await adminFirestore.collection("products").doc(item.itemId).get();
+          const productSnap = await adminFirestore
+            .collection("products")
+            .doc(item.itemId)
+            .get();
           product = productSnap.exists ? productSnap.data() : null;
           productCache[item.itemId] = product;
         }
@@ -462,9 +531,16 @@ export const getSalesByCategory = async (from?: string, to?: string) => {
           };
         }
 
+        const rawSales = (item.price || 0) * item.quantity;
+
+        // 4. Apply proportional shipping deduction
+        const adjustedSales = rawSales - rawSales * deductionRatio;
+
+        // 5. Update category totals
         categoryMap[category].totalQuantity += item.quantity;
-        categoryMap[category].totalSales += item.price * item.quantity;
-        categoryMap[category].totalDiscount += item.discount * item.quantity;
+        categoryMap[category].totalSales += adjustedSales;
+        categoryMap[category].totalDiscount +=
+          (item.discount || 0) * item.quantity;
         categoryMap[category].totalOrders += 1;
       }
     }
@@ -479,6 +555,7 @@ export const getSalesByCategory = async (from?: string, to?: string) => {
     throw error;
   }
 };
+
 
 export const getSalesByBrand = async (from?: string, to?: string) => {
   try {
@@ -497,18 +574,34 @@ export const getSalesByBrand = async (from?: string, to?: string) => {
     const snap = await query.get();
 
     const brandMap: Record<string, any> = {};
-    const productCache: Record<string, any> = {}; // cache products to reduce reads
+    const productCache: Record<string, any> = {}; // reduce reads
 
     for (const doc of snap.docs) {
       const order = doc.data();
+      const shippingFee = order.shippingFee || 0;
+
+      // 1. Total raw item sales in this order
+      const totalItemSales =
+        order.items?.reduce(
+          (s: number, i: any) => s + (i.price || 0) * i.quantity,
+          0
+        ) || 0;
+
+      // 2. Calculate proportional deduction ratio
+      const deductionRatio =
+        totalItemSales > 0 ? shippingFee / totalItemSales : 0;
+
       for (const item of order.items || []) {
         let product: any;
 
-        // Use cache if available
+        // Lookup from cache
         if (productCache[item.itemId]) {
           product = productCache[item.itemId];
         } else {
-          const productSnap = await adminFirestore.collection("products").doc(item.itemId).get();
+          const productSnap = await adminFirestore
+            .collection("products")
+            .doc(item.itemId)
+            .get();
           product = productSnap.exists ? productSnap.data() : null;
           productCache[item.itemId] = product;
         }
@@ -525,9 +618,15 @@ export const getSalesByBrand = async (from?: string, to?: string) => {
           };
         }
 
+        const rawSales = (item.price || 0) * item.quantity;
+
+        // 3. Apply proportional deduction
+        const adjustedSales = rawSales - rawSales * deductionRatio;
+
+        // Update Brand totals
         brandMap[brand].totalQuantity += item.quantity;
-        brandMap[brand].totalSales += item.price * item.quantity;
-        brandMap[brand].totalDiscount += item.discount * item.quantity;
+        brandMap[brand].totalSales += adjustedSales;
+        brandMap[brand].totalDiscount += (item.discount || 0) * item.quantity;
         brandMap[brand].totalOrders += 1;
       }
     }
@@ -541,13 +640,16 @@ export const getSalesByBrand = async (from?: string, to?: string) => {
   }
 };
 
+
 export const getSalesVsDiscount = async (
   from?: string,
   to?: string,
   groupBy: "day" | "month" = "day"
 ) => {
   try {
-    let query = adminFirestore.collection("orders").where("paymentStatus", "==", "Paid");
+    let query = adminFirestore
+      .collection("orders")
+      .where("paymentStatus", "==", "Paid");
 
     if (from && to) {
       const start = new Date(from);
@@ -564,11 +666,16 @@ export const getSalesVsDiscount = async (
 
     snap.docs.forEach((doc) => {
       const order = doc.data();
-      const dateObj = order.createdAt.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+      const dateObj = order.createdAt.toDate
+        ? order.createdAt.toDate()
+        : new Date(order.createdAt);
 
+      // Group key (day or month)
       let key = "";
       if (groupBy === "month") {
-        key = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, "0")}`;
+        key = `${dateObj.getFullYear()}-${String(
+          dateObj.getMonth() + 1
+        ).padStart(2, "0")}`;
       } else {
         key = dateObj.toISOString().split("T")[0]; // yyyy-mm-dd
       }
@@ -582,12 +689,22 @@ export const getSalesVsDiscount = async (
         };
       }
 
-      reportMap[key].totalSales += order.total || 0;
+      const shippingFee = order.shippingFee || 0;
+      const rawTotal = order.total || 0;
+
+      // 🚀 Deduct shipping from sales
+      const netSales = rawTotal - shippingFee;
+
+      reportMap[key].totalSales += netSales;
       reportMap[key].totalDiscount += order.discount || 0;
       reportMap[key].totalOrders += 1;
     });
 
-    return { report: Object.values(reportMap).sort((a, b) => (a.period > b.period ? 1 : -1)) };
+    return {
+      report: Object.values(reportMap).sort((a, b) =>
+        a.period > b.period ? 1 : -1
+      ),
+    };
   } catch (error) {
     console.error("Sales vs Discount service error:", error);
     throw error;
