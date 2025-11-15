@@ -37,7 +37,7 @@ const Page = () => {
     setLoading(true);
     try {
       const token = await getToken();
-      const res = await axios.get("/api/v2/reports/sale/daily-summary", {
+      const res = await axios.get("/api/v2/reports/sales/daily-summary", {
         params: { from, to },
         headers: { Authorization: `Bearer ${token}` },
       });
