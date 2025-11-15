@@ -58,6 +58,7 @@ export const addProducts = async (product: Partial<Product>, file: File) => {
       id: id,
       productId: id,
       thumbnail: thumbnail,
+      nameLower: product.name?.toLowerCase(),
       tags: tags,
       isDeleted: false,
       createdAt: FieldValue.serverTimestamp(),
@@ -99,7 +100,7 @@ export const updateProduct = async (
 
     if (file) {
       const oldProduct = await getProductById(id);
-      const oldPath = oldProduct?.thumbnail?.file; 
+      const oldPath = oldProduct?.thumbnail?.file;
       if (oldPath) {
         try {
           await BUCKET.file(oldPath).delete();
@@ -124,6 +125,7 @@ export const updateProduct = async (
       variants: product.variants,
       status: product.status,
       thumbnail: thumbnail,
+      nameLower: product.name?.toLowerCase(),
       tags: tags,
       updatedAt: new Date(),
     };
@@ -175,29 +177,17 @@ export const getProducts = async (
       countQuery = countQuery.where("listing", "==", listing);
     }
 
-    // Search using AI-generated tags
     if (search) {
-      const searchContext = `Name: ${search}\nDescription: ${search}`;
-      const searchTags = await generateTags(
-        "Extract product tags for search",
-        searchContext
-      );
+      const searchLower = search.toLowerCase();
+      query = query
+        .orderBy("nameLower")
+        .startAt(searchLower)
+        .endAt(searchLower + "\uf8ff");
 
-      if (searchTags.length > 0) {
-        query = query.where("tags", "array-contains-any", searchTags);
-        countQuery = countQuery.where("tags", "array-contains-any", searchTags);
-      } else {
-        query = query.where(
-          "tags",
-          "array-contains",
-          `__no_match__${nanoid()}`
-        );
-        countQuery = countQuery.where(
-          "tags",
-          "array-contains",
-          `__no_match__${nanoid()}`
-        );
-      }
+      countQuery = countQuery
+        .orderBy("nameLower")
+        .startAt(searchLower)
+        .endAt(searchLower + "\uf8ff");
     }
 
     // Count total rows
@@ -217,8 +207,8 @@ export const getProducts = async (
         ...data,
         productId: doc.id,
         variants: activeVariants,
-        createdAt:toSafeLocaleString(data.createdAt),
-        updatedAt:toSafeLocaleString(data.updatedAt),
+        createdAt: toSafeLocaleString(data.createdAt),
+        updatedAt: toSafeLocaleString(data.updatedAt),
       } as Omit<Product, "isDeleted">;
     });
 
