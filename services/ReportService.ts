@@ -539,7 +539,7 @@ export const getSalesByCategory = async (from?: string, to?: string) => {
         categoryMap[category].totalQuantity += item.quantity;
         categoryMap[category].totalSales += adjustedSales;
         categoryMap[category].totalDiscount +=
-          (item.discount || 0) * item.quantity;
+          (item.discount || 0);
         categoryMap[category].totalOrders += 1;
       }
     }
@@ -626,7 +626,7 @@ export const getSalesByBrand = async (from?: string, to?: string) => {
         // Update Brand totals
         brandMap[brand].totalQuantity += item.quantity;
         brandMap[brand].totalSales += adjustedSales;
-        brandMap[brand].totalDiscount += (item.discount || 0) * item.quantity;
+        brandMap[brand].totalDiscount += (item.discount || 0);
         brandMap[brand].totalOrders += 1;
       }
     }
