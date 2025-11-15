@@ -10,10 +10,9 @@ export async function GET(req: NextRequest) {
     }
 
     const url = new URL(req.url);
-    const page = parseInt(url.searchParams.get("page") || "1", 10);
-    const size = parseInt(url.searchParams.get("size") || "20", 10);
+    const stockId = url.searchParams.get("stockId") || "";
 
-    const data = await fetchLiveStock(page, size);
+    const data = await fetchLiveStock(stockId);
     return NextResponse.json(data);
   } catch (err) {
     console.error("Live Stock API Error:", err);

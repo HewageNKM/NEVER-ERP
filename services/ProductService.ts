@@ -142,6 +142,7 @@ export const updateProduct = async (
     return false;
   }
 };
+
 export const getProducts = async (
   pageNumber = 1,
   size = 20,
@@ -219,7 +220,6 @@ export const getProducts = async (
   }
 };
 
-// Get product by ID
 export const getProductById = async (id: string): Promise<Product | null> => {
   try {
     const docSnap = await adminFirestore

@@ -538,8 +538,7 @@ export const getSalesByCategory = async (from?: string, to?: string) => {
         // 5. Update category totals
         categoryMap[category].totalQuantity += item.quantity;
         categoryMap[category].totalSales += adjustedSales;
-        categoryMap[category].totalDiscount +=
-          (item.discount || 0);
+        categoryMap[category].totalDiscount += item.discount || 0;
         categoryMap[category].totalOrders += 1;
       }
     }
@@ -626,7 +625,7 @@ export const getSalesByBrand = async (from?: string, to?: string) => {
         // Update Brand totals
         brandMap[brand].totalQuantity += item.quantity;
         brandMap[brand].totalSales += adjustedSales;
-        brandMap[brand].totalDiscount += (item.discount || 0);
+        brandMap[brand].totalDiscount += item.discount || 0;
         brandMap[brand].totalOrders += 1;
       }
     }
@@ -871,61 +870,98 @@ export interface LiveStockItem {
   stockId: string;
   stockName: string;
   quantity: number;
+  buyingPrice: number;
+  valuation: number;
 }
 
 export const fetchLiveStock = async (
-  page: number = 1,
-  size: number = 20
-): Promise<{ stock: LiveStockItem[]; total: number }> => {
+  stockId: string = "all"
+): Promise<{
+  stock: LiveStockItem[];
+  total: number;
+  summary: {
+    totalProducts: number;
+    totalQuantity: number;
+    totalValuation: number;
+  };
+}> => {
   try {
-    // Fetch paginated inventory
-    const inventorySnap = await adminFirestore
+    let inventoryQuery: FirebaseFirestore.Query = adminFirestore
       .collection("stock_inventory")
-      .orderBy("productId")
-      .offset((page - 1) * size)
-      .limit(size)
+      .orderBy("productId");
+
+    if (stockId !== "all") {
+      inventoryQuery = inventoryQuery.where("stockId", "==", stockId);
+    }
+
+    const inventorySnap = await inventoryQuery
       .get();
 
-    const totalSnap = await adminFirestore.collection("stock_inventory").get();
-    const total = totalSnap.size;
+    const totalSnap =
+      stockId === "all"
+        ? await adminFirestore.collection("stock_inventory").get()
+        : await adminFirestore
+            .collection("stock_inventory")
+            .where("stockId", "==", stockId)
+            .get();
 
+    const total = totalSnap.size;
     const stockList: LiveStockItem[] = [];
 
-    // Get product IDs and stock IDs for lookup
     const productIds = inventorySnap.docs.map((d) => d.data().productId);
     const stockIds = inventorySnap.docs.map((d) => d.data().stockId);
 
-    // Fetch products
-    const productSnaps = await adminFirestore
-      .collection("products")
-      .where("productId", "in", productIds)
-      .get();
-    const productMap: Record<string, any> = {};
-    productSnaps.docs.forEach((p) => {
-      const data = p.data();
-      productMap[data.productId] = data;
-    });
+    // Helper to split array into chunks of 30
+    const chunkArray = <T>(arr: T[], chunkSize: number) =>
+      arr.reduce((result: T[][], item, index) => {
+        const chunkIndex = Math.floor(index / chunkSize);
+        result[chunkIndex] = result[chunkIndex] || [];
+        result[chunkIndex].push(item);
+        return result;
+      }, []);
 
-    // Fetch stocks
-    const stockSnaps = await adminFirestore
-      .collection("stocks")
-      .where("id", "in", stockIds)
-      .get();
+    // Fetch products in batches of 30
+    const productMap: Record<string, any> = {};
+    for (const chunk of chunkArray(productIds, 30)) {
+      const productSnaps = await adminFirestore
+        .collection("products")
+        .where("productId", "in", chunk)
+        .get();
+      productSnaps.docs.forEach((p) => {
+        const data = p.data();
+        productMap[data.productId] = data;
+      });
+    }
+
+    // Fetch stocks in batches of 30
     const stockMap: Record<string, any> = {};
-    stockSnaps.docs.forEach((s) => {
-      const data = s.data();
-      stockMap[data.id] = data;
-    });
+    for (const chunk of chunkArray(stockIds, 30)) {
+      const stockSnaps = await adminFirestore
+        .collection("stocks")
+        .where("id", "in", chunk)
+        .get();
+      stockSnaps.docs.forEach((s) => {
+        const data = s.data();
+        stockMap[data.id] = data;
+      });
+    }
+
+    let totalQuantity = 0;
+    let totalValuation = 0;
 
     inventorySnap.docs.forEach((d) => {
       const data = d.data();
       const product = productMap[data.productId];
       const stock = stockMap[data.stockId];
 
-      // Find variant name from product
       const variant =
         product?.variants?.find((v: any) => v.variantId === data.variantId) ||
         {};
+      const buyingPrice = product?.buyingPrice || 0;
+      const valuation = buyingPrice * (data.quantity || 0);
+
+      totalQuantity += data.quantity || 0;
+      totalValuation += valuation;
 
       stockList.push({
         id: d.id,
@@ -934,15 +970,300 @@ export const fetchLiveStock = async (
         variantId: data.variantId,
         variantName: variant?.variantName || data.variantName || "",
         size: data.size,
-        stockId: data.id,
-        stockName: stock?.name || "", // <-- get stock name from stocks collection
+        stockId: data.stockId,
+        stockName: stock?.name || "",
         quantity: data.quantity || 0,
+        buyingPrice,
+        valuation,
       });
     });
 
-    return { stock: stockList, total };
+    return {
+      stock: stockList,
+      total,
+      summary: {
+        totalProducts: stockList.length,
+        totalQuantity,
+        totalValuation,
+      },
+    };
   } catch (err) {
     console.error("Live Stock Service Error:", err);
+    throw err;
+  }
+};
+
+export interface LowStockItem {
+  id: string;
+  productId: string;
+  productName: string;
+  variantId: string;
+  variantName: string;
+  size: string;
+  stockId: string;
+  stockName: string;
+  quantity: number;
+  threshold: number;
+  buyingPrice?: number;
+  valuation?: number;
+}
+
+export const fetchLowStock = async (
+  threshold: number = 10,
+  stockId: string = "all"
+): Promise<{
+  stock: LowStockItem[];
+  total: number;
+  summary: {
+    totalProducts: number;
+    totalQuantity: number;
+    totalValuation: number;
+  };
+}> => {
+  try {
+    // Build query
+    let inventoryQuery: FirebaseFirestore.Query = adminFirestore
+      .collection("stock_inventory")
+      .where("quantity", "<=", threshold)
+      .orderBy("quantity", "asc");
+
+    if (stockId !== "all") {
+      inventoryQuery = inventoryQuery.where("stockId", "==", stockId);
+    }
+
+    // Fetch paginated inventory
+    const inventorySnap = await inventoryQuery
+      .get();
+
+    // Total count
+    const totalSnap =
+      stockId === "all"
+        ? await adminFirestore
+            .collection("stock_inventory")
+            .where("quantity", "<=", threshold)
+            .get()
+        : await adminFirestore
+            .collection("stock_inventory")
+            .where("quantity", "<=", threshold)
+            .where("stockId", "==", stockId)
+            .get();
+
+    const total = totalSnap.size;
+
+    const stockList: LowStockItem[] = [];
+
+    // Collect productIds and stockIds
+    const productIds = inventorySnap.docs.map((d) => d.data().productId);
+    const stockIds = inventorySnap.docs.map((d) => d.data().stockId);
+
+    // Helper for batching 'in' queries (max 30)
+    const batchFetch = async (
+      collection: string,
+      field: string,
+      ids: string[]
+    ) => {
+      const chunks: string[][] = [];
+      for (let i = 0; i < ids.length; i += 30)
+        chunks.push(ids.slice(i, i + 30));
+
+      const result: FirebaseFirestore.DocumentData[] = [];
+      for (const chunk of chunks) {
+        const snap = await adminFirestore
+          .collection(collection)
+          .where(field, "in", chunk)
+          .get();
+        snap.docs.forEach((d) => result.push(d.data()));
+      }
+      return result;
+    };
+
+    // Fetch products
+    const products = productIds.length
+      ? await batchFetch("products", "productId", productIds)
+      : [];
+    const productMap: Record<string, any> = {};
+    products.forEach((p) => (productMap[p.productId] = p));
+
+    // Fetch stocks
+    const stocks = stockIds.length
+      ? await batchFetch("stocks", "id", stockIds)
+      : [];
+    const stockMap: Record<string, any> = {};
+    stocks.forEach((s) => (stockMap[s.id] = s));
+
+    let totalQuantity = 0;
+    let totalValuation = 0;
+
+    inventorySnap.docs.forEach((d) => {
+      const data = d.data();
+      const product = productMap[data.productId];
+      const stock = stockMap[data.stockId];
+
+      const variant =
+        product?.variants?.find((v: any) => v.variantId === data.variantId) ||
+        {};
+      const buyingPrice = product?.buyingPrice || 0;
+      const valuation = buyingPrice * (data.quantity || 0);
+
+      totalQuantity += data.quantity || 0;
+      totalValuation += valuation;
+
+      stockList.push({
+        id: d.id,
+        productId: data.productId,
+        productName: product?.name || "",
+        variantId: data.variantId,
+        variantName: variant?.variantName || data.variantName || "",
+        size: data.size,
+        stockId: data.stockId,
+        stockName: stock?.name || "",
+        quantity: data.quantity || 0,
+        threshold,
+        buyingPrice,
+        valuation,
+      });
+    });
+
+    return {
+      stock: stockList,
+      total,
+      summary: {
+        totalProducts: stockList.length,
+        totalQuantity,
+        totalValuation,
+      },
+    };
+  } catch (err) {
+    console.error("Low Stock Service Error:", err);
+    throw err;
+  }
+};
+
+export interface StockValuationItem {
+  id: string;
+  productId: string;
+  productName: string;
+  variantId: string;
+  variantName: string;
+  size: string;
+  stockId: string;
+  stockName: string;
+  quantity: number;
+  buyingPrice: number;
+  valuation: number;
+}
+
+export interface StockValuationSummary {
+  totalProducts: number;
+  totalQuantity: number;
+  totalValuation: number;
+}
+
+const chunkArray = <T>(arr: T[], chunkSize: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < arr.length; i += chunkSize) {
+    chunks.push(arr.slice(i, i + chunkSize));
+  }
+  return chunks;
+};
+
+export const fetchStockValuationByStock = async (
+  stockId: string
+): Promise<{ stock: StockValuationItem[]; summary: StockValuationSummary }> => {
+  try {
+    let inventoryQuery: FirebaseFirestore.Query =
+      adminFirestore.collection("stock_inventory");
+
+    if (stockId !== "all") {
+      inventoryQuery = inventoryQuery.where("stockId", "==", stockId);
+    }
+
+    const inventorySnap = await inventoryQuery.get();
+
+    if (inventorySnap.empty) {
+      return {
+        stock: [],
+        summary: { totalProducts: 0, totalQuantity: 0, totalValuation: 0 },
+      };
+    }
+
+    const inventoryDocs = inventorySnap.docs;
+    const productIds = Array.from(
+      new Set(inventoryDocs.map((d) => d.data().productId))
+    );
+    const stockIds = Array.from(
+      new Set(inventoryDocs.map((d) => d.data().stockId))
+    );
+
+    // Fetch products in chunks of 30
+    const productMap: Record<string, any> = {};
+    const productChunks = chunkArray(productIds, 30);
+    for (const chunk of productChunks) {
+      const snap = await adminFirestore
+        .collection("products")
+        .where("productId", "in", chunk)
+        .get();
+      snap.docs.forEach((p) => {
+        const data = p.data();
+        productMap[data.productId] = data;
+      });
+    }
+
+    // Fetch stocks in chunks of 30
+    const stockMap: Record<string, any> = {};
+    const stockChunks = chunkArray(stockIds, 30);
+    for (const chunk of stockChunks) {
+      const snap = await adminFirestore
+        .collection("stocks")
+        .where("id", "in", chunk)
+        .get();
+      snap.docs.forEach((s) => {
+        const data = s.data();
+        stockMap[data.id] = data;
+      });
+    }
+
+    let totalQuantity = 0;
+    let totalValuation = 0;
+
+    const stockList: StockValuationItem[] = inventoryDocs.map((d) => {
+      const data = d.data();
+      const product = productMap[data.productId];
+      const stockData = stockMap[data.stockId];
+      const variant =
+        product?.variants?.find((v: any) => v.variantId === data.variantId) ||
+        {};
+      const buyingPrice = product?.buyingPrice || 0;
+      const valuation = buyingPrice * (data.quantity || 0);
+
+      totalQuantity += data.quantity || 0;
+      totalValuation += valuation;
+
+      return {
+        id: d.id,
+        productId: data.productId,
+        productName: product?.name || "",
+        variantId: data.variantId,
+        variantName: variant?.variantName || data.variantName || "",
+        size: data.size,
+        stockId: data.stockId,
+        stockName: stockData?.name || "",
+        quantity: data.quantity || 0,
+        buyingPrice,
+        valuation,
+      };
+    });
+
+    return {
+      stock: stockList,
+      summary: {
+        totalProducts: stockList.length,
+        totalQuantity,
+        totalValuation,
+      },
+    };
+  } catch (err) {
+    console.error("Stock Valuation Service Error:", err);
     throw err;
   }
 };

@@ -5,6 +5,7 @@ import {
   Box,
   Paper,
   Stack,
+  TextField,
   Button,
   Typography,
   Table,
@@ -17,38 +18,26 @@ import {
   TablePagination,
   Breadcrumbs,
   Link as MUILink,
-  Card,
-  CardContent,
-  Grid,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
+  Grid,
+  Card,
+  CardContent,
 } from "@mui/material";
 import axios from "axios";
 import * as XLSX from "xlsx";
-import PageContainer from "@/app/dashboard/components/container/PageContainer";
 import { getToken } from "@/firebase/firebaseClient";
+import PageContainer from "@/app/dashboard/components/container/PageContainer";
 import { useAppSelector } from "@/lib/hooks";
 
-export interface LiveStockItem {
-  id: string;
-  productId: string;
-  productName: string;
-  variantId: string;
-  variantName: string;
-  size: string;
-  stockId: string;
-  stockName: string;
-  quantity: number;
-}
-
-const LiveStockPage = () => {
+const LowStockPage = () => {
+  const [threshold, setThreshold] = useState(10);
   const [loading, setLoading] = useState(false);
-  const [stock, setStock] = useState<LiveStockItem[]>([]);
+  const [stock, setStock] = useState<any[]>([]);
   const [stocksDropdown, setStocksDropdown] = useState<any[]>([]);
-  const [selectedStock, setSelectedStock] = useState<string>("all");
-  const { currentUser } = useAppSelector((state) => state.authSlice);
+  const [selectedStock, setSelectedStock] = useState("all");
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -56,7 +45,10 @@ const LiveStockPage = () => {
   const [summary, setSummary] = useState({
     totalProducts: 0,
     totalQuantity: 0,
+    totalValuation: 0,
   });
+
+  const { currentUser } = useAppSelector((state) => state.authSlice);
 
   // Fetch stock dropdown
   const fetchStocksDropdown = async () => {
@@ -65,32 +57,29 @@ const LiveStockPage = () => {
       const res = await axios.get("/api/v2/master/stocks/dropdown", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setStocksDropdown([
-        { id: "all", label: "All Stocks" },
-        ...(res.data || []),
-      ]);
+      setStocksDropdown([{ id: "all", label: "All Stocks" }, ...(res.data || [])]);
     } catch (err) {
       console.error(err);
     }
   };
 
-  // Fetch all stock data at once
+  // Fetch all low-stock items at once
   const fetchStock = async () => {
     setLoading(true);
     try {
       const token = await getToken();
-      const res = await axios.get("/api/v2/reports/stocks/live-stock", {
-        params: { stockId: selectedStock },
+      const res = await axios.get("/api/v2/reports/stocks/low-stock", {
+        params: { threshold, stockId: selectedStock },
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const allStock: LiveStockItem[] = res.data.stock || [];
-      setStock(allStock);
+      const data = res.data.stock || [];
+      setStock(data);
 
-      // Update summary
-      setSummary(res.data.summary || {
-        totalProducts: allStock.length,
-        totalQuantity: allStock.reduce((acc, s) => acc + s.quantity, 0),
+      setSummary({
+        totalProducts: data.length,
+        totalQuantity: data.reduce((sum, s) => sum + s.quantity, 0),
+        totalValuation: data.reduce((sum, s) => sum + (s.buyingPrice || 0) * s.quantity, 0),
       });
     } catch (err) {
       console.error(err);
@@ -102,14 +91,11 @@ const LiveStockPage = () => {
     if (currentUser) fetchStocksDropdown();
   }, [currentUser]);
 
-  const handleStockChange = (event: any) => setSelectedStock(event.target.value);
-
   const handleApply = () => {
     setPage(0);
     fetchStock();
   };
 
-  // Frontend pagination: slice visible rows
   const handleChangePage = (_: unknown, newPage: number) => setPage(newPage);
 
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,7 +105,6 @@ const LiveStockPage = () => {
 
   const exportExcel = () => {
     if (!stock.length) return;
-
     const data = stock.map((s) => ({
       "Product ID": s.productId,
       "Product Name": s.productName,
@@ -129,19 +114,20 @@ const LiveStockPage = () => {
       "Stock ID": s.stockId,
       "Stock Name": s.stockName,
       Quantity: s.quantity,
+      Threshold: s.threshold,
     }));
 
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Live Stock");
-    XLSX.writeFile(wb, `live_stock.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, "Low Stock");
+    XLSX.writeFile(wb, "low_stock.xlsx");
   };
 
-  // Visible rows for frontend pagination
+  // Frontend pagination: visible rows
   const visibleRows = stock.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
-    <PageContainer title="Live Stock">
+    <PageContainer title="Low Stock">
       {/* Breadcrumb */}
       <Box mb={2}>
         <Breadcrumbs aria-label="breadcrumb">
@@ -149,30 +135,37 @@ const LiveStockPage = () => {
             Reports
           </MUILink>
           <Typography>Stocks</Typography>
-          <Typography color="text.primary">Live Stock</Typography>
+          <Typography color="text.primary">Low Stock</Typography>
         </Breadcrumbs>
       </Box>
 
       {/* Page Title */}
       <Box mb={3}>
         <Typography variant="h5" fontWeight={600}>
-          Live Stock
+          Low Stock Report
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Current inventory levels with product and variant details.
+          Products and variants with stock below threshold.
         </Typography>
       </Box>
 
-      {/* Stock Filter & Actions */}
-      <Box mb={3}>
+      {/* Filters */}
+      <Paper sx={{ p: 2, mb: 3 }}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center">
+          <TextField
+            label="Stock Threshold"
+            type="number"
+            value={threshold}
+            onChange={(e) => setThreshold(parseInt(e.target.value, 10))}
+            size="small"
+          />
           <FormControl sx={{ minWidth: 200 }}>
             <InputLabel id="stock-select-label">Select Stock</InputLabel>
             <Select
               labelId="stock-select-label"
               value={selectedStock}
               label="Select Stock"
-              onChange={handleStockChange}
+              onChange={(e) => setSelectedStock(e.target.value)}
             >
               {stocksDropdown.map((s) => (
                 <MenuItem key={s.id} value={s.id}>
@@ -181,31 +174,20 @@ const LiveStockPage = () => {
               ))}
             </Select>
           </FormControl>
-
-          <Button
-            variant="contained"
-            sx={{ backgroundColor: "#2196F3" }}
-            onClick={handleApply}
-          >
+          <Button variant="contained" onClick={handleApply}>
             Apply
           </Button>
-
           <Box flexGrow={1} />
-
-          <Button
-            variant="contained"
-            sx={{ backgroundColor: "#4CAF50" }}
-            onClick={exportExcel}
-          >
+          <Button variant="contained" sx={{ backgroundColor: "#4CAF50" }} onClick={exportExcel}>
             Export Excel
           </Button>
         </Stack>
-      </Box>
+      </Paper>
 
-      {/* Summary Cards */}
+      {/* Summary */}
       <Box mb={3}>
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={4}>
             <Card>
               <CardContent>
                 <Typography variant="subtitle2" color="text.secondary">
@@ -215,7 +197,7 @@ const LiveStockPage = () => {
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={4}>
             <Card>
               <CardContent>
                 <Typography variant="subtitle2" color="text.secondary">
@@ -225,10 +207,22 @@ const LiveStockPage = () => {
               </CardContent>
             </Card>
           </Grid>
+          <Grid item xs={12} sm={4}>
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Total Valuation (Rs)
+                </Typography>
+                <Typography variant="h6">
+                  Rs {summary.totalValuation.toFixed(2)}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
       </Box>
 
-      {/* Stock Table */}
+      {/* Table */}
       <Paper>
         <TableContainer sx={{ maxHeight: 600 }}>
           <Table stickyHeader>
@@ -242,19 +236,20 @@ const LiveStockPage = () => {
                 <TableCell>Stock ID</TableCell>
                 <TableCell>Stock Name</TableCell>
                 <TableCell>Quantity</TableCell>
+                <TableCell>Threshold</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center">
+                  <TableCell colSpan={9} align="center">
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
               ) : visibleRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center">
-                    No stock data available
+                  <TableCell colSpan={9} align="center">
+                    No low stock items
                   </TableCell>
                 </TableRow>
               ) : (
@@ -268,6 +263,7 @@ const LiveStockPage = () => {
                     <TableCell>{s.stockId}</TableCell>
                     <TableCell>{s.stockName}</TableCell>
                     <TableCell>{s.quantity}</TableCell>
+                    <TableCell>{s.threshold}</TableCell>
                   </TableRow>
                 ))
               )}
@@ -289,4 +285,4 @@ const LiveStockPage = () => {
   );
 };
 
-export default LiveStockPage;
+export default LowStockPage;

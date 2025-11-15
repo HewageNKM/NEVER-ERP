@@ -48,6 +48,14 @@ const Reports = () => {
       category: "Stock Reports",
       reports: [
         { title: "Live Stock", link: "/dashboard/reports/stocks/live-stock" },
+        {
+          title: "Low Stock",
+          link: "/dashboard/reports/stocks/low-stock",
+        },
+        {
+          title: "Stock Valuation",
+          link: "/dashboard/reports/stocks/valuation",
+        }
       ],
     },
     // {
