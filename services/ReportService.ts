@@ -29,9 +29,8 @@ export const getDailySaleReport = async (from: string, to: string) => {
       updatedAt: toSafeLocaleString(d.data().updatedAt),
     }));
 
-    // Helper: subtotal = total - shipping
     const getSales = (o: any) =>
-      (o.total || 0) - (o.shippingFee || 0);
+      (o.total || 0) - (o.shippingFee || 0) + (o.discount || 0);
 
     // ---------- MAIN SUMMARY ----------
     const totalOrders = orders.length;
@@ -138,9 +137,9 @@ export const getMonthlySummary = async (from: string, to: string) => {
       createdAt: d.data().createdAt.toDate(),
     }));
 
-    // Helper: subtotal (sales) = total - shippingFee
+    // Gross sales = total - shipping + discount
     const getSales = (o: any) =>
-      (o.total || 0) - (o.shippingFee || 0);
+      (o.total || 0) - (o.shippingFee || 0) + (o.discount || 0);
 
     // ---------- MAIN SUMMARY ----------
     const totalOrders = orders.length;
@@ -152,8 +151,7 @@ export const getMonthlySummary = async (from: string, to: string) => {
       0
     );
     const totalItemsSold = orders.reduce(
-      (count, o) =>
-        count + (o.items?.reduce((c, i) => c + i.quantity, 0) || 0),
+      (count, o) => count + (o.items?.reduce((c, i) => c + i.quantity, 0) || 0),
       0
     );
 
@@ -228,7 +226,6 @@ export const getMonthlySummary = async (from: string, to: string) => {
   }
 };
 
-
 export const getYearlySummary = async (from: string, to: string) => {
   try {
     let query = adminFirestore
@@ -254,9 +251,9 @@ export const getYearlySummary = async (from: string, to: string) => {
       createdAt: d.data().createdAt.toDate(),
     }));
 
-    // Helper: correct sales value
+    /// Gross sales = total - shipping + discount
     const getSales = (o: any) =>
-      (o.total || 0) - (o.shippingFee || 0);
+      (o.total || 0) - (o.shippingFee || 0) + (o.discount || 0);
 
     // ---------- MAIN SUMMARY ----------
     const totalOrders = orders.length;
@@ -348,8 +345,7 @@ export const getYearlySummary = async (from: string, to: string) => {
         m.shipping += o.shippingFee || 0;
         m.discount += o.discount || 0;
         m.transactionFee += o.transactionFeeCharge || 0;
-        m.itemsSold +=
-          o.items?.reduce((c, i) => c + i.quantity, 0) || 0;
+        m.itemsSold += o.items?.reduce((c, i) => c + i.quantity, 0) || 0;
       }
     });
 
@@ -386,7 +382,6 @@ export const getYearlySummary = async (from: string, to: string) => {
   }
 };
 
-
 export const getTopSellingProducts = async (
   from?: string,
   to?: string,
@@ -394,7 +389,9 @@ export const getTopSellingProducts = async (
   size: number = 20
 ) => {
   try {
-    let query = adminFirestore.collection("orders").where("paymentStatus", "==", "Paid");
+    let query = adminFirestore
+      .collection("orders")
+      .where("paymentStatus", "==", "Paid");
 
     if (from && to) {
       const start = new Date(from);
@@ -413,10 +410,11 @@ export const getTopSellingProducts = async (
       const shippingFee = order.shippingFee || 0;
 
       // Calculate total item cost before removing shipping
-      const totalItemValue = order.items?.reduce(
-        (s: number, i: any) => s + (i.price || 0) * i.quantity,
-        0
-      ) || 0;
+      const totalItemValue =
+        order.items?.reduce(
+          (s: number, i: any) => s + (i.price || 0) * i.quantity,
+          0
+        ) || 0;
 
       // Allocate shipping removal proportionally
       const shippingRatio =
@@ -469,10 +467,11 @@ export const getTopSellingProducts = async (
   }
 };
 
-
 export const getSalesByCategory = async (from?: string, to?: string) => {
   try {
-    let query = adminFirestore.collection("orders").where("paymentStatus", "==", "Paid");
+    let query = adminFirestore
+      .collection("orders")
+      .where("paymentStatus", "==", "Paid");
 
     if (from && to) {
       const start = new Date(from);
@@ -556,10 +555,11 @@ export const getSalesByCategory = async (from?: string, to?: string) => {
   }
 };
 
-
 export const getSalesByBrand = async (from?: string, to?: string) => {
   try {
-    let query = adminFirestore.collection("orders").where("paymentStatus", "==", "Paid");
+    let query = adminFirestore
+      .collection("orders")
+      .where("paymentStatus", "==", "Paid");
 
     if (from && to) {
       const start = new Date(from);
@@ -631,7 +631,9 @@ export const getSalesByBrand = async (from?: string, to?: string) => {
       }
     }
 
-    const brands = Object.values(brandMap).sort((a, b) => b.totalSales - a.totalSales);
+    const brands = Object.values(brandMap).sort(
+      (a, b) => b.totalSales - a.totalSales
+    );
 
     return { brands };
   } catch (error) {
@@ -639,7 +641,6 @@ export const getSalesByBrand = async (from?: string, to?: string) => {
     throw error;
   }
 };
-
 
 export const getSalesVsDiscount = async (
   from?: string,
@@ -712,10 +713,7 @@ export const getSalesVsDiscount = async (
 };
 
 const normalizeKey = (str: string = "") => {
-  return str
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " "); // clean double spaces
+  return str.trim().toLowerCase().replace(/\s+/g, " "); // clean double spaces
 };
 
 /** Converts normalized key ("bank transfer") → Display Name ("Bank Transfer") */
@@ -800,10 +798,10 @@ export const getSalesByPaymentMethod = async (from?: string, to?: string) => {
   }
 };
 
-
 export const getRefundsAndReturns = async (from?: string, to?: string) => {
   try {
-    let query = adminFirestore.collection("orders")
+    let query = adminFirestore
+      .collection("orders")
       .where("paymentStatus", "in", ["Returned", "Refunded"]);
 
     if (from && to) {
@@ -926,7 +924,8 @@ export const fetchLiveStock = async (
 
       // Find variant name from product
       const variant =
-        product?.variants?.find((v: any) => v.variantId === data.variantId) || {};
+        product?.variants?.find((v: any) => v.variantId === data.variantId) ||
+        {};
 
       stockList.push({
         id: d.id,
@@ -947,4 +946,3 @@ export const fetchLiveStock = async (
     throw err;
   }
 };
-
