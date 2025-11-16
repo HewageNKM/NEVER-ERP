@@ -20,6 +20,18 @@ import {
   Breadcrumbs,
   Link as MUILink,
 } from "@mui/material";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  Legend,
+} from "recharts";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import { getToken } from "@/firebase/firebaseClient";
@@ -32,8 +44,8 @@ const Page = () => {
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<any>(null);
 
-  const fetchReport = async () => {
-    if (!from || !to) return;
+  const fetchReport = async (evt: any) => {
+    evt.preventDefault();
     setLoading(true);
     try {
       const token = await getToken();
@@ -58,6 +70,7 @@ const Page = () => {
         Year: y.year,
         "Total Orders": y.orders,
         "Total Sales (Rs)": y.sales.toFixed(2),
+        "Total Net Sales": y.netSales.toFixed(2),
         "Shipping (Rs)": y.shipping.toFixed(2),
         "Discount (Rs)": y.discount.toFixed(2),
         "Transaction Fee (Rs)": y.transactionFee.toFixed(2),
@@ -69,6 +82,7 @@ const Page = () => {
           Month: m.month,
           "Total Orders": m.orders,
           "Total Sales (Rs)": m.sales.toFixed(2),
+          "Total Net Sales": m.netSales.toFixed(2),
           "Shipping (Rs)": m.shipping.toFixed(2),
           "Discount (Rs)": m.discount.toFixed(2),
           "Transaction Fee (Rs)": m.transactionFee.toFixed(2),
@@ -108,31 +122,42 @@ const Page = () => {
       {/* Filters */}
       <Paper sx={{ p: 2, mb: 3 }}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          <TextField
-            type="date"
-            label="From"
-            InputLabelProps={{ shrink: true }}
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            size="small"
-          />
-          <TextField
-            type="date"
-            label="To"
-            InputLabelProps={{ shrink: true }}
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            size="small"
-          />
-
-          <Button
-            startIcon={<IconFilter size={20} />}
-            variant="contained"
-            onClick={fetchReport}
-            size="small"
+          <form
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
+            onSubmit={fetchReport}
           >
-            Apply
-          </Button>
+            <TextField
+              required
+              type="date"
+              label="From"
+              InputLabelProps={{ shrink: true }}
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              size="small"
+            />
+            <TextField
+              required
+              type="date"
+              label="To"
+              InputLabelProps={{ shrink: true }}
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              size="small"
+            />
+
+            <Button
+              startIcon={<IconFilter size={20} />}
+              variant="contained"
+              type="submit"
+              size="small"
+            >
+              Apply
+            </Button>
+          </form>
 
           <Box flexGrow={1} />
 
@@ -158,6 +183,10 @@ const Page = () => {
             {
               label: "Total Sales",
               value: `Rs ${summary.totalSales.toFixed(2)}`,
+            },
+            {
+              label: "Total Net Sales",
+              value: `Rs ${summary.totalNetSales.toFixed(2)}`,
             },
             {
               label: "Total Shipping",
@@ -188,7 +217,70 @@ const Page = () => {
           ))}
         </Grid>
       )}
+      {summary?.yearly && summary.yearly.length > 0 && (
+        <Stack spacing={3} sx={{ mb: 4 }}>
+          {/* Line Chart - Yearly Sales */}
+          <Paper sx={{ p: 2, height: 350 }}>
+            <Typography variant="h6" mb={2}>
+              Yearly Sales Trend
+            </Typography>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={summary.yearly}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="year" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="sales"
+                  name="Total Sales (Rs)"
+                  stroke="#1976d2"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </Paper>
 
+          {/* Line Chart - Yearly Net Sales */}
+          <Paper sx={{ p: 2, height: 350 }}>
+            <Typography variant="h6" mb={2}>
+              Yearly Net Sales Trend
+            </Typography>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={summary.yearly}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="year" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="netSales"
+                  name="Net Sales (Rs)"
+                  stroke="#FF5722"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </Paper>
+
+          {/* Bar Chart - Items Sold */}
+          <Paper sx={{ p: 2, height: 350 }}>
+            <Typography variant="h6" mb={2}>
+              Items Sold Per Year
+            </Typography>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={summary.yearly}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="year" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="itemsSold" name="Items Sold" fill="#1976d2" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Stack>
+      )}
       {/* Yearly & Monthly Table */}
       <Paper>
         <TableContainer sx={{ maxHeight: 600 }}>
@@ -199,6 +291,7 @@ const Page = () => {
                 <TableCell>Month</TableCell>
                 <TableCell>Total Orders</TableCell>
                 <TableCell>Total Sales</TableCell>
+                <TableCell>Total Net Sales</TableCell>
                 <TableCell>Shipping</TableCell>
                 <TableCell>Discount</TableCell>
                 <TableCell>Transaction Fee</TableCell>
@@ -226,6 +319,7 @@ const Page = () => {
                       <TableCell>-</TableCell>
                       <TableCell>{y.orders}</TableCell>
                       <TableCell>Rs {y.sales.toFixed(2)}</TableCell>
+                      <TableCell>Rs {y.netSales.toFixed(2)}</TableCell>
                       <TableCell>Rs {y.shipping.toFixed(2)}</TableCell>
                       <TableCell>Rs {y.discount.toFixed(2)}</TableCell>
                       <TableCell>Rs {y.transactionFee.toFixed(2)}</TableCell>
@@ -237,6 +331,7 @@ const Page = () => {
                         <TableCell>{m.month}</TableCell>
                         <TableCell>{m.orders}</TableCell>
                         <TableCell>Rs {m.sales.toFixed(2)}</TableCell>
+                        <TableCell>Rs {m.netSales.toFixed(2)}</TableCell>
                         <TableCell>Rs {m.shipping.toFixed(2)}</TableCell>
                         <TableCell>Rs {m.discount.toFixed(2)}</TableCell>
                         <TableCell>Rs {m.transactionFee.toFixed(2)}</TableCell>

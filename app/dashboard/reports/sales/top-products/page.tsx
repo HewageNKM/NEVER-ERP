@@ -29,20 +29,24 @@ const TopSellingProductsPage = () => {
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
-  const [page, setPage] = useState(0); // MUI uses zero-indexed page
+  const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalProducts, setTotalProducts] = useState(0);
+  const [threshold, setThreshold] = useState("");
 
-  const fetchReport = async (pageNum = 1, size = rowsPerPage) => {
+  const fetchReport = async (evt: any) => {
+    evt.preventDefault();
     setLoading(true);
     try {
       const token = await getToken();
       const res = await axios.get("/api/v2/reports/sales/top-products", {
-        params: { from, to, page: pageNum, size },
+        params: { from, to, threshold },
         headers: { Authorization: `Bearer ${token}` },
       });
-      setProducts(res.data.topProducts || []);
-      setTotalProducts(res.data.total || 0);
+
+      const fetchedProducts: any[] = res.data.topProducts || [];
+
+      setProducts(fetchedProducts);
+      setPage(0);
     } catch (e) {
       console.error(e);
     } finally {
@@ -50,55 +54,45 @@ const TopSellingProductsPage = () => {
     }
   };
 
-  // Fetch when page changes
-  useEffect(() => {
-    fetchReport(page + 1, rowsPerPage);
-  }, [page, rowsPerPage]);
-
+  // Frontend pagination handlers
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
-    fetchReport(newPage + 1, rowsPerPage);
   };
 
   const handleChangeRowsPerPage = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const newSize = parseInt(event.target.value, 10);
-    setRowsPerPage(newSize);
+    setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
-    fetchReport(1, newSize);
   };
 
-  const exportExcel = async () => {
-    try {
-      const token = await getToken();
-      const res = await axios.get("/api/v2/reports/sales/top-products", {
-        params: { from, to, page: 1, size: totalProducts || 1000 },
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const allProducts = res.data.topProducts || [];
-      if (!allProducts.length) return;
+  const exportExcel = () => {
+    if (!products.length) return;
 
-      const exportData = allProducts.map((p) => ({
-        "Product ID": p.productId,
-        Name: p.name,
-        "Variant Name": p.variantName,
-        "Total Quantity Sold": p.totalQuantity,
-        "Total Sales (Rs)": p.totalSales.toFixed(2),
-        "Total Discount (Rs)": p.totalDiscount.toFixed(2),
-      }));
+    const exportData = products.map((p) => ({
+      "Product ID": p.productId,
+      Name: p.name,
+      "Variant Name": p.variantName,
+      "Total Quantity Sold": p.totalQuantity,
+      "Total Sales (Rs)": p.totalSales.toFixed(2),
+      "Total Net Sale": p.totalNetSales.toFixed(2),
+      "Total Discount (Rs)": p.totalDiscount.toFixed(2),
+    }));
 
-      const ws = XLSX.utils.json_to_sheet(exportData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Top Selling Products");
-      XLSX.writeFile(
-        wb,
-        `top_selling_products_${from || "all"}_${to || "all"}.xlsx`
-      );
-    } catch (error) {
-      console.error("Export failed:", error);
-    }
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Top Selling Products");
+    XLSX.writeFile(
+      wb,
+      `top_selling_products_${from || "all"}_${to || "all"}.xlsx`
+    );
   };
+
+  // Compute current page data
+  const paginatedProducts = products.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
 
   return (
     <PageContainer title="Top Selling Products">
@@ -109,9 +103,10 @@ const TopSellingProductsPage = () => {
             Reports
           </MUILink>
           <Typography color="inherit">Sales</Typography>
-          <Typography color="text.primary">Monthly Summary</Typography>
+          <Typography color="text.primary">Top Selling Products</Typography>
         </Breadcrumbs>
       </Box>
+
       <Box sx={{ mb: 3 }}>
         <Typography variant="h5" fontWeight={600}>
           Top Selling Products
@@ -124,33 +119,54 @@ const TopSellingProductsPage = () => {
       {/* Filters */}
       <Paper sx={{ p: 2, mb: 3 }}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          <TextField
-            type="date"
-            label="From"
-            InputLabelProps={{ shrink: true }}
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            size="small"
-          />
-          <TextField
-            type="date"
-            label="To"
-            InputLabelProps={{ shrink: true }}
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            size="small"
-          />
-          <Button
-            startIcon={<IconFilter />}
-            variant="contained"
-            onClick={() => {
-              setPage(0);
-              fetchReport(1, rowsPerPage);
+          <form
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
             }}
-            size="small"
+            onSubmit={fetchReport}
           >
-            Apply
-          </Button>
+            <TextField
+              type="date"
+              required
+              label="From"
+              InputLabelProps={{ shrink: true }}
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              size="small"
+            />
+            <TextField
+              required
+              type="date"
+              label="To"
+              defaultValue={10}
+              InputLabelProps={{ shrink: true }}
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              size="small"
+            />
+            <TextField
+              type="number"
+              label="Top"
+              value={threshold}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                setThreshold(isNaN(val) ? 0 : val);
+              }}
+              InputProps={{ inputProps: { min: 0 } }}
+              size="small"
+            />
+
+            <Button
+              startIcon={<IconFilter />}
+              variant="contained"
+              type="submit"
+              size="small"
+            >
+              Apply
+            </Button>
+          </form>
           <Box flexGrow={1} />
           <Button
             variant="contained"
@@ -177,30 +193,34 @@ const TopSellingProductsPage = () => {
                 <TableCell>Variant</TableCell>
                 <TableCell>Total Quantity Sold</TableCell>
                 <TableCell>Total Sales (Rs)</TableCell>
+                <TableCell>Total Net Sale (Rs)</TableCell>
                 <TableCell>Total Discount (Rs)</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
+                  <TableCell colSpan={7} align="center">
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
               ) : products.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
+                  <TableCell colSpan={7} align="center">
                     No data
                   </TableCell>
                 </TableRow>
               ) : (
-                products.map((p, idx) => (
+                paginatedProducts.map((p, idx) => (
                   <TableRow key={idx} hover>
                     <TableCell>{p.productId.toUpperCase()}</TableCell>
                     <TableCell>{p.name}</TableCell>
                     <TableCell>{p.variantName}</TableCell>
                     <TableCell>{p.totalQuantity}</TableCell>
                     <TableCell>Rs {(p.totalSales || 0).toFixed(2)}</TableCell>
+                    <TableCell>
+                      Rs {(p.totalNetSales || 0).toFixed(2)}
+                    </TableCell>
                     <TableCell>
                       Rs {(p.totalDiscount || 0).toFixed(2)}
                     </TableCell>
@@ -211,11 +231,11 @@ const TopSellingProductsPage = () => {
           </Table>
         </TableContainer>
 
-        {/* Pagination */}
+        {/* Frontend Pagination */}
         <TablePagination
           rowsPerPageOptions={[5, 10, 20, 50]}
           component="div"
-          count={totalProducts}
+          count={products.length}
           page={page}
           onPageChange={handleChangePage}
           rowsPerPage={rowsPerPage}

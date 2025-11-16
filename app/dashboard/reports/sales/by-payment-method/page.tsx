@@ -23,13 +23,30 @@ import { getToken } from "@/firebase/firebaseClient";
 import * as XLSX from "xlsx";
 import PageContainer from "@/app/dashboard/components/container/PageContainer";
 
+// Recharts
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+
+const COLORS = ["#4CAF50", "#2196F3", "#FF9800", "#E91E63", "#9C27B0"];
+
 const SalesByPaymentMethod = () => {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<any[]>([]);
 
-  const fetchReport = async () => {
+  const fetchReport = async (evt: any) => {
+    evt.preventDefault();
     setLoading(true);
     try {
       const token = await getToken();
@@ -79,26 +96,39 @@ const SalesByPaymentMethod = () => {
 
       <Paper sx={{ p: 2, mb: 3 }}>
         <Stack direction="row" spacing={2}>
-          <TextField
-            label="From"
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            size="small"
-          />
-          <TextField
-            label="To"
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            size="small"
-          />
-          <Button variant="contained" onClick={fetchReport}>
-            Apply
-          </Button>
+          <form
+            onSubmit={fetchReport}
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
+          >
+            <TextField
+              required
+              label="From"
+              type="date"
+              InputLabelProps={{ shrink: true }}
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              size="small"
+            />
+            <TextField
+              required
+              label="To"
+              type="date"
+              InputLabelProps={{ shrink: true }}
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              size="small"
+            />
+            <Button variant="contained" type="submit">
+              Apply
+            </Button>
+          </form>
+
           <Box flexGrow={1} />
+
           <Button
             variant="contained"
             sx={{ background: "#4CAF50" }}
@@ -109,6 +139,54 @@ const SalesByPaymentMethod = () => {
         </Stack>
       </Paper>
 
+      {/* 📊 CHARTS SECTION */}
+      {rows.length > 0 && (
+        <Stack spacing={3} mb={3}>
+          {/* Bar Chart */}
+          <Paper sx={{ p: 2, height: 350 }}>
+            <Typography variant="h6" mb={2}>
+              Total Sales by Payment Method
+            </Typography>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={rows}>
+                <XAxis dataKey="paymentMethod" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="totalAmount" fill="#2196F3" name="Sales (Rs)" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+
+          {/* Pie Chart */}
+          <Paper sx={{ p: 2, height: 350 }}>
+            <Typography variant="h6" mb={2}>
+              Order Distribution by Payment Method
+            </Typography>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={rows}
+                  dataKey="totalOrders"
+                  nameKey="paymentMethod"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={120}
+                  label
+                >
+                  {rows.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Stack>
+      )}
+
+      {/* TABLE */}
       <Paper>
         <TableContainer sx={{ maxHeight: 600 }}>
           <Table stickyHeader>
@@ -120,6 +198,7 @@ const SalesByPaymentMethod = () => {
                 <TableCell>Total Transactions</TableCell>
               </TableRow>
             </TableHead>
+
             <TableBody>
               {loading ? (
                 <TableRow>

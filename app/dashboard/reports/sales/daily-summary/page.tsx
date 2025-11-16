@@ -26,14 +26,28 @@ import { getToken } from "@/firebase/firebaseClient";
 import { IconFilter } from "@tabler/icons-react";
 import PageContainer from "@/app/dashboard/components/container/PageContainer";
 
+// Recharts
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  Legend,
+} from "recharts";
+
 const Page = () => {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<any>(null);
 
-  const fetchReport = async () => {
-    if (!from || !to) return;
+  const fetchReport = async (evt: any) => {
+    evt.preventDefault();
     setLoading(true);
     try {
       const token = await getToken();
@@ -56,6 +70,7 @@ const Page = () => {
       Date: d.date,
       "Total Orders": d.orders,
       "Total Sales (Rs)": d.sales.toFixed(2),
+      "Total Net Sales": d.netSales.toFixed(2),
       "Shipping (Rs)": d.shipping.toFixed(2),
       "Discount (Rs)": d.discount.toFixed(2),
       "Transaction Fee (Rs)": d.transactionFee.toFixed(2),
@@ -76,9 +91,7 @@ const Page = () => {
           <MUILink color="inherit" href="/dashboard/reports">
             Reports
           </MUILink>
-          <Typography color="inherit">
-            Sales
-          </Typography>
+          <Typography color="inherit">Sales</Typography>
           <Typography color="text.primary">Daily Summary</Typography>
         </Breadcrumbs>
       </Box>
@@ -96,37 +109,51 @@ const Page = () => {
       {/* Filters */}
       <Paper sx={{ p: 2, mb: 3 }}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          <TextField
-            type="date"
-            label="From"
-            InputLabelProps={{ shrink: true }}
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            size="small"
-          />
-          <TextField
-            type="date"
-            label="To"
-            InputLabelProps={{ shrink: true }}
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            size="small"
-          />
-
-          <Button
-            startIcon={<IconFilter size={20} />}
-            variant="contained"
-            onClick={fetchReport}
-            size="small"
+          <form
+            onSubmit={fetchReport}
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
           >
-            Apply
-          </Button>
+            <TextField
+              required
+              type="date"
+              label="From"
+              InputLabelProps={{ shrink: true }}
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              size="small"
+            />
+            <TextField
+              required
+              type="date"
+              label="To"
+              InputLabelProps={{ shrink: true }}
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              size="small"
+            />
+
+            <Button
+              startIcon={<IconFilter size={20} />}
+              variant="contained"
+              size="small"
+              type="submit"
+            >
+              Apply
+            </Button>
+          </form>
 
           <Box flexGrow={1} />
 
           <Button
             variant="contained"
-            sx={{ backgroundColor: "#4CAF50", "&:hover": { backgroundColor: "#45a049" } }}
+            sx={{
+              backgroundColor: "#4CAF50",
+              "&:hover": { backgroundColor: "#45a049" },
+            }}
             onClick={handleExportExcel}
             size="small"
           >
@@ -140,10 +167,26 @@ const Page = () => {
         <Grid container spacing={2} sx={{ mb: 3 }}>
           {[
             { label: "Total Orders", value: summary.totalOrders },
-            { label: "Total Sales", value: `Rs ${summary.totalSales.toFixed(2)}` },
-            { label: "Total Shipping", value: `Rs ${summary.totalShipping.toFixed(2)}` },
-            { label: "Total Discount", value: `Rs ${summary.totalDiscount.toFixed(2)}` },
-            { label: "Total Transaction Fee", value: `Rs ${summary.totalTransactionFee.toFixed(2)}` },
+            {
+              label: "Total Sales",
+              value: `Rs ${summary.totalSales.toFixed(2)}`,
+            },
+            {
+              label: "Total Net Sales",
+              value: `Rs ${summary.totalNetSales.toFixed(2)}`,
+            },
+            {
+              label: "Total Shipping",
+              value: `Rs ${summary.totalShipping.toFixed(2)}`,
+            },
+            {
+              label: "Total Discount",
+              value: `Rs ${summary.totalDiscount.toFixed(2)}`,
+            },
+            {
+              label: "Total Transaction Fee",
+              value: `Rs ${summary.totalTransactionFee.toFixed(2)}`,
+            },
             { label: "Total Items Sold", value: summary.totalItemsSold },
           ].map((card, i) => (
             <Grid item xs={12} sm={6} md={4} key={i}>
@@ -162,6 +205,66 @@ const Page = () => {
         </Grid>
       )}
 
+      {/* 📊 Charts Section */}
+      {summary?.daily && summary.daily.length > 0 && (
+        <Stack spacing={3} sx={{ mb: 4 }}>
+          {/* Line Chart - Total Sales */}
+          <Paper sx={{ p: 2, height: 350 }}>
+            <Typography variant="h6" mb={2}>
+              Daily Sales Trend
+            </Typography>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={summary.daily}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="sales" name="Total Sales (Rs)" />
+              </LineChart>
+            </ResponsiveContainer>
+          </Paper>
+
+          {/* Line Chart - Net Sales */}
+          <Paper sx={{ p: 2, height: 350 }}>
+            <Typography variant="h6" mb={2}>
+              Daily Net Sales Trend
+            </Typography>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={summary.daily}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="netSales"
+                  name="Net Sales (Rs)"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </Paper>
+
+          {/* Bar Chart - Items Sold */}
+          <Paper sx={{ p: 2, height: 350 }}>
+            <Typography variant="h6" mb={2}>
+              Items Sold Per Day
+            </Typography>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={summary.daily}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="itemsSold" name="Items Sold" fill="#1976d2" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Stack>
+      )}
+
       {/* Daily Summary Table */}
       <Paper>
         <TableContainer sx={{ maxHeight: 600 }}>
@@ -171,6 +274,7 @@ const Page = () => {
                 <TableCell>Date</TableCell>
                 <TableCell>Total Orders</TableCell>
                 <TableCell>Total Sales</TableCell>
+                <TableCell>Total Net Sales</TableCell>
                 <TableCell>Shipping</TableCell>
                 <TableCell>Discount</TableCell>
                 <TableCell>Transaction Fee</TableCell>
@@ -196,6 +300,7 @@ const Page = () => {
                     <TableCell>{d.date}</TableCell>
                     <TableCell>{d.orders}</TableCell>
                     <TableCell>Rs {d.sales.toFixed(2)}</TableCell>
+                    <TableCell>Rs {d.netSales.toFixed(2)}</TableCell>
                     <TableCell>Rs {d.shipping.toFixed(2)}</TableCell>
                     <TableCell>Rs {d.discount.toFixed(2)}</TableCell>
                     <TableCell>Rs {d.transactionFee.toFixed(2)}</TableCell>

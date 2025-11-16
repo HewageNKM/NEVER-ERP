@@ -12,13 +12,15 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const from = url.searchParams.get("from") || "";
     const to = url.searchParams.get("to") || "";
-    const page = parseInt(url.searchParams.get("page") || "1");
-    const size = parseInt(url.searchParams.get("size") || "20");
+    const threshold =  Number.parseInt(url.searchParams.get("threshold") || "10");
 
-    const data = await getTopSellingProducts(from, to, page, size);
+    const data = await getTopSellingProducts(from, to, threshold);
     return NextResponse.json(data);
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ message: "Failed to fetch top selling products" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to fetch top selling products" },
+      { status: 500 }
+    );
   }
 }

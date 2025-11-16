@@ -21,10 +21,24 @@ import {
   Link as MUILink,
 } from "@mui/material";
 import axios from "axios";
+import * as XLSX from "xlsx";
 import { getToken } from "@/firebase/firebaseClient";
 import { IconFilter } from "@tabler/icons-react";
 import PageContainer from "@/app/dashboard/components/container/PageContainer";
-import * as XLSX from "xlsx";
+
+// Recharts
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  Legend,
+} from "recharts";
 
 const MonthlySummaryPage = () => {
   const [from, setFrom] = useState("");
@@ -32,8 +46,8 @@ const MonthlySummaryPage = () => {
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<any>(null);
 
-  const fetchReport = async () => {
-    if (!from || !to) return;
+  const fetchReport = async (evt:any) => {
+    evt.preventDefault();
     setLoading(true);
     try {
       const token = await getToken();
@@ -56,6 +70,7 @@ const MonthlySummaryPage = () => {
       Month: m.month,
       "Total Orders": m.orders,
       "Total Sales (Rs)": m.sales.toFixed(2),
+      "Total Net Sales": m.netSales.toFixed(2),
       "Shipping (Rs)": m.shipping.toFixed(2),
       "Discount (Rs)": m.discount.toFixed(2),
       "Transaction Fee (Rs)": m.transactionFee.toFixed(2),
@@ -80,6 +95,8 @@ const MonthlySummaryPage = () => {
           <Typography color="text.primary">Monthly Summary</Typography>
         </Breadcrumbs>
       </Box>
+
+      {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h5" fontWeight={600}>
           Monthly Sales Summary
@@ -89,34 +106,45 @@ const MonthlySummaryPage = () => {
         </Typography>
       </Box>
 
+      {/* Filters */}
       <Paper sx={{ p: 2, mb: 3 }}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          <TextField
-            type="date"
-            label="From"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            size="small"
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            type="date"
-            label="To"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            size="small"
-            InputLabelProps={{ shrink: true }}
-          />
-          <Button
-            startIcon={<IconFilter size={20} />}
-            variant="contained"
-            onClick={fetchReport}
-            size="small"
+          <form
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
+            onSubmit={fetchReport}
           >
-            Apply
-          </Button>
+            <TextField
+              required
+              type="date"
+              label="From"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              size="small"
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              required
+              type="date"
+              label="To"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              size="small"
+              InputLabelProps={{ shrink: true }}
+            />
+            <Button
+              startIcon={<IconFilter size={20} />}
+              variant="contained"
+              type="submit"
+              size="small"
+            >
+              Apply
+            </Button>
+          </form>
           <Box flexGrow={1} />
-
           <Button
             size="small"
             variant="contained"
@@ -131,6 +159,7 @@ const MonthlySummaryPage = () => {
         </Stack>
       </Paper>
 
+      {/* Summary Cards */}
       {summary && (
         <Grid container spacing={2} sx={{ mb: 3 }}>
           {[
@@ -138,6 +167,10 @@ const MonthlySummaryPage = () => {
             {
               label: "Total Sales",
               value: `Rs ${summary.totalSales.toFixed(2)}`,
+            },
+            {
+              label: "Total Net Sales",
+              value: `Rs ${summary.totalNetSales.toFixed(2)}`,
             },
             {
               label: "Total Shipping",
@@ -169,6 +202,73 @@ const MonthlySummaryPage = () => {
         </Grid>
       )}
 
+      {/* Charts Section */}
+      {summary?.monthly && summary.monthly.length > 0 && (
+        <Stack spacing={3} sx={{ mb: 4 }}>
+          {/* Line Chart - Total Sales */}
+          <Paper sx={{ p: 2, height: 350 }}>
+            <Typography variant="h6" mb={2}>
+              Monthly Sales Trend
+            </Typography>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={summary.monthly}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="sales"
+                  name="Total Sales (Rs)"
+                  stroke="#1976d2"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </Paper>
+
+          {/* Line Chart - Net Sales */}
+          <Paper sx={{ p: 2, height: 350 }}>
+            <Typography variant="h6" mb={2}>
+              Monthly Net Sales Trend
+            </Typography>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={summary.monthly}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="netSales"
+                  name="Net Sales (Rs)"
+                  stroke="#FF5722"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </Paper>
+
+          {/* Bar Chart - Items Sold */}
+          <Paper sx={{ p: 2, height: 350 }}>
+            <Typography variant="h6" mb={2}>
+              Items Sold Per Month
+            </Typography>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={summary.monthly}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="itemsSold" name="Items Sold" fill="#1976d2" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Stack>
+      )}
+
+      {/* Monthly Summary Table */}
       <Paper>
         <TableContainer sx={{ maxHeight: 600 }}>
           <Table stickyHeader>
@@ -177,6 +277,7 @@ const MonthlySummaryPage = () => {
                 <TableCell>Month</TableCell>
                 <TableCell>Total Orders</TableCell>
                 <TableCell>Total Sales</TableCell>
+                <TableCell>Total Net Sales</TableCell>
                 <TableCell>Shipping</TableCell>
                 <TableCell>Discount</TableCell>
                 <TableCell>Transaction Fee</TableCell>
@@ -186,13 +287,13 @@ const MonthlySummaryPage = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center">
+                  <TableCell colSpan={8} align="center">
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
               ) : !summary?.monthly || summary.monthly.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center">
+                  <TableCell colSpan={8} align="center">
                     No data
                   </TableCell>
                 </TableRow>
@@ -202,6 +303,7 @@ const MonthlySummaryPage = () => {
                     <TableCell>{m.month}</TableCell>
                     <TableCell>{m.orders}</TableCell>
                     <TableCell>Rs {m.sales.toFixed(2)}</TableCell>
+                    <TableCell>Rs {m.netSales.toFixed(2)}</TableCell>
                     <TableCell>Rs {m.shipping.toFixed(2)}</TableCell>
                     <TableCell>Rs {m.discount.toFixed(2)}</TableCell>
                     <TableCell>Rs {m.transactionFee.toFixed(2)}</TableCell>

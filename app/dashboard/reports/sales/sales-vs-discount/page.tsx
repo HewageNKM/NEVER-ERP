@@ -2,6 +2,17 @@
 
 import React, { useState } from "react";
 import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
+
+import {
   Box,
   Paper,
   Stack,
@@ -31,7 +42,8 @@ const SalesVsDiscountPage = () => {
   const [report, setReport] = useState<any[]>([]);
   const [groupBy, setGroupBy] = useState<"day" | "month">("day");
 
-  const fetchReport = async () => {
+  const fetchReport = async (evt:any) => {
+    evt.preventDefault();
     setLoading(true);
     try {
       const token = await getToken();
@@ -52,6 +64,7 @@ const SalesVsDiscountPage = () => {
     const exportData = report.map((r) => ({
       Period: r.period,
       "Total Sales (Rs)": r.totalSales.toFixed(2),
+      "Total Net Sale": r.totalNetSales.toFixed(2),
       "Total Discount (Rs)": r.totalDiscount.toFixed(2),
       "Total Orders": r.totalOrders,
     }));
@@ -59,7 +72,10 @@ const SalesVsDiscountPage = () => {
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Sales vs Discount");
-    XLSX.writeFile(wb, `sales_vs_discount_${from || "all"}_${to || "all"}.xlsx`);
+    XLSX.writeFile(
+      wb,
+      `sales_vs_discount_${from || "all"}_${to || "all"}.xlsx`
+    );
   };
 
   return (
@@ -85,46 +101,56 @@ const SalesVsDiscountPage = () => {
 
       <Paper sx={{ p: 2, mb: 3 }}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          <TextField
-            type="date"
-            label="From"
-            InputLabelProps={{ shrink: true }}
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            size="small"
-          />
-          <TextField
-            type="date"
-            label="To"
-            InputLabelProps={{ shrink: true }}
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            size="small"
-          />
-          <TextField
-            select
-            label="Group By"
-            value={groupBy}
-            onChange={(e) => setGroupBy(e.target.value as "day" | "month")}
-            SelectProps={{ native: true }}
-            size="small"
-            sx={{ width: 120 }}
+          <form onSubmit={fetchReport}
+            style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}
           >
-            <option value="day">Day</option>
-            <option value="month">Month</option>
-          </TextField>
-          <Button
-            startIcon={<IconFilter />}
-            variant="contained"
-            onClick={fetchReport}
-            size="small"
-          >
-            Apply
-          </Button>
+            <TextField
+              required
+              type="date"
+              label="From"
+              InputLabelProps={{ shrink: true }}
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              size="small"
+            />
+            <TextField
+              required
+              type="date"
+              label="To"
+              InputLabelProps={{ shrink: true }}
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              size="small"
+            />
+            <TextField
+              required
+              select
+              label="Group By"
+              value={groupBy}
+              onChange={(e) => setGroupBy(e.target.value as "day" | "month")}
+              SelectProps={{ native: true }}
+              size="small"
+              sx={{ width: 120 }}
+            >
+              <option value="day">Day</option>
+              <option value="month">Month</option>
+            </TextField>
+            <Button
+              startIcon={<IconFilter />}
+              variant="contained"
+              size="small"
+              type="submit"
+            >
+              Apply
+            </Button>
+          </form>
           <Box flexGrow={1} />
           <Button
             variant="contained"
-            sx={{ backgroundColor: "#4CAF50", "&:hover": { backgroundColor: "#45a049" } }}
+            sx={{
+              backgroundColor: "#4CAF50",
+              "&:hover": { backgroundColor: "#45a049" },
+            }}
             onClick={exportExcel}
             size="small"
           >
@@ -132,6 +158,54 @@ const SalesVsDiscountPage = () => {
           </Button>
         </Stack>
       </Paper>
+      {report.length > 0 && (
+        <Paper sx={{ p: 2, mb: 3 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            Sales vs Discount Chart
+          </Typography>
+
+          <Box sx={{ width: "100%", height: 350 }}>
+            <ResponsiveContainer>
+              <LineChart data={report}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="period" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Legend />
+
+                <Line
+                  type="monotone"
+                  dataKey="totalSales"
+                  name="Total Sales"
+                  stroke="#1976d2"
+                  strokeWidth={2}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="totalNetSales"
+                  name="Total Net Sale"
+                  stroke="#4CAF50"
+                  strokeWidth={2}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="totalDiscount"
+                  name="Total Discount"
+                  stroke="#f44336"
+                  strokeWidth={2}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="totalTransactionFee"
+                  name="Transaction Fee"
+                  stroke="#ff9800"
+                  strokeWidth={2}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </Box>
+        </Paper>
+      )}
 
       <Paper>
         <TableContainer sx={{ maxHeight: 600 }}>
@@ -140,7 +214,9 @@ const SalesVsDiscountPage = () => {
               <TableRow>
                 <TableCell>Period</TableCell>
                 <TableCell>Total Sales (Rs)</TableCell>
+                <TableCell>Total Net Sale</TableCell>
                 <TableCell>Total Discount (Rs)</TableCell>
+                <TableCell>Total Transaction Fee(Rs)</TableCell>
                 <TableCell>Total Orders</TableCell>
               </TableRow>
             </TableHead>
@@ -162,7 +238,9 @@ const SalesVsDiscountPage = () => {
                   <TableRow key={idx} hover>
                     <TableCell>{r.period}</TableCell>
                     <TableCell>Rs {r.totalSales.toFixed(2)}</TableCell>
+                    <TableCell>Rs {r.totalNetSales.toFixed(2)}</TableCell>
                     <TableCell>Rs {r.totalDiscount.toFixed(2)}</TableCell>
+                    <TableCell>{r.totalTransactionFee.toFixed(2)}</TableCell>
                     <TableCell>{r.totalOrders}</TableCell>
                   </TableRow>
                 ))
