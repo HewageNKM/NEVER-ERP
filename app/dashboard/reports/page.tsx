@@ -55,33 +55,26 @@ const Reports = () => {
         {
           title: "Stock Valuation",
           link: "/dashboard/reports/stocks/valuation",
-        }
+        },
       ],
     },
-    // {
-    //   category: "Finance Reports",
-    //   reports: [
-    //     {
-    //       title: "Expense Overview",
-    //       link: "/dashboard/reports/finance/expenses",
-    //     },
-    //     {
-    //       title: "Profit & Loss",
-    //       link: "/dashboard/reports/finance/profit-loss",
-    //     },
-    //     {
-    //       title: "Balance Sheet",
-    //       link: "/dashboard/reports/finance/balance-sheet",
-    //     },
-    //   ],
-    // },
-    // {
-    //   category: "Revenue Reports",
-    //   reports: [
-    //     { title: "Monthly Revenue", link: "/reports/revenue/revenue-monthly" },
-    //     { title: "Yearly Revenue", link: "/reports/revenue/revenue-yearly" },
-    //   ],
-    // },
+    {
+      category: "Revenue Reports",
+      reports: [
+        {
+          title: "Daily Revenue",
+          link: "/dashboard/reports/revenues/daily-revenue", 
+        },
+        // {
+        //   title: "Monthly Revenue",
+        //   link: "/dashboard/reports/revenues/monthly-revenue",
+        // },
+        // {
+        //   title: "Yearly Revenue",
+        //   link: "/dashboard/reports/revenues/yearly-revenue",
+        // },
+      ],
+    },
   ];
 
   return (

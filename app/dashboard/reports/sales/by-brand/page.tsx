@@ -37,6 +37,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { useSnackbar } from "@/contexts/SnackBarContext";
 
 const COLORS = ["#1976d2", "#2e7d32", "#ed6c02", "#d32f2f"];
 

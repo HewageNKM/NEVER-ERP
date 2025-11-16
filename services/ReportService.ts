@@ -1,6 +1,7 @@
 import { adminFirestore } from "@/firebase/firebaseAdmin";
 import { Timestamp } from "firebase-admin/firestore";
 import { toSafeLocaleString } from "./UtilService";
+import { Order } from "@/model";
 
 export const getDailySaleReport = async (from: string, to: string) => {
   try {
@@ -423,7 +424,7 @@ export const getTopSellingProducts = async (
         .where("createdAt", ">=", Timestamp.fromDate(start))
         .where("createdAt", "<=", Timestamp.fromDate(end));
     }
-    
+
     query.limit(threshold || 10);
     const snap = await query.get();
     const productMap: Record<string, any> = {};
@@ -1244,4 +1245,115 @@ export const fetchStockValuationByStock = async (
     console.error("Stock Valuation Service Error:", err);
     throw err;
   }
+};
+
+export interface DailyRevenue {
+  date: string;
+  totalOrders: number;
+  totalDiscount: number;
+  totalTransactionFee: number;
+  totalExpenses: number;
+  grossProfit: number;
+  netProfit: number;
+}
+
+export interface RevenueReport {
+  daily: DailyRevenue[];
+  summary: Omit<DailyRevenue, "date">;
+}
+
+export const getDailyRevenueReport = async (
+  from: string,
+  to: string
+): Promise<RevenueReport> => {
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+  toDate.setHours(23, 59, 59, 999);
+
+  // Fetch paid orders
+  const ordersSnapshot = await adminFirestore
+    .collection("orders")
+    .where("paymentStatus", "==", "Paid")
+    .where("createdAt", ">=", Timestamp.fromDate(fromDate))
+    .where("createdAt", "<=", Timestamp.fromDate(toDate))
+    .get();
+
+  // Fetch approved expenses
+  const expensesSnapshot = await adminFirestore
+    .collection("expenses")
+    .where("status", "==", "APPROVED")
+    .where("createdAt", ">=", Timestamp.fromDate(fromDate))
+    .where("createdAt", "<=", Timestamp.fromDate(toDate))
+    .get();
+
+  // Group orders by date
+  const ordersByDate: Record<string, Order[]> = {};
+  ordersSnapshot.forEach((doc) => {
+    const order = doc.data() as Order;
+    const dateStr = (order.createdAt as Timestamp).toDate().toISOString().split("T")[0];
+    if (!ordersByDate[dateStr]) ordersByDate[dateStr] = [];
+    ordersByDate[dateStr].push(order);
+  });
+
+  // Group expenses by date
+  const expensesByDate: Record<string, number> = {};
+  expensesSnapshot.forEach((doc) => {
+    const expense = doc.data();
+    const dateStr = (expense.createdAt as Timestamp).toDate().toISOString().split("T")[0];
+    if (!expensesByDate[dateStr]) expensesByDate[dateStr] = 0;
+    expensesByDate[dateStr] += expense.amount || 0;
+  });
+
+  const daily: DailyRevenue[] = [];
+
+  let summaryTotals = {
+    totalOrders: 0,
+    totalShipping: 0,
+    totalDiscount: 0,
+    totalTransactionFee: 0,
+    totalExpenses: 0,
+    grossProfit: 0,
+    netProfit: 0,
+  };
+
+  Object.keys(ordersByDate)
+    .sort()
+    .forEach((dateStr) => {
+      const dayOrders = ordersByDate[dateStr];
+
+      const totalOrders = dayOrders.length;
+      const totalDiscount = dayOrders.reduce((acc, o) => acc + o.discount, 0);
+      const totalTransactionFee = dayOrders.reduce((acc, o) => acc + o.transactionFeeCharge, 0);
+      const totalExpenses = expensesByDate[dateStr] || 0;
+
+      const grossProfit = dayOrders.reduce((acc, o) => {
+        const itemsCost = o.items.reduce((sum, item) => sum + (item.bPrice || 0) * item.quantity, 0);
+        return acc + (o.total - itemsCost - o.shippingFee + o.discount);
+      }, 0);
+
+      const netProfit = grossProfit - totalDiscount - totalTransactionFee - totalExpenses;
+
+      daily.push({
+        date: dateStr,
+        totalOrders,
+        totalDiscount,
+        totalTransactionFee,
+        totalExpenses,
+        grossProfit,
+        netProfit,
+      });
+
+      // Accumulate summary
+      summaryTotals.totalOrders += totalOrders;
+      summaryTotals.totalDiscount += totalDiscount;
+      summaryTotals.totalTransactionFee += totalTransactionFee;
+      summaryTotals.totalExpenses += totalExpenses;
+      summaryTotals.grossProfit += grossProfit;
+      summaryTotals.netProfit += netProfit;
+    });
+
+  return {
+    daily,
+    summary: summaryTotals,
+  };
 };

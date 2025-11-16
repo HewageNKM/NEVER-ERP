@@ -39,15 +39,38 @@ import {
   Bar,
   Legend,
 } from "recharts";
+import { useSnackbar } from "@/contexts/SnackBarContext";
+
+const MAX_MONTHS_RANGE = 12;
 
 const MonthlySummaryPage = () => {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<any>(null);
+  const { showNotification } = useSnackbar();
 
-  const fetchReport = async (evt:any) => {
+  const fetchReport = async (evt: any) => {
     evt.preventDefault();
+
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    // Calculate difference in full months
+    const monthDiff =
+      toDate.getFullYear() * 12 +
+      toDate.getMonth() -
+      (fromDate.getFullYear() * 12 + fromDate.getMonth()) +
+      1;
+
+    if (monthDiff > MAX_MONTHS_RANGE) {
+      showNotification(
+        `Date range cannot exceed ${MAX_MONTHS_RANGE} months.`,
+        "warning"
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       const token = await getToken();

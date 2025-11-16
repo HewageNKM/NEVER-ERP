@@ -39,15 +39,39 @@ import {
   Bar,
   Legend,
 } from "recharts";
+import { useSnackbar } from "@/contexts/SnackBarContext";
+
+const MAX_RANGE_DAYS = 31;
 
 const Page = () => {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<any>(null);
+  const { showNotification } = useSnackbar();
 
   const fetchReport = async (evt: any) => {
     evt.preventDefault();
+
+    // --- Date range validation (max 31 days) ---
+    const start = new Date(from);
+    const end = new Date(to);
+    const diffDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+
+    if (diffDays < 0) {
+      showNotification("'To' date must be after 'From' date", "error");
+      return;
+    }
+
+    if (diffDays > MAX_RANGE_DAYS) {
+      showNotification(
+        `Max allowed range is ${MAX_RANGE_DAYS} days`,
+        "error"
+      );
+      return;
+    }
+    // ----------------------------------------------------
+
     setLoading(true);
     try {
       const token = await getToken();
