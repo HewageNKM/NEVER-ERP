@@ -53,10 +53,15 @@ const MonthlySummaryPage = () => {
   const fetchReport = async (evt: any) => {
     evt.preventDefault();
 
-    const fromDate = new Date(from);
-    const toDate = new Date(to);
+    if (!from || !to) return;
 
-    // Calculate difference in full months
+    const fromDate = new Date(from + "-01");
+    const toDate = new Date(to + "-01");
+    toDate.setMonth(toDate.getMonth() + 1);
+    toDate.setDate(0);
+    toDate.setHours(23, 59, 59, 999);
+
+    // check max months
     const monthDiff =
       toDate.getFullYear() * 12 +
       toDate.getMonth() -
@@ -75,7 +80,10 @@ const MonthlySummaryPage = () => {
     try {
       const token = await getToken();
       const res = await axios.get("/api/v2/reports/sales/monthly-summary", {
-        params: { from, to },
+        params: {
+          from: fromDate.toISOString().split("T")[0],
+          to: toDate.toISOString().split("T")[0],
+        },
         headers: { Authorization: `Bearer ${token}` },
       });
       setSummary(res.data.summary || null);
@@ -142,7 +150,7 @@ const MonthlySummaryPage = () => {
           >
             <TextField
               required
-              type="date"
+              type="month"
               label="From"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
@@ -151,7 +159,7 @@ const MonthlySummaryPage = () => {
             />
             <TextField
               required
-              type="date"
+              type="month"
               label="To"
               value={to}
               onChange={(e) => setTo(e.target.value)}

@@ -65,14 +65,14 @@ const Reports = () => {
           title: "Daily Revenue",
           link: "/dashboard/reports/revenues/daily-revenue", 
         },
-        // {
-        //   title: "Monthly Revenue",
-        //   link: "/dashboard/reports/revenues/monthly-revenue",
-        // },
-        // {
-        //   title: "Yearly Revenue",
-        //   link: "/dashboard/reports/revenues/yearly-revenue",
-        // },
+        {
+          title: "Monthly Revenue",
+          link: "/dashboard/reports/revenues/monthly-revenue",
+        },
+        {
+          title: "Yearly Revenue",
+          link: "/dashboard/reports/revenues/yearly-revenue",
+        },
       ],
     },
   ];

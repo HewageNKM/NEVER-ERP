@@ -1,5 +1,5 @@
 import { authorizeRequest } from "@/firebase/firebaseAdmin";
-import { getDailyRevenueReport, getMonthlyRevenueReport } from "@/services/ReportService";
+import { getYearlyRevenueReport } from "@/services/ReportService";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     const from = url.searchParams.get("from") || "";
     const to = url.searchParams.get("to") || "";
 
-    const res = await getMonthlyRevenueReport(from, to);
+    const res = await getYearlyRevenueReport(from, to);
 
     return NextResponse.json(res);
   } catch (error) {

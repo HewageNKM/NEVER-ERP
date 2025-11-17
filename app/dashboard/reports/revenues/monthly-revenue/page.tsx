@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import * as XLSX from "xlsx";
 import {
   Box,
   Paper,
@@ -23,25 +22,24 @@ import {
 import { IconFilter } from "@tabler/icons-react";
 import PageContainer from "@/app/dashboard/components/container/PageContainer";
 import {
-  LineChart,
-  Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
 } from "recharts";
 import axios from "axios";
-import { getToken } from "@/firebase/firebaseClient";
 import { useSnackbar } from "@/contexts/SnackBarContext";
+import { getToken } from "@/firebase/firebaseClient";
 
-interface DailyRevenue {
-  date: string;
+interface MonthlyRow {
+  month: string;
   totalOrders: number;
-  totalShipping: number;
   totalDiscount: number;
   totalTransactionFee: number;
   totalExpenses: number;
@@ -49,62 +47,85 @@ interface DailyRevenue {
   netProfit: number;
 }
 
-interface RevenueReport {
-  daily: DailyRevenue[];
-  summary: Omit<DailyRevenue, "date">;
+interface SummaryType {
+  totalOrders: number;
+  totalDiscount: number;
+  totalTransactionFee: number;
+  totalExpenses: number;
+  grossProfit: number;
+  netProfit: number;
 }
-const MAX_RANGE_DAYS = 31;
 
-const DailyRevenuePage = () => {
+const MAX_MONTH_RANGE = 12;
+
+export default function MonthlyRevenuePage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState(false);
-  const [report, setReport] = useState<DailyRevenue[]>([]);
-  const [summary, setSummary] = useState<RevenueReport["summary"] | null>(null);
+  const [rows, setRows] = useState<MonthlyRow[]>([]);
+  const [summary, setSummary] = useState<SummaryType | null>(null);
+
   const { showNotification } = useSnackbar();
 
+  // pagination
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(6);
 
-  const handleChangePage = (_event: unknown, newPage: number) => {
-    setPage(newPage);
+  // Convert "YYYY-MM" → first day
+  const getMonthStart = (monthStr: string) => {
+    const [y, m] = monthStr.split("-");
+    return `${y}-${m}-01`;
   };
 
-  const handleChangeRowsPerPage = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
+  // Convert "YYYY-MM" → last day
+  const getMonthEnd = (monthStr: string) => {
+    const [y, m] = monthStr.split("-");
+    const lastDay = new Date(Number(y), Number(m), 0).getDate();
+    return `${y}-${m}-${lastDay}`;
+  };
+
+  const validateRange = () => {
+    if (!from || !to) return "Please select From & To months.";
+
+    const start = new Date(getMonthStart(from));
+    const end = new Date(getMonthEnd(to));
+
+    if (start > end) return "From month cannot be after To month.";
+
+    const diffMonths =
+      end.getFullYear() * 12 +
+      end.getMonth() -
+      (start.getFullYear() * 12 + start.getMonth());
+
+    if (diffMonths > MAX_MONTH_RANGE)
+      return `Maximum range is ${MAX_MONTH_RANGE} months.`;
+
+    return null;
   };
 
   const fetchReport = async (evt: any) => {
     evt.preventDefault();
 
-    const fromDate = new Date(from);
-    const toDate = new Date(to);
-    const diffTime = toDate.getTime() - fromDate.getTime();
-    const diffDays = diffTime / (1000 * 60 * 60 * 24) + 1;
-
-    if (diffDays > MAX_RANGE_DAYS) {
-      showNotification(
-        `Date range cannot exceed ${MAX_RANGE_DAYS} days.`,
-        "warning"
-      );
+    const err = validateRange();
+    if (err) {
+      showNotification(err, "warning");
       return;
     }
 
     setLoading(true);
     try {
-      const token = await getToken();
-      const res = await axios.get<RevenueReport>(
-        "/api/v2/reports/revenues/daily-revenue",
-        {
-          params: { from, to },
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setReport(res.data.daily || []);
+        const token = await getToken();
+      const res = await axios.get("/api/v2/reports/revenues/monthly-revenue", {
+        params: {
+          from: getMonthStart(from),
+          to: getMonthEnd(to),
+        },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setRows(res.data.monthly || []);
       setSummary(res.data.summary || null);
+      setPage(0);
     } catch (error) {
       console.error(error);
     } finally {
@@ -112,33 +133,8 @@ const DailyRevenuePage = () => {
     }
   };
 
-  const handleExportExcel = () => {
-    if (!report || report.length === 0) {
-      showNotification("No data to export", "info");
-      return;
-    }
-
-    const exportData = report.map((d) => ({
-      Date: d.date,
-      "Total Orders": d.totalOrders,
-      "Total Discount (Rs)": d.totalDiscount.toFixed(2),
-      "Total Transaction Fee (Rs)": d.totalTransactionFee.toFixed(2),
-      "Total Expenses (Rs)": d.totalExpenses.toFixed(2),
-      "Gross Profit (Rs)": d.grossProfit.toFixed(2),
-      "Net Profit (Rs)": d.netProfit.toFixed(2),
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Daily Revenue");
-
-    XLSX.writeFile(wb, `daily_revenue_${from}_${to}.xlsx`);
-
-    showNotification("Excel exported successfully", "success");
-  };
-
   return (
-    <PageContainer title="Daily Revenue Report">
+    <PageContainer title="Monthly Revenue">
       {/* Breadcrumbs */}
       <Box sx={{ mb: 2 }}>
         <Breadcrumbs aria-label="breadcrumb">
@@ -146,17 +142,17 @@ const DailyRevenuePage = () => {
             Reports
           </MUILink>
           <Typography color="inherit">Revenues</Typography>
-          <Typography color="text.primary">Daily Revenue</Typography>
+          <Typography color="text.primary">Monthly Revenue</Typography>
         </Breadcrumbs>
       </Box>
 
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h5" fontWeight={600}>
-          Daily Revenue Report
+          Monthly Revenue Report
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          View daily revenue, gross profit, and net profit within a date range.
+          View monthly revenue, gross profit, and net profit.
         </Typography>
       </Box>
 
@@ -173,8 +169,8 @@ const DailyRevenuePage = () => {
           >
             <TextField
               required
-              type="date"
-              label="From"
+              type="month"
+              label="From Month"
               InputLabelProps={{ shrink: true }}
               value={from}
               onChange={(e) => setFrom(e.target.value)}
@@ -182,8 +178,8 @@ const DailyRevenuePage = () => {
             />
             <TextField
               required
-              type="date"
-              label="To"
+              type="month"
+              label="To Month"
               InputLabelProps={{ shrink: true }}
               value={to}
               onChange={(e) => setTo(e.target.value)}
@@ -198,16 +194,6 @@ const DailyRevenuePage = () => {
               Apply
             </Button>
           </form>
-          <Box flexGrow={1} />
-          <Button
-            variant="contained"
-            color="success"
-            size="small"
-            sx={{ ml: 2 }}
-            onClick={handleExportExcel}
-          >
-            Export Excel
-          </Button>
         </Stack>
       </Paper>
 
@@ -248,13 +234,14 @@ const DailyRevenuePage = () => {
       )}
 
       {/* Charts */}
-      {!loading && report.length > 0 && (
+      {!loading && rows.length > 0 && (
         <>
+          {/* Line Chart */}
           <Box sx={{ width: "100%", height: 400, mb: 3 }}>
             <ResponsiveContainer>
-              <LineChart data={report}>
+              <LineChart data={rows}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
+                <XAxis dataKey="month" />
                 <YAxis />
                 <Tooltip />
                 <Legend />
@@ -273,15 +260,16 @@ const DailyRevenuePage = () => {
               </LineChart>
             </ResponsiveContainer>
           </Box>
+
+          {/* Bar Chart */}
           <Box sx={{ width: "100%", height: 400, mb: 3 }}>
             <ResponsiveContainer>
-              <BarChart data={report}>
+              <BarChart data={rows}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
+                <XAxis dataKey="month" />
                 <YAxis />
                 <Tooltip />
                 <Legend />
-
                 <Bar
                   dataKey="totalDiscount"
                   name="Discount"
@@ -306,36 +294,36 @@ const DailyRevenuePage = () => {
         </>
       )}
 
-      {/* Table with Frontend Pagination */}
-      {!loading && report.length > 0 && (
+      {/* Table */}
+      {!loading && rows.length > 0 && (
         <Paper sx={{ p: 2 }}>
           <TableContainer>
             <Table stickyHeader>
               <TableHead>
                 <TableRow>
-                  <TableCell>Date</TableCell>
+                  <TableCell>Month</TableCell>
                   <TableCell>Total Orders</TableCell>
-                  <TableCell>Total Discount (Rs)</TableCell>
-                  <TableCell>Total Transaction Fee (Rs)</TableCell>
-                  <TableCell>Total Expenses (Rs)</TableCell>
-                  <TableCell>Gross Profit (Rs)</TableCell>
-                  <TableCell>Net Profit (Rs)</TableCell>
+                  <TableCell>Total Discount</TableCell>
+                  <TableCell>Total Transaction Fee</TableCell>
+                  <TableCell>Total Expenses</TableCell>
+                  <TableCell>Gross Profit</TableCell>
+                  <TableCell>Net Profit</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {report
+                {rows
                   .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                  .map((day) => (
-                    <TableRow key={day.date} hover>
-                      <TableCell>{day.date}</TableCell>
-                      <TableCell>{day.totalOrders}</TableCell>
-                      <TableCell>{day.totalDiscount.toFixed(2)}</TableCell>
+                  .map((r, idx) => (
+                    <TableRow key={idx} hover>
+                      <TableCell>{r.month}</TableCell>
+                      <TableCell>{r.totalOrders}</TableCell>
+                      <TableCell>Rs {r.totalDiscount.toFixed(2)}</TableCell>
                       <TableCell>
-                        {day.totalTransactionFee.toFixed(2)}
+                        Rs {r.totalTransactionFee.toFixed(2)}
                       </TableCell>
-                      <TableCell>{day.totalExpenses.toFixed(2)}</TableCell>
-                      <TableCell>{day.grossProfit.toFixed(2)}</TableCell>
-                      <TableCell>{day.netProfit.toFixed(2)}</TableCell>
+                      <TableCell>Rs {r.totalExpenses.toFixed(2)}</TableCell>
+                      <TableCell>Rs {r.grossProfit.toFixed(2)}</TableCell>
+                      <TableCell>Rs {r.netProfit.toFixed(2)}</TableCell>
                     </TableRow>
                   ))}
               </TableBody>
@@ -344,18 +332,19 @@ const DailyRevenuePage = () => {
 
           {/* Pagination */}
           <TablePagination
-            rowsPerPageOptions={[5, 10, 20, 50]}
+            rowsPerPageOptions={[6, 12, 24]}
             component="div"
-            count={report.length}
+            count={rows.length}
             page={page}
-            onPageChange={handleChangePage}
+            onPageChange={(e, newPage) => setPage(newPage)}
             rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
+            onRowsPerPageChange={(e) => {
+              setRowsPerPage(parseInt(e.target.value, 10));
+              setPage(0);
+            }}
           />
         </Paper>
       )}
     </PageContainer>
   );
-};
-
-export default DailyRevenuePage;
+}

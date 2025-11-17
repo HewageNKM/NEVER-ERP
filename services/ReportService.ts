@@ -1290,7 +1290,10 @@ export const getDailyRevenueReport = async (
   const ordersByDate: Record<string, Order[]> = {};
   ordersSnapshot.forEach((doc) => {
     const order = doc.data() as Order;
-    const dateStr = (order.createdAt as Timestamp).toDate().toISOString().split("T")[0];
+    const dateStr = (order.createdAt as Timestamp)
+      .toDate()
+      .toISOString()
+      .split("T")[0];
     if (!ordersByDate[dateStr]) ordersByDate[dateStr] = [];
     ordersByDate[dateStr].push(order);
   });
@@ -1299,16 +1302,18 @@ export const getDailyRevenueReport = async (
   const expensesByDate: Record<string, number> = {};
   expensesSnapshot.forEach((doc) => {
     const expense = doc.data();
-    const dateStr = (expense.createdAt as Timestamp).toDate().toISOString().split("T")[0];
+    const dateStr = (expense.createdAt as Timestamp)
+      .toDate()
+      .toISOString()
+      .split("T")[0];
     if (!expensesByDate[dateStr]) expensesByDate[dateStr] = 0;
     expensesByDate[dateStr] += expense.amount || 0;
   });
 
   const daily: DailyRevenue[] = [];
 
-  let summaryTotals = {
+  const summaryTotals = {
     totalOrders: 0,
-    totalShipping: 0,
     totalDiscount: 0,
     totalTransactionFee: 0,
     totalExpenses: 0,
@@ -1322,13 +1327,19 @@ export const getDailyRevenueReport = async (
       const dayOrders = ordersByDate[dateStr];
 
       const totalOrders = dayOrders.length;
-      const totalDiscount = dayOrders.reduce((acc, o) => acc + o.discount, 0);
-      const totalTransactionFee = dayOrders.reduce((acc, o) => acc + o.transactionFeeCharge, 0);
+      const totalDiscount = dayOrders.reduce((acc, o) => acc + (o.discount || 0), 0);
+      const totalTransactionFee = dayOrders.reduce(
+        (acc, o) => acc + (o.transactionFeeCharge || 0),
+        0
+      );
       const totalExpenses = expensesByDate[dateStr] || 0;
 
       const grossProfit = dayOrders.reduce((acc, o) => {
-        const itemsCost = o.items.reduce((sum, item) => sum + (item.bPrice || 0) * item.quantity, 0);
-        return acc + (o.total - itemsCost - o.shippingFee + o.discount);
+        const itemsCost = o.items.reduce(
+          (sum, item) => sum + ((item.bPrice || 0) * (item.quantity || 0)),
+          0
+        );
+        return acc + ((o.total || 0) - itemsCost + (o.discount || 0));
       }, 0);
 
       const netProfit = grossProfit - totalDiscount - totalTransactionFee - totalExpenses;
@@ -1343,7 +1354,6 @@ export const getDailyRevenueReport = async (
         netProfit,
       });
 
-      // Accumulate summary
       summaryTotals.totalOrders += totalOrders;
       summaryTotals.totalDiscount += totalDiscount;
       summaryTotals.totalTransactionFee += totalTransactionFee;
@@ -1354,6 +1364,283 @@ export const getDailyRevenueReport = async (
 
   return {
     daily,
+    summary: summaryTotals,
+  };
+};
+
+export interface MonthlyRevenue {
+  month: string; // YYYY-MM
+  totalOrders: number;
+  totalDiscount: number;
+  totalTransactionFee: number;
+  totalExpenses: number;
+  grossProfit: number;
+  netProfit: number;
+}
+
+export interface MonthlyRevenueReport {
+  monthly: MonthlyRevenue[];
+  summary: Omit<MonthlyRevenue, "month">;
+}
+
+interface OrderItem {
+  bPrice: number;
+  quantity: number;
+}
+
+interface Order {
+  createdAt: Timestamp;
+  total: number;
+  discount: number;
+  transactionFeeCharge: number;
+  shippingFee: number;
+  items: OrderItem[];
+}
+
+export const getMonthlyRevenueReport = async (
+  from: string,
+  to: string
+): Promise<MonthlyRevenueReport> => {
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+  toDate.setHours(23, 59, 59, 999);
+
+  // Fetch paid orders
+  const ordersSnapshot = await adminFirestore
+    .collection("orders")
+    .where("paymentStatus", "==", "Paid")
+    .where("createdAt", ">=", Timestamp.fromDate(fromDate))
+    .where("createdAt", "<=", Timestamp.fromDate(toDate))
+    .get();
+
+  // Fetch approved expenses
+  const expensesSnapshot = await adminFirestore
+    .collection("expenses")
+    .where("status", "==", "APPROVED")
+    .where("createdAt", ">=", Timestamp.fromDate(fromDate))
+    .where("createdAt", "<=", Timestamp.fromDate(toDate))
+    .get();
+
+  // Group orders by month YYYY-MM
+  const ordersByMonth: Record<string, Order[]> = {};
+  ordersSnapshot.forEach((doc) => {
+    const order = doc.data() as Order;
+    const date = (order.createdAt as Timestamp).toDate();
+
+    const monthStr = `${date.getFullYear()}-${String(
+      date.getMonth() + 1
+    ).padStart(2, "0")}`;
+
+    if (!ordersByMonth[monthStr]) ordersByMonth[monthStr] = [];
+    ordersByMonth[monthStr].push(order);
+  });
+
+  // Group expenses by month YYYY-MM
+  const expensesByMonth: Record<string, number> = {};
+  expensesSnapshot.forEach((doc) => {
+    const expense = doc.data();
+    const date = (expense.createdAt as Timestamp).toDate();
+
+    const monthStr = `${date.getFullYear()}-${String(
+      date.getMonth() + 1
+    ).padStart(2, "0")}`;
+
+    if (!expensesByMonth[monthStr]) expensesByMonth[monthStr] = 0;
+    expensesByMonth[monthStr] += Number(expense.amount || 0);
+  });
+
+  const monthly: MonthlyRevenue[] = [];
+
+  const summaryTotals = {
+    totalOrders: 0,
+    totalDiscount: 0,
+    totalTransactionFee: 0,
+    totalExpenses: 0,
+    grossProfit: 0,
+    netProfit: 0,
+  };
+
+  Object.keys(ordersByMonth)
+    .sort()
+    .forEach((monthStr) => {
+      const monthOrders = ordersByMonth[monthStr];
+
+      const totalOrders = monthOrders.length;
+
+      const totalDiscount = monthOrders.reduce(
+        (acc, o) => acc + Number(o.discount || 0),
+        0
+      );
+
+      const totalTransactionFee = monthOrders.reduce(
+        (acc, o) => acc + Number(o.transactionFeeCharge || 0),
+        0
+      );
+
+      const totalExpenses = Number(expensesByMonth[monthStr] || 0);
+
+      // Gross Profit = total - itemsCost - shipping + discount
+      const grossProfit = monthOrders.reduce((acc, o) => {
+        const itemsCost = o.items.reduce(
+          (sum, item) =>
+            sum + Number(item.bPrice || 0) * Number(item.quantity || 0),
+          0
+        );
+
+        return (
+          acc +
+          (Number(o.total || 0) -
+            itemsCost -
+            Number(o.shippingFee || 0) +
+            Number(o.discount || 0))
+        );
+      }, 0);
+
+      // Net profit
+      const netProfit =
+        grossProfit - totalDiscount - totalTransactionFee - totalExpenses;
+
+      monthly.push({
+        month: monthStr,
+        totalOrders,
+        totalDiscount,
+        totalTransactionFee,
+        totalExpenses,
+        grossProfit,
+        netProfit,
+      });
+
+      summaryTotals.totalOrders += totalOrders;
+      summaryTotals.totalDiscount += totalDiscount;
+      summaryTotals.totalTransactionFee += totalTransactionFee;
+      summaryTotals.totalExpenses += totalExpenses;
+      summaryTotals.grossProfit += grossProfit;
+      summaryTotals.netProfit += netProfit;
+    });
+
+  return {
+    monthly,
+    summary: summaryTotals,
+  };
+};
+
+export interface YearlyRevenue {
+  year: string; // YYYY
+  totalOrders: number;
+  totalDiscount: number;
+  totalTransactionFee: number;
+  totalExpenses: number;
+  grossProfit: number;
+  netProfit: number;
+}
+
+export interface YearlyRevenueReport {
+  yearly: YearlyRevenue[];
+  summary: Omit<YearlyRevenue, "year">;
+}
+
+
+export const getYearlyRevenueReport = async (
+  from: string,
+  to: string
+): Promise<YearlyRevenueReport> => {
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+  toDate.setHours(23, 59, 59, 999);
+
+  // Fetch paid orders
+  const ordersSnapshot = await adminFirestore
+    .collection("orders")
+    .where("paymentStatus", "==", "Paid")
+    .where("createdAt", ">=", Timestamp.fromDate(fromDate))
+    .where("createdAt", "<=", Timestamp.fromDate(toDate))
+    .get();
+
+  // Fetch approved expenses
+  const expensesSnapshot = await adminFirestore
+    .collection("expenses")
+    .where("status", "==", "APPROVED")
+    .where("createdAt", ">=", Timestamp.fromDate(fromDate))
+    .where("createdAt", "<=", Timestamp.fromDate(toDate))
+    .get();
+
+  // Group orders by year YYYY
+  const ordersByYear: Record<string, Order[]> = {};
+  ordersSnapshot.forEach((doc) => {
+    const order = doc.data() as Order;
+    const date = (order.createdAt as Timestamp).toDate();
+    const yearStr = String(date.getFullYear());
+
+    if (!ordersByYear[yearStr]) ordersByYear[yearStr] = [];
+    ordersByYear[yearStr].push(order);
+  });
+
+  // Group expenses by year YYYY
+  const expensesByYear: Record<string, number> = {};
+  expensesSnapshot.forEach((doc) => {
+    const expense = doc.data();
+    const date = (expense.createdAt as Timestamp).toDate();
+    const yearStr = String(date.getFullYear());
+
+    if (!expensesByYear[yearStr]) expensesByYear[yearStr] = 0;
+    expensesByYear[yearStr] += Number(expense.amount || 0);
+  });
+
+  const yearly: YearlyRevenue[] = [];
+  const summaryTotals = {
+    totalOrders: 0,
+    totalDiscount: 0,
+    totalTransactionFee: 0,
+    totalExpenses: 0,
+    grossProfit: 0,
+    netProfit: 0,
+  };
+
+  Object.keys(ordersByYear)
+    .sort()
+    .forEach((yearStr) => {
+      const yearOrders = ordersByYear[yearStr];
+
+      const totalOrders = yearOrders.length;
+      const totalDiscount = yearOrders.reduce((acc, o) => acc + Number(o.discount || 0), 0);
+      const totalTransactionFee = yearOrders.reduce(
+        (acc, o) => acc + Number(o.transactionFeeCharge || 0),
+        0
+      );
+      const totalExpenses = Number(expensesByYear[yearStr] || 0);
+
+      // Gross Profit = total - itemsCost - shipping + discount
+      const grossProfit = yearOrders.reduce((acc, o) => {
+        const itemsCost = o.items.reduce(
+          (sum, item) => sum + Number(item.bPrice || 0) * Number(item.quantity || 0),
+          0
+        );
+        return acc + (Number(o.total || 0) - itemsCost - Number(o.shippingFee || 0) + Number(o.discount || 0));
+      }, 0);
+
+      // Net Profit = Gross Profit - discount - transaction fee - expenses
+      const netProfit = grossProfit - totalDiscount - totalTransactionFee - totalExpenses;
+
+      yearly.push({
+        year: yearStr,
+        totalOrders,
+        totalDiscount,
+        totalTransactionFee,
+        totalExpenses,
+        grossProfit,
+        netProfit,
+      });
+
+      summaryTotals.totalOrders += totalOrders;
+      summaryTotals.totalDiscount += totalDiscount;
+      summaryTotals.totalTransactionFee += totalTransactionFee;
+      summaryTotals.totalExpenses += totalExpenses;
+      summaryTotals.grossProfit += grossProfit;
+      summaryTotals.netProfit += netProfit;
+    });
+
+  return {
+    yearly,
     summary: summaryTotals,
   };
 };
