@@ -77,6 +77,10 @@ const Page = () => {
         "Total Orders": y.orders,
         "Total Sales (Rs)": y.sales.toFixed(2),
         "Total Net Sales": y.netSales.toFixed(2),
+        "Total COGS (Rs)": (y.cogs || 0).toFixed(2),
+        "Total Gross Profit (Rs)": (y.grossProfit || 0).toFixed(2),
+        "Gross Profit Margin (%)": (y.grossProfitMargin || 0).toFixed(2),
+        "Avg Order Value (Rs)": (y.averageOrderValue || 0).toFixed(2),
         "Shipping (Rs)": y.shipping.toFixed(2),
         "Discount (Rs)": y.discount.toFixed(2),
         "Transaction Fee (Rs)": y.transactionFee.toFixed(2),
@@ -89,6 +93,10 @@ const Page = () => {
           "Total Orders": m.orders,
           "Total Sales (Rs)": m.sales.toFixed(2),
           "Total Net Sales": m.netSales.toFixed(2),
+          "Total COGS (Rs)": (m.cogs || 0).toFixed(2),
+          "Total Gross Profit (Rs)": (m.grossProfit || 0).toFixed(2),
+          "Gross Profit Margin (%)": (m.grossProfitMargin || 0).toFixed(2),
+          "Avg Order Value (Rs)": (m.averageOrderValue || 0).toFixed(2),
           "Shipping (Rs)": m.shipping.toFixed(2),
           "Discount (Rs)": m.discount.toFixed(2),
           "Transaction Fee (Rs)": m.transactionFee.toFixed(2),
@@ -128,7 +136,11 @@ const Page = () => {
 
       {/* Filters */}
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center">
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          alignItems="center"
+        >
           <form
             style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}
             onSubmit={fetchReport}
@@ -138,15 +150,23 @@ const Page = () => {
                 views={["year"]}
                 label="From Year"
                 value={from ? new Date(Number(from), 0, 1) : null}
-                onChange={(newValue) => newValue && setFrom(String(newValue.getFullYear()))}
-                renderInput={(params) => <TextField {...params} size="small" required />}
+                onChange={(newValue) =>
+                  newValue && setFrom(String(newValue.getFullYear()))
+                }
+                renderInput={(params) => (
+                  <TextField {...params} size="small" required />
+                )}
               />
               <DatePicker
                 views={["year"]}
                 label="To Year"
                 value={to ? new Date(Number(to), 0, 1) : null}
-                onChange={(newValue) => newValue && setTo(String(newValue.getFullYear()))}
-                renderInput={(params) => <TextField {...params} size="small" required />}
+                onChange={(newValue) =>
+                  newValue && setTo(String(newValue.getFullYear()))
+                }
+                renderInput={(params) => (
+                  <TextField {...params} size="small" required />
+                )}
               />
             </LocalizationProvider>
 
@@ -164,7 +184,10 @@ const Page = () => {
 
           <Button
             variant="contained"
-            sx={{ backgroundColor: "#4CAF50", "&:hover": { backgroundColor: "#45a049" } }}
+            sx={{
+              backgroundColor: "#4CAF50",
+              "&:hover": { backgroundColor: "#45a049" },
+            }}
             onClick={handleExportExcel}
             size="small"
           >
@@ -178,11 +201,42 @@ const Page = () => {
         <Grid container spacing={2} sx={{ mb: 3 }}>
           {[
             { label: "Total Orders", value: summary.totalOrders },
-            { label: "Total Sales", value: `Rs ${summary.totalSales.toFixed(2)}` },
-            { label: "Total Net Sales", value: `Rs ${summary.totalNetSales.toFixed(2)}` },
-            { label: "Total Shipping", value: `Rs ${summary.totalShipping.toFixed(2)}` },
-            { label: "Total Discount", value: `Rs ${summary.totalDiscount.toFixed(2)}` },
-            { label: "Total Transaction Fee", value: `Rs ${summary.totalTransactionFee.toFixed(2)}` },
+            {
+              label: "Total Sales",
+              value: `Rs ${summary.totalSales.toFixed(2)}`,
+            },
+            {
+              label: "Total Net Sales",
+              value: `Rs ${summary.totalNetSales.toFixed(2)}`,
+            },
+            {
+              label: "Total COGS",
+              value: `Rs ${(summary.totalCOGS || 0).toFixed(2)}`,
+            },
+            {
+              label: "Total Gross Profit",
+              value: `Rs ${(summary.totalGrossProfit || 0).toFixed(2)}`,
+            },
+            {
+              label: "Gross Profit Margin",
+              value: `${(summary.totalGrossProfitMargin || 0).toFixed(2)}%`,
+            },
+            {
+              label: "Avg Order Value",
+              value: `Rs ${(summary.averageOrderValue || 0).toFixed(2)}`,
+            },
+            {
+              label: "Total Shipping",
+              value: `Rs ${summary.totalShipping.toFixed(2)}`,
+            },
+            {
+              label: "Total Discount",
+              value: `Rs ${summary.totalDiscount.toFixed(2)}`,
+            },
+            {
+              label: "Total Transaction Fee",
+              value: `Rs ${summary.totalTransactionFee.toFixed(2)}`,
+            },
             { label: "Total Items Sold", value: summary.totalItemsSold },
           ].map((card, i) => (
             <Grid item xs={12} sm={6} md={4} key={i}>
@@ -215,7 +269,12 @@ const Page = () => {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="sales" name="Total Sales (Rs)" stroke="#1976d2" />
+                <Line
+                  type="monotone"
+                  dataKey="sales"
+                  name="Total Sales (Rs)"
+                  stroke="#1976d2"
+                />
               </LineChart>
             </ResponsiveContainer>
           </Paper>
@@ -231,7 +290,12 @@ const Page = () => {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="netSales" name="Net Sales (Rs)" stroke="#FF5722" />
+                <Line
+                  type="monotone"
+                  dataKey="netSales"
+                  name="Net Sales (Rs)"
+                  stroke="#FF5722"
+                />
               </LineChart>
             </ResponsiveContainer>
           </Paper>
@@ -265,6 +329,10 @@ const Page = () => {
                 <TableCell>Total Orders</TableCell>
                 <TableCell>Total Sales</TableCell>
                 <TableCell>Total Net Sales</TableCell>
+                <TableCell>COGS</TableCell>
+                <TableCell>Gross Profit</TableCell>
+                <TableCell>Margin %</TableCell>
+                <TableCell>AOV</TableCell>
                 <TableCell>Shipping</TableCell>
                 <TableCell>Discount</TableCell>
                 <TableCell>Transaction Fee</TableCell>
@@ -274,13 +342,13 @@ const Page = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={9} align="center">
+                  <TableCell colSpan={11} align="center">
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
               ) : !summary?.yearly?.length ? (
                 <TableRow>
-                  <TableCell colSpan={9} align="center">
+                  <TableCell colSpan={12} align="center">
                     No data
                   </TableCell>
                 </TableRow>
@@ -293,6 +361,16 @@ const Page = () => {
                       <TableCell>{y.orders}</TableCell>
                       <TableCell>Rs {y.sales.toFixed(2)}</TableCell>
                       <TableCell>Rs {y.netSales.toFixed(2)}</TableCell>
+                      <TableCell>Rs {(y.cogs || 0).toFixed(2)}</TableCell>
+                      <TableCell>
+                        Rs {(y.grossProfit || 0).toFixed(2)}
+                      </TableCell>
+                      <TableCell>
+                        {(y.grossProfitMargin || 0).toFixed(2)}%
+                      </TableCell>
+                      <TableCell>
+                        Rs {(y.averageOrderValue || 0).toFixed(2)}
+                      </TableCell>
                       <TableCell>Rs {y.shipping.toFixed(2)}</TableCell>
                       <TableCell>Rs {y.discount.toFixed(2)}</TableCell>
                       <TableCell>Rs {y.transactionFee.toFixed(2)}</TableCell>
@@ -305,6 +383,16 @@ const Page = () => {
                         <TableCell>{m.orders}</TableCell>
                         <TableCell>Rs {m.sales.toFixed(2)}</TableCell>
                         <TableCell>Rs {m.netSales.toFixed(2)}</TableCell>
+                        <TableCell>Rs {(m.cogs || 0).toFixed(2)}</TableCell>
+                        <TableCell>
+                          Rs {(m.grossProfit || 0).toFixed(2)}
+                        </TableCell>
+                        <TableCell>
+                          {(m.grossProfitMargin || 0).toFixed(2)}%
+                        </TableCell>
+                        <TableCell>
+                          Rs {(m.averageOrderValue || 0).toFixed(2)}
+                        </TableCell>
                         <TableCell>Rs {m.shipping.toFixed(2)}</TableCell>
                         <TableCell>Rs {m.discount.toFixed(2)}</TableCell>
                         <TableCell>Rs {m.transactionFee.toFixed(2)}</TableCell>

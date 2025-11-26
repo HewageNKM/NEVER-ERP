@@ -39,21 +39,31 @@ import { getToken } from "@/firebase/firebaseClient";
 
 interface MonthlyRow {
   month: string;
+  totalSales: number;
+  totalNetSales: number;
+  totalCOGS: number;
   totalOrders: number;
   totalDiscount: number;
   totalTransactionFee: number;
   totalExpenses: number;
   grossProfit: number;
+  grossProfitMargin: number;
   netProfit: number;
+  netProfitMargin: number;
 }
 
 interface SummaryType {
+  totalSales: number;
+  totalNetSales: number;
+  totalCOGS: number;
   totalOrders: number;
   totalDiscount: number;
   totalTransactionFee: number;
   totalExpenses: number;
   grossProfit: number;
+  grossProfitMargin: number;
   netProfit: number;
+  netProfitMargin: number;
 }
 
 const MAX_MONTH_RANGE = 12;
@@ -114,7 +124,7 @@ export default function MonthlyRevenuePage() {
 
     setLoading(true);
     try {
-        const token = await getToken();
+      const token = await getToken();
       const res = await axios.get("/api/v2/reports/revenues/monthly-revenue", {
         params: {
           from: getMonthStart(from),
@@ -209,6 +219,9 @@ export default function MonthlyRevenuePage() {
         <Box sx={{ mb: 3, display: "flex", flexWrap: "wrap", gap: 2 }}>
           {[
             { label: "Total Orders", value: summary.totalOrders },
+            { label: "Total Sales", value: summary.totalSales },
+            { label: "Net Sales", value: summary.totalNetSales },
+            { label: "COGS", value: summary.totalCOGS },
             { label: "Total Discount", value: summary.totalDiscount },
             {
               label: "Total Trans. Fee",
@@ -216,7 +229,17 @@ export default function MonthlyRevenuePage() {
             },
             { label: "Total Expenses", value: summary.totalExpenses },
             { label: "Gross Profit", value: summary.grossProfit },
+            {
+              label: "Gross Margin",
+              value: `${summary.grossProfitMargin.toFixed(2)}%`,
+              isPercent: true,
+            },
             { label: "Net Profit", value: summary.netProfit },
+            {
+              label: "Net Margin",
+              value: `${summary.netProfitMargin.toFixed(2)}%`,
+              isPercent: true,
+            },
           ].map((card) => (
             <Paper
               key={card.label}
@@ -226,7 +249,10 @@ export default function MonthlyRevenuePage() {
                 {card.label}
               </Typography>
               <Typography variant="h6" fontWeight={600}>
-                Rs {(card.value || 0).toFixed(2)}
+                {/* @ts-ignore */}
+                {card.isPercent
+                  ? card.value
+                  : `Rs ${(card.value || 0).toFixed(2)}`}
               </Typography>
             </Paper>
           ))}
@@ -245,6 +271,12 @@ export default function MonthlyRevenuePage() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="totalSales"
+                  name="Total Sales"
+                  stroke="#1976d2"
+                />
                 <Line
                   type="monotone"
                   dataKey="grossProfit"
@@ -303,11 +335,16 @@ export default function MonthlyRevenuePage() {
                 <TableRow>
                   <TableCell>Month</TableCell>
                   <TableCell>Total Orders</TableCell>
+                  <TableCell>Total Sales (Rs)</TableCell>
+                  <TableCell>Net Sales (Rs)</TableCell>
+                  <TableCell>COGS (Rs)</TableCell>
                   <TableCell>Total Discount</TableCell>
                   <TableCell>Total Transaction Fee</TableCell>
                   <TableCell>Total Expenses</TableCell>
                   <TableCell>Gross Profit</TableCell>
+                  <TableCell>Margin %</TableCell>
                   <TableCell>Net Profit</TableCell>
+                  <TableCell>Net Margin %</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -317,13 +354,18 @@ export default function MonthlyRevenuePage() {
                     <TableRow key={idx} hover>
                       <TableCell>{r.month}</TableCell>
                       <TableCell>{r.totalOrders}</TableCell>
+                      <TableCell>Rs {r.totalSales.toFixed(2)}</TableCell>
+                      <TableCell>Rs {r.totalNetSales.toFixed(2)}</TableCell>
+                      <TableCell>Rs {r.totalCOGS.toFixed(2)}</TableCell>
                       <TableCell>Rs {r.totalDiscount.toFixed(2)}</TableCell>
                       <TableCell>
                         Rs {r.totalTransactionFee.toFixed(2)}
                       </TableCell>
                       <TableCell>Rs {r.totalExpenses.toFixed(2)}</TableCell>
                       <TableCell>Rs {r.grossProfit.toFixed(2)}</TableCell>
+                      <TableCell>{r.grossProfitMargin.toFixed(2)}%</TableCell>
                       <TableCell>Rs {r.netProfit.toFixed(2)}</TableCell>
+                      <TableCell>{r.netProfitMargin.toFixed(2)}%</TableCell>
                     </TableRow>
                   ))}
               </TableBody>

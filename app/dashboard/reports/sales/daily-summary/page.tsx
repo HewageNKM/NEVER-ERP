@@ -64,10 +64,7 @@ const Page = () => {
     }
 
     if (diffDays > MAX_RANGE_DAYS) {
-      showNotification(
-        `Max allowed range is ${MAX_RANGE_DAYS} days`,
-        "error"
-      );
+      showNotification(`Max allowed range is ${MAX_RANGE_DAYS} days`, "error");
       return;
     }
     // ----------------------------------------------------
@@ -95,6 +92,10 @@ const Page = () => {
       "Total Orders": d.orders,
       "Total Sales (Rs)": d.sales.toFixed(2),
       "Total Net Sales": d.netSales.toFixed(2),
+      "Total COGS (Rs)": (d.cogs || 0).toFixed(2),
+      "Total Gross Profit (Rs)": (d.grossProfit || 0).toFixed(2),
+      "Gross Profit Margin (%)": (d.grossProfitMargin || 0).toFixed(2),
+      "Avg Order Value (Rs)": (d.averageOrderValue || 0).toFixed(2),
       "Shipping (Rs)": d.shipping.toFixed(2),
       "Discount (Rs)": d.discount.toFixed(2),
       "Transaction Fee (Rs)": d.transactionFee.toFixed(2),
@@ -200,6 +201,22 @@ const Page = () => {
               value: `Rs ${summary.totalNetSales.toFixed(2)}`,
             },
             {
+              label: "Total COGS",
+              value: `Rs ${(summary.totalCOGS || 0).toFixed(2)}`,
+            },
+            {
+              label: "Total Gross Profit",
+              value: `Rs ${(summary.totalGrossProfit || 0).toFixed(2)}`,
+            },
+            {
+              label: "Gross Profit Margin",
+              value: `${(summary.totalGrossProfitMargin || 0).toFixed(2)}%`,
+            },
+            {
+              label: "Avg Order Value",
+              value: `Rs ${(summary.averageOrderValue || 0).toFixed(2)}`,
+            },
+            {
               label: "Total Shipping",
               value: `Rs ${summary.totalShipping.toFixed(2)}`,
             },
@@ -299,6 +316,10 @@ const Page = () => {
                 <TableCell>Total Orders</TableCell>
                 <TableCell>Total Sales</TableCell>
                 <TableCell>Total Net Sales</TableCell>
+                <TableCell>COGS</TableCell>
+                <TableCell>Gross Profit</TableCell>
+                <TableCell>Margin %</TableCell>
+                <TableCell>AOV</TableCell>
                 <TableCell>Shipping</TableCell>
                 <TableCell>Discount</TableCell>
                 <TableCell>Transaction Fee</TableCell>
@@ -308,13 +329,13 @@ const Page = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center">
+                  <TableCell colSpan={9} align="center">
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
               ) : !summary?.daily || summary.daily.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center">
+                  <TableCell colSpan={12} align="center">
                     No data
                   </TableCell>
                 </TableRow>
@@ -325,6 +346,14 @@ const Page = () => {
                     <TableCell>{d.orders}</TableCell>
                     <TableCell>Rs {d.sales.toFixed(2)}</TableCell>
                     <TableCell>Rs {d.netSales.toFixed(2)}</TableCell>
+                    <TableCell>Rs {(d.cogs || 0).toFixed(2)}</TableCell>
+                    <TableCell>Rs {(d.grossProfit || 0).toFixed(2)}</TableCell>
+                    <TableCell>
+                      {(d.grossProfitMargin || 0).toFixed(2)}%
+                    </TableCell>
+                    <TableCell>
+                      Rs {(d.averageOrderValue || 0).toFixed(2)}
+                    </TableCell>
                     <TableCell>Rs {d.shipping.toFixed(2)}</TableCell>
                     <TableCell>Rs {d.discount.toFixed(2)}</TableCell>
                     <TableCell>Rs {d.transactionFee.toFixed(2)}</TableCell>

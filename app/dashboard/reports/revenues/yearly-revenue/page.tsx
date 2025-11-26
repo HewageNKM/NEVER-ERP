@@ -1,4 +1,4 @@
-"use client";
+  "use client";
 import React, { useState } from "react";
 import {
   Box,
@@ -76,11 +76,16 @@ const YearRevenuePage = () => {
       exportData.push({
         Year: y.year,
         "Total Orders": y.totalOrders,
+        "Total Sales (Rs)": y.totalSales.toFixed(2),
+        "Net Sales (Rs)": y.totalNetSales.toFixed(2),
+        "COGS (Rs)": y.totalCOGS.toFixed(2),
         "Total Discount (Rs)": y.totalDiscount.toFixed(2),
         "Transaction Fee (Rs)": y.totalTransactionFee.toFixed(2),
         "Total Expenses (Rs)": y.totalExpenses.toFixed(2),
         "Gross Profit (Rs)": y.grossProfit.toFixed(2),
+        "Gross Margin (%)": y.grossProfitMargin.toFixed(2),
         "Net Profit (Rs)": y.netProfit.toFixed(2),
+        "Net Margin (%)": y.netProfitMargin.toFixed(2),
       });
     });
 
@@ -109,32 +114,53 @@ const YearRevenuePage = () => {
           Yearly Revenue Report
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Select year range to view yearly revenue, gross/net profit, and items sold.
+          Select year range to view yearly revenue, gross/net profit, and items
+          sold.
         </Typography>
       </Box>
 
       {/* Filters */}
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center">
-          <form style={{ display: "flex", gap: "10px", flexWrap: "wrap" }} onSubmit={fetchReport}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          alignItems="center"
+        >
+          <form
+            style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}
+            onSubmit={fetchReport}
+          >
             <LocalizationProvider dateAdapter={AdapterDateFns}>
               <DatePicker
                 views={["year"]}
                 label="From Year"
                 value={from ? new Date(Number(from), 0, 1) : null}
-                onChange={(newValue) => newValue && setFrom(String(newValue.getFullYear()))}
-                renderInput={(params) => <TextField {...params} size="small" required />}
+                onChange={(newValue) =>
+                  newValue && setFrom(String(newValue.getFullYear()))
+                }
+                renderInput={(params) => (
+                  <TextField {...params} size="small" required />
+                )}
               />
               <DatePicker
                 views={["year"]}
                 label="To Year"
                 value={to ? new Date(Number(to), 0, 1) : null}
-                onChange={(newValue) => newValue && setTo(String(newValue.getFullYear()))}
-                renderInput={(params) => <TextField {...params} size="small" required />}
+                onChange={(newValue) =>
+                  newValue && setTo(String(newValue.getFullYear()))
+                }
+                renderInput={(params) => (
+                  <TextField {...params} size="small" required />
+                )}
               />
             </LocalizationProvider>
 
-            <Button startIcon={<IconFilter size={20} />} variant="contained" type="submit" size="small">
+            <Button
+              startIcon={<IconFilter size={20} />}
+              variant="contained"
+              type="submit"
+              size="small"
+            >
               Apply
             </Button>
           </form>
@@ -143,7 +169,10 @@ const YearRevenuePage = () => {
 
           <Button
             variant="contained"
-            sx={{ backgroundColor: "#4CAF50", "&:hover": { backgroundColor: "#45a049" } }}
+            sx={{
+              backgroundColor: "#4CAF50",
+              "&:hover": { backgroundColor: "#45a049" },
+            }}
             onClick={handleExportExcel}
             size="small"
           >
@@ -157,11 +186,43 @@ const YearRevenuePage = () => {
         <Grid container spacing={2} sx={{ mb: 3 }}>
           {[
             { label: "Total Orders", value: summary.totalOrders },
-            { label: "Total Discount", value: `Rs ${summary.totalDiscount.toFixed(2)}` },
-            { label: "Transaction Fee", value: `Rs ${summary.totalTransactionFee.toFixed(2)}` },
-            { label: "Total Expenses", value: `Rs ${summary.totalExpenses.toFixed(2)}` },
-            { label: "Gross Profit", value: `Rs ${summary.grossProfit.toFixed(2)}` },
-            { label: "Net Profit", value: `Rs ${summary.netProfit.toFixed(2)}` },
+            {
+              label: "Total Sales",
+              value: `Rs ${summary.totalSales.toFixed(2)}`,
+            },
+            {
+              label: "Net Sales",
+              value: `Rs ${summary.totalNetSales.toFixed(2)}`,
+            },
+            { label: "COGS", value: `Rs ${summary.totalCOGS.toFixed(2)}` },
+            {
+              label: "Total Discount",
+              value: `Rs ${summary.totalDiscount.toFixed(2)}`,
+            },
+            {
+              label: "Transaction Fee",
+              value: `Rs ${summary.totalTransactionFee.toFixed(2)}`,
+            },
+            {
+              label: "Total Expenses",
+              value: `Rs ${summary.totalExpenses.toFixed(2)}`,
+            },
+            {
+              label: "Gross Profit",
+              value: `Rs ${summary.grossProfit.toFixed(2)}`,
+            },
+            {
+              label: "Gross Margin",
+              value: `${summary.grossProfitMargin.toFixed(2)}%`,
+            },
+            {
+              label: "Net Profit",
+              value: `Rs ${summary.netProfit.toFixed(2)}`,
+            },
+            {
+              label: "Net Margin",
+              value: `${summary.netProfitMargin.toFixed(2)}%`,
+            },
           ].map((card, i) => (
             <Grid item xs={12} sm={6} md={4} key={i}>
               <Card elevation={2} sx={{ borderRadius: 2 }}>
@@ -193,8 +254,24 @@ const YearRevenuePage = () => {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="grossProfit" name="Gross Profit (Rs)" stroke="#1976d2" />
-                <Line type="monotone" dataKey="netProfit" name="Net Profit (Rs)" stroke="#FF5722" />
+                <Line
+                  type="monotone"
+                  dataKey="totalSales"
+                  name="Total Sales (Rs)"
+                  stroke="#1976d2"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="grossProfit"
+                  name="Gross Profit (Rs)"
+                  stroke="#8884d8"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="netProfit"
+                  name="Net Profit (Rs)"
+                  stroke="#FF5722"
+                />
               </LineChart>
             </ResponsiveContainer>
           </Paper>
@@ -225,11 +302,16 @@ const YearRevenuePage = () => {
               <TableRow>
                 <TableCell>Year</TableCell>
                 <TableCell>Total Orders</TableCell>
+                <TableCell>Total Sales</TableCell>
+                <TableCell>Net Sales</TableCell>
+                <TableCell>COGS</TableCell>
                 <TableCell>Total Discount</TableCell>
                 <TableCell>Transaction Fee</TableCell>
                 <TableCell>Total Expenses</TableCell>
                 <TableCell>Gross Profit</TableCell>
+                <TableCell>Margin %</TableCell>
                 <TableCell>Net Profit</TableCell>
+                <TableCell>Net Margin %</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -250,11 +332,16 @@ const YearRevenuePage = () => {
                   <TableRow key={y.year} hover>
                     <TableCell>{y.year}</TableCell>
                     <TableCell>{y.totalOrders}</TableCell>
+                    <TableCell>Rs {y.totalSales.toFixed(2)}</TableCell>
+                    <TableCell>Rs {y.totalNetSales.toFixed(2)}</TableCell>
+                    <TableCell>Rs {y.totalCOGS.toFixed(2)}</TableCell>
                     <TableCell>Rs {y.totalDiscount.toFixed(2)}</TableCell>
                     <TableCell>Rs {y.totalTransactionFee.toFixed(2)}</TableCell>
                     <TableCell>Rs {y.totalExpenses.toFixed(2)}</TableCell>
                     <TableCell>Rs {y.grossProfit.toFixed(2)}</TableCell>
+                    <TableCell>{y.grossProfitMargin.toFixed(2)}%</TableCell>
                     <TableCell>Rs {y.netProfit.toFixed(2)}</TableCell>
+                    <TableCell>{y.netProfitMargin.toFixed(2)}%</TableCell>
                   </TableRow>
                 ))
               )}

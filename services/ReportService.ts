@@ -34,11 +34,24 @@ export const getDailySaleReport = async (from: string, to: string) => {
       (o.total || 0) - (o.shippingFee || 0) - (o.transactionFeeCharge || 0);
     const getSales = (o: any) =>
       (o.total || 0) - (o.shippingFee || 0) + (o.discount || 0);
+    const getCOGS = (o: any) =>
+      o.items.reduce(
+        (c: number, i: any) => c + (i.bPrice || 0) * i.quantity,
+        0
+      );
 
     // ---------- MAIN SUMMARY ----------
     const totalOrders = orders.length;
     const totalSales = orders.reduce((s, o) => s + getSales(o), 0);
     const totalNetSales = orders.reduce((s, o) => s + getNetSale(o), 0);
+    const totalCOGS = orders.reduce((s, o) => s + getCOGS(o), 0);
+    const totalGrossProfit = totalNetSales - totalCOGS;
+
+    // New Metrics
+    const totalGrossProfitMargin =
+      totalNetSales > 0 ? (totalGrossProfit / totalNetSales) * 100 : 0;
+    const averageOrderValue = totalOrders > 0 ? totalNetSales / totalOrders : 0;
+
     const totalShipping = orders.reduce((s, o) => s + (o.shippingFee || 0), 0);
     const totalDiscount = orders.reduce((s, o) => s + (o.discount || 0), 0);
     const totalTransactionFee = orders.reduce(
@@ -58,6 +71,10 @@ export const getDailySaleReport = async (from: string, to: string) => {
         orders: number;
         sales: number;
         netSales: number;
+        cogs: number;
+        grossProfit: number;
+        grossProfitMargin: number;
+        averageOrderValue: number;
         shipping: number;
         discount: number;
         transactionFee: number;
@@ -74,6 +91,10 @@ export const getDailySaleReport = async (from: string, to: string) => {
           orders: 0,
           sales: 0,
           netSales: 0,
+          cogs: 0,
+          grossProfit: 0,
+          grossProfitMargin: 0,
+          averageOrderValue: 0,
           shipping: 0,
           discount: 0,
           transactionFee: 0,
@@ -86,6 +107,8 @@ export const getDailySaleReport = async (from: string, to: string) => {
       // FIXED: deduct shipping from sales
       dailyMap[dateKey].sales += getSales(o);
       dailyMap[dateKey].netSales += getNetSale(o);
+      dailyMap[dateKey].cogs += getCOGS(o);
+      dailyMap[dateKey].grossProfit += getNetSale(o) - getCOGS(o);
 
       dailyMap[dateKey].shipping += o.shippingFee || 0;
       dailyMap[dateKey].discount += o.discount || 0;
@@ -94,6 +117,13 @@ export const getDailySaleReport = async (from: string, to: string) => {
         (c, i) => c + i.quantity,
         0
       );
+    });
+
+    // Calculate margins for each day
+    Object.values(dailyMap).forEach((d) => {
+      d.grossProfitMargin =
+        d.netSales > 0 ? (d.grossProfit / d.netSales) * 100 : 0;
+      d.averageOrderValue = d.orders > 0 ? d.netSales / d.orders : 0;
     });
 
     const daily = Object.values(dailyMap).sort(
@@ -105,6 +135,8 @@ export const getDailySaleReport = async (from: string, to: string) => {
         totalOrders,
         totalSales,
         totalNetSales,
+        totalCOGS,
+        totalGrossProfit,
         totalShipping,
         totalDiscount,
         totalTransactionFee,
@@ -149,11 +181,24 @@ export const getMonthlySummary = async (from: string, to: string) => {
       (o.total || 0) - (o.shippingFee || 0) - (o.transactionFeeCharge || 0);
     const getSales = (o: any) =>
       (o.total || 0) - (o.shippingFee || 0) + (o.discount || 0);
+    const getCOGS = (o: any) =>
+      (o.items || []).reduce(
+        (c: number, i: any) => c + (i.bPrice || 0) * i.quantity,
+        0
+      );
 
     // ---------- MAIN SUMMARY ----------
     const totalOrders = orders.length;
     const totalSales = orders.reduce((s, o) => s + getSales(o), 0); // FIXED
     const totalNetSales = orders.reduce((s, o) => s + getNetSales(o), 0);
+    const totalCOGS = orders.reduce((s, o) => s + getCOGS(o), 0);
+    const totalGrossProfit = totalNetSales - totalCOGS;
+
+    // New Metrics
+    const totalGrossProfitMargin =
+      totalNetSales > 0 ? (totalGrossProfit / totalNetSales) * 100 : 0;
+    const averageOrderValue = totalOrders > 0 ? totalNetSales / totalOrders : 0;
+
     const totalShipping = orders.reduce((s, o) => s + (o.shippingFee || 0), 0);
     const totalDiscount = orders.reduce((s, o) => s + (o.discount || 0), 0);
     const totalTransactionFee = orders.reduce(
@@ -173,6 +218,10 @@ export const getMonthlySummary = async (from: string, to: string) => {
         orders: number;
         sales: number;
         netSales: number;
+        cogs: number;
+        grossProfit: number;
+        grossProfitMargin: number;
+        averageOrderValue: number;
         shipping: number;
         discount: number;
         transactionFee: number;
@@ -194,6 +243,10 @@ export const getMonthlySummary = async (from: string, to: string) => {
           orders: 0,
           sales: 0,
           netSales: 0,
+          cogs: 0,
+          grossProfit: 0,
+          grossProfitMargin: 0,
+          averageOrderValue: 0,
           shipping: 0,
           discount: 0,
           transactionFee: 0,
@@ -206,12 +259,21 @@ export const getMonthlySummary = async (from: string, to: string) => {
       // FIXED: subtract shipping from sales
       monthlyMap[monthKey].sales += getSales(o);
       monthlyMap[monthKey].netSales += getNetSales(o);
+      monthlyMap[monthKey].cogs += getCOGS(o);
+      monthlyMap[monthKey].grossProfit += getNetSales(o) - getCOGS(o);
 
       monthlyMap[monthKey].shipping += o.shippingFee || 0;
       monthlyMap[monthKey].discount += o.discount || 0;
       monthlyMap[monthKey].transactionFee += o.transactionFeeCharge || 0;
       monthlyMap[monthKey].itemsSold +=
         o.items?.reduce((c, i) => c + i.quantity, 0) || 0;
+    });
+
+    // Calculate margins for each month
+    Object.values(monthlyMap).forEach((m) => {
+      m.grossProfitMargin =
+        m.netSales > 0 ? (m.grossProfit / m.netSales) * 100 : 0;
+      m.averageOrderValue = m.orders > 0 ? m.netSales / m.orders : 0;
     });
 
     const monthly = Object.values(monthlyMap).sort(
@@ -225,6 +287,10 @@ export const getMonthlySummary = async (from: string, to: string) => {
         totalOrders,
         totalSales,
         totalNetSales,
+        totalCOGS,
+        totalGrossProfit,
+        totalGrossProfitMargin,
+        averageOrderValue,
         totalShipping,
         totalDiscount,
         totalTransactionFee,
@@ -270,11 +336,24 @@ export const getYearlySummary = async (from: string, to: string) => {
       (o.total || 0) - (o.shippingFee || 0) - (o.transactionFeeCharge || 0);
     const getSales = (o: any) =>
       (o.total || 0) - (o.shippingFee || 0) + (o.discount || 0);
+    const getCOGS = (o: any) =>
+      (o.items || []).reduce(
+        (c: number, i: any) => c + (i.bPrice || 0) * i.quantity,
+        0
+      );
 
     // ---------- MAIN SUMMARY ----------
     const totalOrders = orders.length;
     const totalSales = orders.reduce((s, o) => s + getSales(o), 0);
     const totalNetSales = orders.reduce((s, o) => s + getNetSales(o), 0);
+    const totalCOGS = orders.reduce((s, o) => s + getCOGS(o), 0);
+    const totalGrossProfit = totalNetSales - totalCOGS;
+
+    // New Metrics
+    const totalGrossProfitMargin =
+      totalNetSales > 0 ? (totalGrossProfit / totalNetSales) * 100 : 0;
+    const averageOrderValue = totalOrders > 0 ? totalNetSales / totalOrders : 0;
+
     const totalShipping = orders.reduce((s, o) => s + (o.shippingFee || 0), 0);
     const totalDiscount = orders.reduce((s, o) => s + (o.discount || 0), 0);
     const totalTransactionFee = orders.reduce(
@@ -294,6 +373,10 @@ export const getYearlySummary = async (from: string, to: string) => {
         orders: number;
         sales: number;
         netSales: number;
+        cogs: number;
+        grossProfit: number;
+        grossProfitMargin: number;
+        averageOrderValue: number;
         shipping: number;
         discount: number;
         transactionFee: number;
@@ -303,6 +386,10 @@ export const getYearlySummary = async (from: string, to: string) => {
           orders: number;
           sales: number;
           netSales: number;
+          cogs: number;
+          grossProfit: number;
+          grossProfitMargin: number;
+          averageOrderValue: number;
           shipping: number;
           discount: number;
           transactionFee: number;
@@ -326,6 +413,10 @@ export const getYearlySummary = async (from: string, to: string) => {
           orders: 0,
           sales: 0,
           netSales: 0,
+          cogs: 0,
+          grossProfit: 0,
+          grossProfitMargin: 0,
+          averageOrderValue: 0,
           shipping: 0,
           discount: 0,
           transactionFee: 0,
@@ -338,6 +429,9 @@ export const getYearlySummary = async (from: string, to: string) => {
       yearlyMap[yearKey].orders += 1;
       yearlyMap[yearKey].sales += getSales(o);
       yearlyMap[yearKey].netSales += getNetSales(o);
+      yearlyMap[yearKey].cogs += getCOGS(o);
+      yearlyMap[yearKey].grossProfit += getNetSales(o) - getCOGS(o);
+
       yearlyMap[yearKey].shipping += o.shippingFee || 0;
       yearlyMap[yearKey].discount += o.discount || 0;
       yearlyMap[yearKey].transactionFee += o.transactionFeeCharge || 0;
@@ -355,6 +449,10 @@ export const getYearlySummary = async (from: string, to: string) => {
           orders: 1,
           sales: getSales(o),
           netSales: getNetSales(o),
+          cogs: getCOGS(o),
+          grossProfit: getNetSales(o) - getCOGS(o),
+          grossProfitMargin: 0, // Calculated later
+          averageOrderValue: 0, // Calculated later
           shipping: o.shippingFee || 0,
           discount: o.discount || 0,
           transactionFee: o.transactionFeeCharge || 0,
@@ -365,11 +463,26 @@ export const getYearlySummary = async (from: string, to: string) => {
         m.orders += 1;
         m.sales += getSales(o);
         m.netSales += getNetSales(o);
+        m.cogs += getCOGS(o);
+        m.grossProfit += getNetSales(o) - getCOGS(o);
         m.shipping += o.shippingFee || 0;
         m.discount += o.discount || 0;
         m.transactionFee += o.transactionFeeCharge || 0;
         m.itemsSold += o.items?.reduce((c, i) => c + i.quantity, 0) || 0;
       }
+    });
+
+    // Calculate margins for years and months
+    Object.values(yearlyMap).forEach((y) => {
+      y.grossProfitMargin =
+        y.netSales > 0 ? (y.grossProfit / y.netSales) * 100 : 0;
+      y.averageOrderValue = y.orders > 0 ? y.netSales / y.orders : 0;
+
+      y.monthly.forEach((m) => {
+        m.grossProfitMargin =
+          m.netSales > 0 ? (m.grossProfit / m.netSales) * 100 : 0;
+        m.averageOrderValue = m.orders > 0 ? m.netSales / m.orders : 0;
+      });
     });
 
     // Sort years
@@ -391,6 +504,8 @@ export const getYearlySummary = async (from: string, to: string) => {
         totalOrders,
         totalSales,
         totalNetSales,
+        totalCOGS,
+        totalGrossProfit,
         totalShipping,
         totalDiscount,
         totalTransactionFee,
@@ -444,23 +559,35 @@ export const getTopSellingProducts = async (
             totalQuantity: 0,
             totalSales: 0,
             totalNetSales: 0,
+            totalCOGS: 0,
+            totalGrossProfit: 0,
             totalDiscount: 0,
           };
         }
 
         const getSales = (item.price || 0) * item.quantity;
+        const getCOGS = (item.bPrice || 0) * item.quantity;
         const totalNetSales = getSales - (item.discount || 0);
+        const totalGrossProfit = totalNetSales - getCOGS;
 
         productMap[key].totalQuantity += item.quantity;
         productMap[key].totalSales += getSales;
         productMap[key].totalNetSales += totalNetSales;
+        productMap[key].totalCOGS += getCOGS;
+        productMap[key].totalGrossProfit += totalGrossProfit;
         productMap[key].totalDiscount += item.discount || 0;
       });
     });
 
-    const allProducts = Object.values(productMap).sort(
-      (a, b) => b.totalQuantity - a.totalQuantity
-    );
+    const allProducts = Object.values(productMap)
+      .map((p) => ({
+        ...p,
+        grossProfitMargin:
+          p.totalNetSales > 0
+            ? (p.totalGrossProfit / p.totalNetSales) * 100
+            : 0,
+      }))
+      .sort((a, b) => b.totalQuantity - a.totalQuantity);
 
     const total = allProducts.length;
 
@@ -520,27 +647,46 @@ export const getSalesByCategory = async (from?: string, to?: string) => {
             totalQuantity: 0,
             totalSales: 0,
             totalNetSales: 0,
+            totalCOGS: 0,
+            totalGrossProfit: 0,
             totalDiscount: 0,
             totalOrders: 0,
           };
         }
 
         const getSales = (item.price || 0) * item.quantity;
+        const getCOGS = (item.bPrice || 0) * item.quantity;
+
+        // FIXED: Distribute transaction fee proportionally
+        const orderTotal = (order.total || 0) - (order.shippingFee || 0);
+        const itemShare = orderTotal > 0 ? getSales / orderTotal : 0;
+        const itemTransactionFee =
+          (order.transactionFeeCharge || 0) * itemShare;
+
         const getNetSales =
-          getSales - (item.discount || 0) - (order.transactionFeeCharge || 0);
+          getSales - (item.discount || 0) - itemTransactionFee;
+        const getGrossProfit = getNetSales - getCOGS;
 
         // 5. Update category totals
         categoryMap[category].totalQuantity += item.quantity;
         categoryMap[category].totalSales += getSales;
         categoryMap[category].totalNetSales += getNetSales;
+        categoryMap[category].totalCOGS += getCOGS;
+        categoryMap[category].totalGrossProfit += getGrossProfit;
         categoryMap[category].totalDiscount += item.discount || 0;
         categoryMap[category].totalOrders += 1;
       }
     }
 
-    const categories = Object.values(categoryMap).sort(
-      (a, b) => b.totalSales - a.totalSales
-    );
+    const categories = Object.values(categoryMap)
+      .map((c) => ({
+        ...c,
+        grossProfitMargin:
+          c.totalNetSales > 0
+            ? (c.totalGrossProfit / c.totalNetSales) * 100
+            : 0,
+      }))
+      .sort((a, b) => b.totalSales - a.totalSales);
 
     return { categories };
   } catch (error) {
@@ -595,26 +741,45 @@ export const getSalesByBrand = async (from?: string, to?: string) => {
             totalQuantity: 0,
             totalSales: 0,
             totalNetSales: 0,
+            totalCOGS: 0,
+            totalGrossProfit: 0,
             totalDiscount: 0,
             totalOrders: 0,
           };
         }
 
         const getSales = (item.price || 0) * item.quantity;
+        const getCOGS = (item.bPrice || 0) * item.quantity;
+
+        // FIXED: Distribute transaction fee proportionally
+        const orderTotal = (order.total || 0) - (order.shippingFee || 0);
+        const itemShare = orderTotal > 0 ? getSales / orderTotal : 0;
+        const itemTransactionFee =
+          (order.transactionFeeCharge || 0) * itemShare;
+
         const getNetSales =
-          getSales - (item.discount || 0) - (order.transactionFeeCharge || 0);
+          getSales - (item.discount || 0) - itemTransactionFee;
+        const getGrossProfit = getNetSales - getCOGS;
 
         brandMap[brand].totalQuantity += item.quantity;
         brandMap[brand].totalSales += getSales;
         brandMap[brand].totalNetSales += getNetSales;
+        brandMap[brand].totalCOGS += getCOGS;
+        brandMap[brand].totalGrossProfit += getGrossProfit;
         brandMap[brand].totalDiscount += item.discount || 0;
         brandMap[brand].totalOrders += 1;
       }
     }
 
-    const brands = Object.values(brandMap).sort(
-      (a, b) => b.totalSales - a.totalSales
-    );
+    const brands = Object.values(brandMap)
+      .map((b) => ({
+        ...b,
+        grossProfitMargin:
+          b.totalNetSales > 0
+            ? (b.totalGrossProfit / b.totalNetSales) * 100
+            : 0,
+      }))
+      .sort((a, b) => b.totalSales - a.totalSales);
 
     return { brands };
   } catch (error) {
@@ -1249,12 +1414,17 @@ export const fetchStockValuationByStock = async (
 
 export interface DailyRevenue {
   date: string;
+  totalSales: number;
+  totalNetSales: number;
+  totalCOGS: number;
   totalOrders: number;
   totalDiscount: number;
   totalTransactionFee: number;
   totalExpenses: number;
   grossProfit: number;
+  grossProfitMargin: number;
   netProfit: number;
+  netProfitMargin: number;
 }
 
 export interface RevenueReport {
@@ -1313,47 +1483,79 @@ export const getDailyRevenueReport = async (
   const daily: DailyRevenue[] = [];
 
   const summaryTotals = {
+    totalSales: 0,
+    totalNetSales: 0,
+    totalCOGS: 0,
     totalOrders: 0,
     totalDiscount: 0,
     totalTransactionFee: 0,
     totalExpenses: 0,
     grossProfit: 0,
+    grossProfitMargin: 0,
     netProfit: 0,
+    netProfitMargin: 0,
   };
 
   Object.keys(ordersByDate)
     .sort()
     .forEach((dateStr) => {
       const dayOrders = ordersByDate[dateStr];
-
       const totalOrders = dayOrders.length;
-      const totalDiscount = dayOrders.reduce((acc, o) => acc + (o.discount || 0), 0);
-      const totalTransactionFee = dayOrders.reduce(
-        (acc, o) => acc + (o.transactionFeeCharge || 0),
-        0
-      );
-      const totalExpenses = expensesByDate[dateStr] || 0;
 
-      const grossProfit = dayOrders.reduce((acc, o) => {
-        const itemsCost = o.items.reduce(
-          (sum, item) => sum + ((item.bPrice || 0) * (item.quantity || 0)),
+      let totalSales = 0;
+      let totalNetSales = 0;
+      let totalCOGS = 0;
+      let totalDiscount = 0;
+      let totalTransactionFee = 0;
+
+      dayOrders.forEach((o) => {
+        const sales =
+          (o.total || 0) -
+          (o.shippingFee || 0) +
+          (o.discount || 0) -
+          (o.fee || 0);
+        const netSales =
+          sales -
+          (o.discount || 0) -
+          (o.transactionFeeCharge || 0)
+        const cogs = o.items.reduce(
+          (sum, item) => sum + (item.bPrice || 0) * (item.quantity || 0),
           0
         );
-        return acc + ((o.total || 0) - itemsCost + (o.discount || 0));
-      }, 0);
 
-      const netProfit = grossProfit - totalDiscount - totalTransactionFee - totalExpenses;
+        totalSales += sales;
+        totalNetSales += netSales;
+        totalCOGS += cogs;
+        totalDiscount += o.discount || 0;
+        totalTransactionFee += o.transactionFeeCharge || 0;
+      });
+
+      const totalExpenses = expensesByDate[dateStr] || 0;
+      const grossProfit = totalSales - totalCOGS;
+      const grossProfitMargin =
+        totalSales > 0 ? (grossProfit / totalSales) * 100 : 0;
+      const netProfit = totalNetSales - totalExpenses - totalCOGS;
+      const netProfitMargin =
+        totalNetSales > 0 ? (netProfit / totalNetSales) * 100 : 0;
 
       daily.push({
         date: dateStr,
+        totalSales,
+        totalNetSales,
+        totalCOGS,
         totalOrders,
         totalDiscount,
         totalTransactionFee,
         totalExpenses,
         grossProfit,
+        grossProfitMargin,
         netProfit,
+        netProfitMargin,
       });
 
+      summaryTotals.totalSales += totalSales;
+      summaryTotals.totalNetSales += totalNetSales;
+      summaryTotals.totalCOGS += totalCOGS;
       summaryTotals.totalOrders += totalOrders;
       summaryTotals.totalDiscount += totalDiscount;
       summaryTotals.totalTransactionFee += totalTransactionFee;
@@ -1362,6 +1564,15 @@ export const getDailyRevenueReport = async (
       summaryTotals.netProfit += netProfit;
     });
 
+  summaryTotals.grossProfitMargin =
+    summaryTotals.totalSales > 0
+      ? (summaryTotals.grossProfit / summaryTotals.totalSales) * 100
+      : 0;
+  summaryTotals.netProfitMargin =
+    summaryTotals.totalNetSales > 0
+      ? (summaryTotals.netProfit / summaryTotals.totalNetSales) * 100
+      : 0;
+
   return {
     daily,
     summary: summaryTotals,
@@ -1369,13 +1580,18 @@ export const getDailyRevenueReport = async (
 };
 
 export interface MonthlyRevenue {
-  month: string; // YYYY-MM
+  month: string; 
+  totalSales: number;
+  totalNetSales: number;
+  totalCOGS: number;
   totalOrders: number;
   totalDiscount: number;
   totalTransactionFee: number;
   totalExpenses: number;
   grossProfit: number;
+  grossProfitMargin: number;
   netProfit: number;
+  netProfitMargin: number;
 }
 
 export interface MonthlyRevenueReport {
@@ -1452,64 +1668,79 @@ export const getMonthlyRevenueReport = async (
   const monthly: MonthlyRevenue[] = [];
 
   const summaryTotals = {
+    totalSales: 0,
+    totalNetSales: 0,
+    totalCOGS: 0,
     totalOrders: 0,
     totalDiscount: 0,
     totalTransactionFee: 0,
     totalExpenses: 0,
     grossProfit: 0,
+    grossProfitMargin: 0,
     netProfit: 0,
+    netProfitMargin: 0,
   };
 
   Object.keys(ordersByMonth)
     .sort()
     .forEach((monthStr) => {
       const monthOrders = ordersByMonth[monthStr];
-
       const totalOrders = monthOrders.length;
 
-      const totalDiscount = monthOrders.reduce(
-        (acc, o) => acc + Number(o.discount || 0),
-        0
-      );
+      let totalSales = 0;
+      let totalNetSales = 0;
+      let totalCOGS = 0;
+      let totalDiscount = 0;
+      let totalTransactionFee = 0;
 
-      const totalTransactionFee = monthOrders.reduce(
-        (acc, o) => acc + Number(o.transactionFeeCharge || 0),
-        0
-      );
-
-      const totalExpenses = Number(expensesByMonth[monthStr] || 0);
-
-      // Gross Profit = total - itemsCost - shipping + discount
-      const grossProfit = monthOrders.reduce((acc, o) => {
-        const itemsCost = o.items.reduce(
+      monthOrders.forEach((o) => {
+        const sales =
+          (Number(o.total) || 0) -
+          (Number(o.shippingFee) || 0) +
+          (Number(o.discount) || 0) - (Number(o.fee))
+        const netSales =
+          sales -
+          (Number(o.discount) || 0) -
+          (Number(o.transactionFeeCharge) || 0);
+        const cogs = o.items.reduce(
           (sum, item) =>
             sum + Number(item.bPrice || 0) * Number(item.quantity || 0),
           0
         );
 
-        return (
-          acc +
-          (Number(o.total || 0) -
-            itemsCost -
-            Number(o.shippingFee || 0) +
-            Number(o.discount || 0))
-        );
-      }, 0);
+        totalSales += sales;
+        totalNetSales += netSales;
+        totalCOGS += cogs;
+        totalDiscount += Number(o.discount) || 0;
+        totalTransactionFee += Number(o.transactionFeeCharge) || 0;
+      });
 
-      // Net profit
-      const netProfit =
-        grossProfit - totalDiscount - totalTransactionFee - totalExpenses;
+      const totalExpenses = Number(expensesByMonth[monthStr] || 0);
+      const grossProfit = totalSales - totalCOGS;
+      const grossProfitMargin =
+        totalSales > 0 ? (grossProfit / totalSales) * 100 : 0;
+      const netProfit = totalNetSales - totalExpenses - totalCOGS;
+      const netProfitMargin =
+        totalNetSales > 0 ? (netProfit / totalNetSales) * 100 : 0;
 
       monthly.push({
         month: monthStr,
+        totalSales,
+        totalNetSales,
+        totalCOGS,
         totalOrders,
         totalDiscount,
         totalTransactionFee,
         totalExpenses,
         grossProfit,
+        grossProfitMargin,
         netProfit,
+        netProfitMargin,
       });
 
+      summaryTotals.totalSales += totalSales;
+      summaryTotals.totalNetSales += totalNetSales;
+      summaryTotals.totalCOGS += totalCOGS;
       summaryTotals.totalOrders += totalOrders;
       summaryTotals.totalDiscount += totalDiscount;
       summaryTotals.totalTransactionFee += totalTransactionFee;
@@ -1517,6 +1748,15 @@ export const getMonthlyRevenueReport = async (
       summaryTotals.grossProfit += grossProfit;
       summaryTotals.netProfit += netProfit;
     });
+
+  summaryTotals.grossProfitMargin =
+    summaryTotals.totalSales > 0
+      ? (summaryTotals.grossProfit / summaryTotals.totalSales) * 100
+      : 0;
+  summaryTotals.netProfitMargin =
+    summaryTotals.totalNetSales > 0
+      ? (summaryTotals.netProfit / summaryTotals.totalNetSales) * 100
+      : 0;
 
   return {
     monthly,
@@ -1526,19 +1766,23 @@ export const getMonthlyRevenueReport = async (
 
 export interface YearlyRevenue {
   year: string; // YYYY
+  totalSales: number;
+  totalNetSales: number;
+  totalCOGS: number;
   totalOrders: number;
   totalDiscount: number;
   totalTransactionFee: number;
   totalExpenses: number;
   grossProfit: number;
+  grossProfitMargin: number;
   netProfit: number;
+  netProfitMargin: number;
 }
 
 export interface YearlyRevenueReport {
   yearly: YearlyRevenue[];
   summary: Omit<YearlyRevenue, "year">;
 }
-
 
 export const getYearlyRevenueReport = async (
   from: string,
@@ -1588,49 +1832,79 @@ export const getYearlyRevenueReport = async (
 
   const yearly: YearlyRevenue[] = [];
   const summaryTotals = {
+    totalSales: 0,
+    totalNetSales: 0,
+    totalCOGS: 0,
     totalOrders: 0,
     totalDiscount: 0,
     totalTransactionFee: 0,
     totalExpenses: 0,
     grossProfit: 0,
+    grossProfitMargin: 0,
     netProfit: 0,
+    netProfitMargin: 0,
   };
 
   Object.keys(ordersByYear)
     .sort()
     .forEach((yearStr) => {
       const yearOrders = ordersByYear[yearStr];
-
       const totalOrders = yearOrders.length;
-      const totalDiscount = yearOrders.reduce((acc, o) => acc + Number(o.discount || 0), 0);
-      const totalTransactionFee = yearOrders.reduce(
-        (acc, o) => acc + Number(o.transactionFeeCharge || 0),
-        0
-      );
-      const totalExpenses = Number(expensesByYear[yearStr] || 0);
 
-      // Gross Profit = total - itemsCost - shipping + discount
-      const grossProfit = yearOrders.reduce((acc, o) => {
-        const itemsCost = o.items.reduce(
-          (sum, item) => sum + Number(item.bPrice || 0) * Number(item.quantity || 0),
+      let totalSales = 0;
+      let totalNetSales = 0;
+      let totalCOGS = 0;
+      let totalDiscount = 0;
+      let totalTransactionFee = 0;
+
+      yearOrders.forEach((o) => {
+        const sales =
+          (Number(o.total) || 0) -
+          (Number(o.shippingFee) || 0) +
+          (Number(o.discount) || 0) - (Number(o.fee || 0));
+        const netSales =
+          sales -
+          (Number(o.discount) || 0) -
+          (Number(o.transactionFeeCharge) || 0) 
+        const cogs = o.items.reduce(
+          (sum, item) =>
+            sum + Number(item.bPrice || 0) * Number(item.quantity || 0),
           0
         );
-        return acc + (Number(o.total || 0) - itemsCost - Number(o.shippingFee || 0) + Number(o.discount || 0));
-      }, 0);
 
-      // Net Profit = Gross Profit - discount - transaction fee - expenses
-      const netProfit = grossProfit - totalDiscount - totalTransactionFee - totalExpenses;
+        totalSales += sales;
+        totalNetSales += netSales;
+        totalCOGS += cogs;
+        totalDiscount += Number(o.discount) || 0;
+        totalTransactionFee += Number(o.transactionFeeCharge) || 0;
+      });
+
+      const totalExpenses = Number(expensesByYear[yearStr] || 0);
+      const grossProfit = totalSales - totalCOGS;
+      const grossProfitMargin =
+        totalSales > 0 ? (grossProfit / totalSales) * 100 : 0;
+      const netProfit = totalNetSales - totalExpenses - totalCOGS;
+      const netProfitMargin =
+        totalNetSales > 0 ? (netProfit / totalNetSales) * 100 : 0;
 
       yearly.push({
         year: yearStr,
+        totalSales,
+        totalNetSales,
+        totalCOGS,
         totalOrders,
         totalDiscount,
         totalTransactionFee,
         totalExpenses,
         grossProfit,
+        grossProfitMargin,
         netProfit,
+        netProfitMargin,
       });
 
+      summaryTotals.totalSales += totalSales;
+      summaryTotals.totalNetSales += totalNetSales;
+      summaryTotals.totalCOGS += totalCOGS;
       summaryTotals.totalOrders += totalOrders;
       summaryTotals.totalDiscount += totalDiscount;
       summaryTotals.totalTransactionFee += totalTransactionFee;
@@ -1638,6 +1912,15 @@ export const getYearlyRevenueReport = async (
       summaryTotals.grossProfit += grossProfit;
       summaryTotals.netProfit += netProfit;
     });
+
+  summaryTotals.grossProfitMargin =
+    summaryTotals.totalSales > 0
+      ? (summaryTotals.grossProfit / summaryTotals.totalSales) * 100
+      : 0;
+  summaryTotals.netProfitMargin =
+    summaryTotals.totalNetSales > 0
+      ? (summaryTotals.netProfit / summaryTotals.totalNetSales) * 100
+      : 0;
 
   return {
     yearly,

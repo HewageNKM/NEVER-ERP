@@ -40,13 +40,17 @@ import { useSnackbar } from "@/contexts/SnackBarContext";
 
 interface DailyRevenue {
   date: string;
+  totalSales: number;
+  totalNetSales: number;
+  totalCOGS: number;
   totalOrders: number;
-  totalShipping: number;
   totalDiscount: number;
   totalTransactionFee: number;
   totalExpenses: number;
   grossProfit: number;
+  grossProfitMargin: number;
   netProfit: number;
+  netProfitMargin: number;
 }
 
 interface RevenueReport {
@@ -121,11 +125,16 @@ const DailyRevenuePage = () => {
     const exportData = report.map((d) => ({
       Date: d.date,
       "Total Orders": d.totalOrders,
+      "Total Sales (Rs)": d.totalSales.toFixed(2),
+      "Net Sales (Rs)": d.totalNetSales.toFixed(2),
+      "COGS (Rs)": d.totalCOGS.toFixed(2),
       "Total Discount (Rs)": d.totalDiscount.toFixed(2),
       "Total Transaction Fee (Rs)": d.totalTransactionFee.toFixed(2),
       "Total Expenses (Rs)": d.totalExpenses.toFixed(2),
       "Gross Profit (Rs)": d.grossProfit.toFixed(2),
+      "Gross Profit Margin (%)": d.grossProfitMargin.toFixed(2),
       "Net Profit (Rs)": d.netProfit.toFixed(2),
+      "Net Profit Margin (%)": d.netProfitMargin.toFixed(2),
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
@@ -223,6 +232,9 @@ const DailyRevenuePage = () => {
         <Box sx={{ mb: 3, display: "flex", flexWrap: "wrap", gap: 2 }}>
           {[
             { label: "Total Orders", value: summary.totalOrders },
+            { label: "Total Sales", value: summary.totalSales },
+            { label: "Net Sales", value: summary.totalNetSales },
+            { label: "COGS", value: summary.totalCOGS },
             { label: "Total Discount", value: summary.totalDiscount },
             {
               label: "Total Trans. Fee",
@@ -230,7 +242,17 @@ const DailyRevenuePage = () => {
             },
             { label: "Total Expenses", value: summary.totalExpenses },
             { label: "Gross Profit", value: summary.grossProfit },
+            {
+              label: "Gross Margin",
+              value: `${summary.grossProfitMargin.toFixed(2)}%`,
+              isPercent: true,
+            },
             { label: "Net Profit", value: summary.netProfit },
+            {
+              label: "Net Margin",
+              value: `${summary.netProfitMargin.toFixed(2)}%`,
+              isPercent: true,
+            },
           ].map((card) => (
             <Paper
               key={card.label}
@@ -240,7 +262,10 @@ const DailyRevenuePage = () => {
                 {card.label}
               </Typography>
               <Typography variant="h6" fontWeight={600}>
-                Rs {(card.value || 0).toFixed(2)}
+                {/* @ts-ignore */}
+                {card.isPercent
+                  ? card.value
+                  : `Rs ${(card.value || 0).toFixed(2)}`}
               </Typography>
             </Paper>
           ))}
@@ -258,6 +283,12 @@ const DailyRevenuePage = () => {
                 <YAxis />
                 <Tooltip />
                 <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="totalSales"
+                  name="Total Sales"
+                  stroke="#1976d2"
+                />
                 <Line
                   type="monotone"
                   dataKey="grossProfit"
@@ -315,11 +346,16 @@ const DailyRevenuePage = () => {
                 <TableRow>
                   <TableCell>Date</TableCell>
                   <TableCell>Total Orders</TableCell>
+                  <TableCell>Total Sales (Rs)</TableCell>
+                  <TableCell>Net Sales (Rs)</TableCell>
+                  <TableCell>COGS (Rs)</TableCell>
                   <TableCell>Total Discount (Rs)</TableCell>
                   <TableCell>Total Transaction Fee (Rs)</TableCell>
                   <TableCell>Total Expenses (Rs)</TableCell>
                   <TableCell>Gross Profit (Rs)</TableCell>
+                  <TableCell>Margin %</TableCell>
                   <TableCell>Net Profit (Rs)</TableCell>
+                  <TableCell>Net Margin %</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -329,13 +365,18 @@ const DailyRevenuePage = () => {
                     <TableRow key={day.date} hover>
                       <TableCell>{day.date}</TableCell>
                       <TableCell>{day.totalOrders}</TableCell>
+                      <TableCell>{day.totalSales.toFixed(2)}</TableCell>
+                      <TableCell>{day.totalNetSales.toFixed(2)}</TableCell>
+                      <TableCell>{day.totalCOGS.toFixed(2)}</TableCell>
                       <TableCell>{day.totalDiscount.toFixed(2)}</TableCell>
                       <TableCell>
                         {day.totalTransactionFee.toFixed(2)}
                       </TableCell>
                       <TableCell>{day.totalExpenses.toFixed(2)}</TableCell>
                       <TableCell>{day.grossProfit.toFixed(2)}</TableCell>
+                      <TableCell>{day.grossProfitMargin.toFixed(2)}%</TableCell>
                       <TableCell>{day.netProfit.toFixed(2)}</TableCell>
+                      <TableCell>{day.netProfitMargin.toFixed(2)}%</TableCell>
                     </TableRow>
                   ))}
               </TableBody>

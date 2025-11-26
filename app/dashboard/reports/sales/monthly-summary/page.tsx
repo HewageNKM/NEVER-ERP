@@ -102,6 +102,10 @@ const MonthlySummaryPage = () => {
       "Total Orders": m.orders,
       "Total Sales (Rs)": m.sales.toFixed(2),
       "Total Net Sales": m.netSales.toFixed(2),
+      "Total COGS (Rs)": (m.cogs || 0).toFixed(2),
+      "Total Gross Profit (Rs)": (m.grossProfit || 0).toFixed(2),
+      "Gross Profit Margin (%)": (m.grossProfitMargin || 0).toFixed(2),
+      "Avg Order Value (Rs)": (m.averageOrderValue || 0).toFixed(2),
       "Shipping (Rs)": m.shipping.toFixed(2),
       "Discount (Rs)": m.discount.toFixed(2),
       "Transaction Fee (Rs)": m.transactionFee.toFixed(2),
@@ -202,6 +206,22 @@ const MonthlySummaryPage = () => {
             {
               label: "Total Net Sales",
               value: `Rs ${summary.totalNetSales.toFixed(2)}`,
+            },
+            {
+              label: "Total COGS",
+              value: `Rs ${(summary.totalCOGS || 0).toFixed(2)}`,
+            },
+            {
+              label: "Total Gross Profit",
+              value: `Rs ${(summary.totalGrossProfit || 0).toFixed(2)}`,
+            },
+            {
+              label: "Gross Profit Margin",
+              value: `${(summary.totalGrossProfitMargin || 0).toFixed(2)}%`,
+            },
+            {
+              label: "Avg Order Value",
+              value: `Rs ${(summary.averageOrderValue || 0).toFixed(2)}`,
             },
             {
               label: "Total Shipping",
@@ -309,6 +329,10 @@ const MonthlySummaryPage = () => {
                 <TableCell>Total Orders</TableCell>
                 <TableCell>Total Sales</TableCell>
                 <TableCell>Total Net Sales</TableCell>
+                <TableCell>COGS</TableCell>
+                <TableCell>Gross Profit</TableCell>
+                <TableCell>Margin %</TableCell>
+                <TableCell>AOV</TableCell>
                 <TableCell>Shipping</TableCell>
                 <TableCell>Discount</TableCell>
                 <TableCell>Transaction Fee</TableCell>
@@ -318,13 +342,13 @@ const MonthlySummaryPage = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center">
+                  <TableCell colSpan={10} align="center">
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
               ) : !summary?.monthly || summary.monthly.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center">
+                  <TableCell colSpan={12} align="center">
                     No data
                   </TableCell>
                 </TableRow>
@@ -335,6 +359,14 @@ const MonthlySummaryPage = () => {
                     <TableCell>{m.orders}</TableCell>
                     <TableCell>Rs {m.sales.toFixed(2)}</TableCell>
                     <TableCell>Rs {m.netSales.toFixed(2)}</TableCell>
+                    <TableCell>Rs {(m.cogs || 0).toFixed(2)}</TableCell>
+                    <TableCell>Rs {(m.grossProfit || 0).toFixed(2)}</TableCell>
+                    <TableCell>
+                      {(m.grossProfitMargin || 0).toFixed(2)}%
+                    </TableCell>
+                    <TableCell>
+                      Rs {(m.averageOrderValue || 0).toFixed(2)}
+                    </TableCell>
                     <TableCell>Rs {m.shipping.toFixed(2)}</TableCell>
                     <TableCell>Rs {m.discount.toFixed(2)}</TableCell>
                     <TableCell>Rs {m.transactionFee.toFixed(2)}</TableCell>

@@ -78,6 +78,9 @@ const SalesByCategoryPage = () => {
       "Total Quantity Sold": c.totalQuantity,
       "Total Sales (Rs)": c.totalSales.toFixed(2),
       "Total Net Sale": c.totalNetSales.toFixed(2),
+      "Total COGS (Rs)": (c.totalCOGS || 0).toFixed(2),
+      "Total Profit (Rs)": (c.totalGrossProfit || 0).toFixed(2),
+      "Margin (%)": (c.grossProfitMargin || 0).toFixed(2),
       "Total Discount (Rs)": c.totalDiscount.toFixed(2),
     }));
 
@@ -230,6 +233,9 @@ const SalesByCategoryPage = () => {
                 <TableCell>Total Quantity Sold</TableCell>
                 <TableCell>Total Sales (Rs)</TableCell>
                 <TableCell>Total Net Sale (Rs)</TableCell>
+                <TableCell>Total COGS (Rs)</TableCell>
+                <TableCell>Total Profit (Rs)</TableCell>
+                <TableCell>Margin (%)</TableCell>
                 <TableCell>Total Discount (Rs)</TableCell>
               </TableRow>
             </TableHead>
@@ -237,13 +243,13 @@ const SalesByCategoryPage = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
+                  <TableCell colSpan={9} align="center">
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
               ) : categories.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
+                  <TableCell colSpan={9} align="center">
                     No data
                   </TableCell>
                 </TableRow>
@@ -256,6 +262,13 @@ const SalesByCategoryPage = () => {
                     <TableCell>Rs {(c.totalSales || 0).toFixed(2)}</TableCell>
                     <TableCell>
                       Rs {(c.totalNetSales || 0).toFixed(2)}
+                    </TableCell>
+                    <TableCell>Rs {(c.totalCOGS || 0).toFixed(2)}</TableCell>
+                    <TableCell>
+                      Rs {(c.totalGrossProfit || 0).toFixed(2)}
+                    </TableCell>
+                    <TableCell>
+                      {(c.grossProfitMargin || 0).toFixed(2)}%
                     </TableCell>
                     <TableCell>
                       Rs {(c.totalDiscount || 0).toFixed(2)}

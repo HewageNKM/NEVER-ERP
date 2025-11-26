@@ -50,7 +50,7 @@ const SalesByBrandPage = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalBrands, setTotalBrands] = useState(0);
 
-  const fetchReport = async (evt:any) => {
+  const fetchReport = async (evt: any) => {
     evt.preventDefault();
     setLoading(true);
     try {
@@ -93,6 +93,9 @@ const SalesByBrandPage = () => {
         "Total Quantity Sold": b.totalQuantity,
         "Total Sales (Rs)": b.totalSales.toFixed(2),
         "Total Net Sale": b.totalNetSales.toFixed(2),
+        "Total COGS (Rs)": (b.totalCOGS || 0).toFixed(2),
+        "Total Profit (Rs)": (b.totalGrossProfit || 0).toFixed(2),
+        "Margin (%)": (b.grossProfitMargin || 0).toFixed(2),
         "Total Discount (Rs)": b.totalDiscount.toFixed(2),
         "Total Orders": b.totalOrders,
       }));
@@ -100,10 +103,7 @@ const SalesByBrandPage = () => {
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Sales by Brand");
-      XLSX.writeFile(
-        wb,
-        `sales_by_brand_${from || "all"}_${to || "all"}.xlsx`
-      );
+      XLSX.writeFile(wb, `sales_by_brand_${from || "all"}_${to || "all"}.xlsx`);
     } catch (error) {
       console.error("Export failed:", error);
     }
@@ -134,35 +134,40 @@ const SalesByBrandPage = () => {
       {/* Filters */}
       <Paper sx={{ p: 2, mb: 3 }}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          <form onSubmit={fetchReport} style={{
-            display:"flex", gap:"10px", flexWrap:"wrap"
-          }}>
-          <TextField
-          required
-            type="date"
-            label="From"
-            InputLabelProps={{ shrink: true }}
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            size="small"
-          />
-          <TextField
-          required
-            type="date"
-            label="To"
-            InputLabelProps={{ shrink: true }}
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            size="small"
-          />
-          <Button
-            startIcon={<IconFilter />}
-            variant="contained"
-            type="submit"
-            size="small"
+          <form
+            onSubmit={fetchReport}
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
           >
-            Apply
-          </Button>
+            <TextField
+              required
+              type="date"
+              label="From"
+              InputLabelProps={{ shrink: true }}
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              size="small"
+            />
+            <TextField
+              required
+              type="date"
+              label="To"
+              InputLabelProps={{ shrink: true }}
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              size="small"
+            />
+            <Button
+              startIcon={<IconFilter />}
+              variant="contained"
+              type="submit"
+              size="small"
+            >
+              Apply
+            </Button>
           </form>
           <Box flexGrow={1} />
           <Button
@@ -235,6 +240,9 @@ const SalesByBrandPage = () => {
                 <TableCell>Total Quantity Sold</TableCell>
                 <TableCell>Total Sales (Rs)</TableCell>
                 <TableCell>Total Net Sale(Rs)</TableCell>
+                <TableCell>Total COGS (Rs)</TableCell>
+                <TableCell>Total Profit (Rs)</TableCell>
+                <TableCell>Margin (%)</TableCell>
                 <TableCell>Total Discount (Rs)</TableCell>
                 <TableCell>Total Orders</TableCell>
               </TableRow>
@@ -243,13 +251,13 @@ const SalesByBrandPage = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">
+                  <TableCell colSpan={8} align="center">
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
               ) : brands.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">
+                  <TableCell colSpan={9} align="center">
                     No data
                   </TableCell>
                 </TableRow>
@@ -261,6 +269,13 @@ const SalesByBrandPage = () => {
                     <TableCell>Rs {(b.totalSales || 0).toFixed(2)}</TableCell>
                     <TableCell>
                       Rs {(b.totalNetSales || 0).toFixed(2)}
+                    </TableCell>
+                    <TableCell>Rs {(b.totalCOGS || 0).toFixed(2)}</TableCell>
+                    <TableCell>
+                      Rs {(b.totalGrossProfit || 0).toFixed(2)}
+                    </TableCell>
+                    <TableCell>
+                      {(b.grossProfitMargin || 0).toFixed(2)}%
                     </TableCell>
                     <TableCell>
                       Rs {(b.totalDiscount || 0).toFixed(2)}
