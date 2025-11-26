@@ -1515,9 +1515,7 @@ export const getDailyRevenueReport = async (
           (o.discount || 0) -
           (o.fee || 0);
         const netSales =
-          sales -
-          (o.discount || 0) -
-          (o.transactionFeeCharge || 0)
+          sales - (o.discount || 0) - (o.transactionFeeCharge || 0);
         const cogs = o.items.reduce(
           (sum, item) => sum + (item.bPrice || 0) * (item.quantity || 0),
           0
@@ -1580,7 +1578,7 @@ export const getDailyRevenueReport = async (
 };
 
 export interface MonthlyRevenue {
-  month: string; 
+  month: string;
   totalSales: number;
   totalNetSales: number;
   totalCOGS: number;
@@ -1697,7 +1695,8 @@ export const getMonthlyRevenueReport = async (
         const sales =
           (Number(o.total) || 0) -
           (Number(o.shippingFee) || 0) +
-          (Number(o.discount) || 0) - (Number(o.fee))
+          (Number(o.discount) || 0) -
+          Number(o.fee);
         const netSales =
           sales -
           (Number(o.discount) || 0) -
@@ -1861,11 +1860,12 @@ export const getYearlyRevenueReport = async (
         const sales =
           (Number(o.total) || 0) -
           (Number(o.shippingFee) || 0) +
-          (Number(o.discount) || 0) - (Number(o.fee || 0));
+          (Number(o.discount) || 0) -
+          Number(o.fee || 0);
         const netSales =
           sales -
           (Number(o.discount) || 0) -
-          (Number(o.transactionFeeCharge) || 0) 
+          (Number(o.transactionFeeCharge) || 0);
         const cogs = o.items.reduce(
           (sum, item) =>
             sum + Number(item.bPrice || 0) * Number(item.quantity || 0),
@@ -1926,4 +1926,101 @@ export const getYearlyRevenueReport = async (
     yearly,
     summary: summaryTotals,
   };
+};
+
+export const getCashFlowReport = async (from: string, to: string) => {
+  try {
+    let query = adminFirestore
+      .collection("orders")
+      .where("paymentStatus", "==", "Paid");
+
+    if (from && to) {
+      const start = new Date(from);
+      const end = new Date(to);
+      end.setHours(23, 59, 59, 999);
+
+      query = query
+        .where("createdAt", ">=", Timestamp.fromDate(start))
+        .where("createdAt", "<=", Timestamp.fromDate(end));
+    }
+
+    query = query.orderBy("createdAt", "desc");
+
+    const snap = await query.get();
+
+    const orders = snap.docs.map((d) => ({
+      orderId: d.id,
+      ...d.data(),
+      createdAt: toSafeLocaleString(d.data().createdAt),
+    }));
+
+    // Helper calculations
+    // Cash In = Order Total (what customer paid)
+    const getCashIn = (o: any) => o.total || 0;
+
+    // Transaction Fee = The fee charged by payment gateway
+    const getTransactionFee = (o: any) => o.transactionFeeCharge || 0;
+
+    // Net Cash Flow = Cash In - Transaction Fee
+    const getNetCashFlow = (o: any) => getCashIn(o) - getTransactionFee(o);
+
+    // ---------- MAIN SUMMARY ----------
+    const totalOrders = orders.length;
+    const totalCashIn = orders.reduce((s, o) => s + getCashIn(o), 0);
+    const totalTransactionFees = orders.reduce(
+      (s, o) => s + getTransactionFee(o),
+      0
+    );
+    const totalNetCashFlow = orders.reduce((s, o) => s + getNetCashFlow(o), 0);
+
+    // ---------- DAILY SUMMARY ----------
+    const dailyMap: Record<
+      string,
+      {
+        date: string;
+        orders: number;
+        cashIn: number;
+        transactionFees: number;
+        netCashFlow: number;
+      }
+    > = {};
+
+    orders.forEach((o) => {
+      const dateKey = o.createdAt.split(" ")[0];
+
+      if (!dailyMap[dateKey]) {
+        dailyMap[dateKey] = {
+          date: dateKey,
+          orders: 0,
+          cashIn: 0,
+          transactionFees: 0,
+          netCashFlow: 0,
+        };
+      }
+
+      dailyMap[dateKey].orders += 1;
+      dailyMap[dateKey].cashIn += getCashIn(o);
+      dailyMap[dateKey].transactionFees += getTransactionFee(o);
+      dailyMap[dateKey].netCashFlow += getNetCashFlow(o);
+    });
+
+    const daily = Object.values(dailyMap).sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+
+    return {
+      summary: {
+        totalOrders,
+        totalCashIn,
+        totalTransactionFees,
+        totalNetCashFlow,
+        daily,
+        from,
+        to,
+      },
+    };
+  } catch (error) {
+    console.log("Cash Flow report error:", error);
+    throw error;
+  }
 };

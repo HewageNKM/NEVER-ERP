@@ -63,7 +63,7 @@ const Reports = () => {
       reports: [
         {
           title: "Daily Revenue",
-          link: "/dashboard/reports/revenues/daily-revenue", 
+          link: "/dashboard/reports/revenues/daily-revenue",
         },
         {
           title: "Monthly Revenue",
@@ -72,6 +72,15 @@ const Reports = () => {
         {
           title: "Yearly Revenue",
           link: "/dashboard/reports/revenues/yearly-revenue",
+        },
+      ],
+    },
+    {
+      category: "Cash Reports",
+      reports: [
+        {
+          title: "Cashflow",
+          link: "/dashboard/reports/cash/cashflow",
         },
       ],
     },
