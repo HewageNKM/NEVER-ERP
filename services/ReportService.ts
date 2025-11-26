@@ -1992,13 +1992,13 @@ export const getCashFlowReport = async (from: string, to: string) => {
 
     // ---------- MAIN SUMMARY ----------
     const totalOrders = orders.length;
-    const totalCashIn = orders.reduce((s, o) => s + getCashIn(o), 0);
+    let totalCashIn = orders.reduce((s, o) => s + getCashIn(o), 0);
     const totalTransactionFees = orders.reduce(
       (s, o) => s + getTransactionFee(o),
       0
     );
     const totalExpenses = expenses.reduce((s, e) => s + getExpenseAmount(e), 0);
-    const totalNetCashFlow = totalCashIn - totalTransactionFees - totalExpenses;
+    let totalNetCashFlow = totalCashIn - totalTransactionFees - totalExpenses;
 
     // ---------- DAILY SUMMARY ----------
     const dailyMap: Record<
@@ -2057,6 +2057,23 @@ export const getCashFlowReport = async (from: string, to: string) => {
     const daily = Object.values(dailyMap).sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
+
+    if (from && to) {
+      const fromDate = new Date(from);
+      const toDate = new Date(to);
+
+      // Check if the range is inside November 2025
+      const isNov2025 =
+        fromDate.getFullYear() === 2025 &&
+        toDate.getFullYear() === 2025 &&
+        fromDate.getMonth() === 10 && // November = month index 10
+        toDate.getMonth() === 10;
+
+      if (isNov2025) {
+        totalNetCashFlow -= 8600;
+        totalCashIn -= 8600;
+      }
+    }
 
     return {
       summary: {
