@@ -1954,6 +1954,29 @@ export const getCashFlowReport = async (from: string, to: string) => {
       createdAt: toSafeLocaleString(d.data().createdAt),
     }));
 
+    // Fetch approved expenses
+    let expenseQuery = adminFirestore
+      .collection("expenses")
+      .where("status", "==", "APPROVED");
+
+    if (from && to) {
+      const start = new Date(from);
+      const end = new Date(to);
+      end.setHours(23, 59, 59, 999);
+
+      expenseQuery = expenseQuery
+        .where("createdAt", ">=", Timestamp.fromDate(start))
+        .where("createdAt", "<=", Timestamp.fromDate(end));
+    }
+
+    const expenseSnap = await expenseQuery.get();
+
+    const expenses = expenseSnap.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+      createdAt: toSafeLocaleString(d.data().createdAt),
+    }));
+
     // Helper calculations
     // Cash In = Order Total (what customer paid)
     const getCashIn = (o: any) => o.total || 0;
@@ -1961,8 +1984,11 @@ export const getCashFlowReport = async (from: string, to: string) => {
     // Transaction Fee = The fee charged by payment gateway
     const getTransactionFee = (o: any) => o.transactionFeeCharge || 0;
 
-    // Net Cash Flow = Cash In - Transaction Fee
-    const getNetCashFlow = (o: any) => getCashIn(o) - getTransactionFee(o);
+    // Expenses
+    const getExpenseAmount = (e: any) => e.amount || 0;
+
+    // Net Cash Flow = Cash In - Transaction Fee - Expenses
+    // Note: This is calculated per day or total, not per order
 
     // ---------- MAIN SUMMARY ----------
     const totalOrders = orders.length;
@@ -1971,7 +1997,8 @@ export const getCashFlowReport = async (from: string, to: string) => {
       (s, o) => s + getTransactionFee(o),
       0
     );
-    const totalNetCashFlow = orders.reduce((s, o) => s + getNetCashFlow(o), 0);
+    const totalExpenses = expenses.reduce((s, e) => s + getExpenseAmount(e), 0);
+    const totalNetCashFlow = totalCashIn - totalTransactionFees - totalExpenses;
 
     // ---------- DAILY SUMMARY ----------
     const dailyMap: Record<
@@ -1981,6 +2008,7 @@ export const getCashFlowReport = async (from: string, to: string) => {
         orders: number;
         cashIn: number;
         transactionFees: number;
+        expenses: number;
         netCashFlow: number;
       }
     > = {};
@@ -1994,6 +2022,7 @@ export const getCashFlowReport = async (from: string, to: string) => {
           orders: 0,
           cashIn: 0,
           transactionFees: 0,
+          expenses: 0,
           netCashFlow: 0,
         };
       }
@@ -2001,7 +2030,28 @@ export const getCashFlowReport = async (from: string, to: string) => {
       dailyMap[dateKey].orders += 1;
       dailyMap[dateKey].cashIn += getCashIn(o);
       dailyMap[dateKey].transactionFees += getTransactionFee(o);
-      dailyMap[dateKey].netCashFlow += getNetCashFlow(o);
+    });
+
+    expenses.forEach((e) => {
+      const dateKey = e.createdAt.split(" ")[0];
+
+      if (!dailyMap[dateKey]) {
+        dailyMap[dateKey] = {
+          date: dateKey,
+          orders: 0,
+          cashIn: 0,
+          transactionFees: 0,
+          expenses: 0,
+          netCashFlow: 0,
+        };
+      }
+
+      dailyMap[dateKey].expenses += getExpenseAmount(e);
+    });
+
+    // Calculate Net Cash Flow for each day
+    Object.values(dailyMap).forEach((day) => {
+      day.netCashFlow = day.cashIn - day.transactionFees - day.expenses;
     });
 
     const daily = Object.values(dailyMap).sort(
@@ -2013,6 +2063,7 @@ export const getCashFlowReport = async (from: string, to: string) => {
         totalOrders,
         totalCashIn,
         totalTransactionFees,
+        totalExpenses,
         totalNetCashFlow,
         daily,
         from,

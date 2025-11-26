@@ -43,12 +43,22 @@ interface DailyCashFlow {
   orders: number;
   cashIn: number;
   transactionFees: number;
+  expenses: number;
   netCashFlow: number;
+  daily: DailyCashFlow[];
+}
+
+interface CashFlowSummary {
+  totalOrders: number;
+  totalCashIn: number;
+  totalTransactionFees: number;
+  totalExpenses: number;
+  totalNetCashFlow: number;
+  daily: DailyCashFlow[];
 }
 
 interface CashFlowReport {
-  daily: DailyCashFlow[];
-  summary: Omit<DailyCashFlow, "date">;
+  summary: CashFlowSummary;
 }
 const MAX_RANGE_DAYS = 31;
 
@@ -102,7 +112,8 @@ const CashFlowPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setReport(res.data.daily || []);
+
+      setReport(res.data.summary.daily || []);
       setSummary(res.data.summary || null);
     } catch (error) {
       console.error(error);
@@ -123,6 +134,7 @@ const CashFlowPage = () => {
       "Total Orders": d.orders,
       "Cash In (Rs)": d.cashIn.toFixed(2),
       "Transaction Fees (Rs)": d.transactionFees.toFixed(2),
+      "Expenses (Rs)": d.expenses.toFixed(2),
       "Net Cash Flow (Rs)": d.netCashFlow.toFixed(2),
     }));
 
@@ -220,10 +232,14 @@ const CashFlowPage = () => {
       {!loading && summary && (
         <Box sx={{ mb: 3, display: "flex", flexWrap: "wrap", gap: 2 }}>
           {[
-            { label: "Total Orders", value: summary.orders },
-            { label: "Total Cash In", value: summary.cashIn },
-            { label: "Total Transaction Fees", value: summary.transactionFees },
-            { label: "Net Cash Flow", value: summary.netCashFlow },
+            { label: "Total Orders", value: summary.totalOrders },
+            { label: "Total Cash In", value: summary.totalCashIn },
+            {
+              label: "Total Transaction Fees",
+              value: summary.totalTransactionFees,
+            },
+            { label: "Total Expenses", value: summary.totalExpenses },
+            { label: "Net Cash Flow", value: summary.totalNetCashFlow },
           ].map((card) => (
             <Paper
               key={card.label}
@@ -282,6 +298,7 @@ const CashFlowPage = () => {
                   name="Transaction Fees"
                   fill="#FF7043"
                 />
+                <Bar dataKey="expenses" name="Expenses" fill="#FFCA28" />
               </BarChart>
             </ResponsiveContainer>
           </Box>
@@ -299,6 +316,7 @@ const CashFlowPage = () => {
                   <TableCell>Total Orders</TableCell>
                   <TableCell>Cash In (Rs)</TableCell>
                   <TableCell>Transaction Fees (Rs)</TableCell>
+                  <TableCell>Expenses (Rs)</TableCell>
                   <TableCell>Net Cash Flow (Rs)</TableCell>
                 </TableRow>
               </TableHead>
@@ -311,6 +329,7 @@ const CashFlowPage = () => {
                       <TableCell>{day.orders}</TableCell>
                       <TableCell>{day.cashIn.toFixed(2)}</TableCell>
                       <TableCell>{day.transactionFees.toFixed(2)}</TableCell>
+                      <TableCell>{day.expenses.toFixed(2)}</TableCell>
                       <TableCell>{day.netCashFlow.toFixed(2)}</TableCell>
                     </TableRow>
                   ))}
