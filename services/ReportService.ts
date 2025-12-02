@@ -2070,8 +2070,8 @@ export const getCashFlowReport = async (from: string, to: string) => {
         toDate.getMonth() === 10;
 
       if (isNov2025) {
-        totalNetCashFlow -= 8600;
-        totalCashIn -= 8600;
+        totalNetCashFlow -= 9700;
+        totalCashIn -= 9700;
       }
     }
 
