@@ -2082,7 +2082,7 @@ export const getCashFlowReport = async (from: string, to: string) => {
         totalTransactionFees,
         totalExpenses,
         totalNetCashFlow,
-        daily,
+        // daily,
         from,
         to,
       },
