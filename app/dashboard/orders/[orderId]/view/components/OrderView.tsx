@@ -48,7 +48,8 @@ const OrderView = ({ orderId }: { orderId: string }) => {
       const res = await axios.get(`/api/v1/orders/${orderId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setOrder(res.data || null);
+      // Set  res.data || null
+      setOrder(null);
     } catch (error: any) {
       console.error(error);
       showNotification(error?.message || "Failed to fetch order", "error");

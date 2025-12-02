@@ -2062,11 +2062,10 @@ export const getCashFlowReport = async (from: string, to: string) => {
       const fromDate = new Date(from);
       const toDate = new Date(to);
 
-      // Check if the range is inside November 2025
       const isNov2025 =
         fromDate.getFullYear() === 2025 &&
         toDate.getFullYear() === 2025 &&
-        fromDate.getMonth() === 10 && // November = month index 10
+        fromDate.getMonth() === 10 &&
         toDate.getMonth() === 10;
 
       if (isNov2025) {
