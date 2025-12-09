@@ -4,14 +4,14 @@ import { authorizeRequest } from "@/firebase/firebaseAdmin";
 
 export const GET = async (
   _req: Request,
-  { params }: { params: { sizeId: string } }
+  { params }: { params: Promise<{ sizeId: string }> }
 ) => {
   try {
+    const { sizeId } = await params;
     const user = await authorizeRequest(_req);
     if (!user)
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-    const { sizeId } = params;
     const data = await getSizes({ page: 1, size: 1 }); // optionally fetch single
     const size = data.dataList.find((s) => s.id === sizeId);
     if (!size)
@@ -32,9 +32,10 @@ export const GET = async (
 
 export const PUT = async (
   req: Request,
-  { params }: { params: { sizeId: string } }
+  { params }: { params: Promise<{ sizeId: string }> }
 ) => {
   try {
+    const { sizeId } = await params;
     const user = await authorizeRequest(req);
     if (!user)
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -48,7 +49,7 @@ export const PUT = async (
         { status: 400 }
       );
 
-    const result = await updateSize(params.sizeId, sizeData);
+    const result = await updateSize(sizeId, sizeData);
 
     return NextResponse.json(result);
   } catch (err) {
@@ -62,14 +63,15 @@ export const PUT = async (
 
 export const DELETE = async (
   _req: Request,
-  { params }: { params: { sizeId: string } }
+  { params }: { params: Promise<{ sizeId: string }> }
 ) => {
   try {
-    const user = await authorizeRequest(req);
+    const { sizeId } = await params;
+    const user = await authorizeRequest(_req);
     if (!user)
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-    const result = await deleteSize(params.sizeId);
+    const result = await deleteSize(sizeId);
     return NextResponse.json(result);
   } catch (err) {
     console.error("Delete Size Error:", err);

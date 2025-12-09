@@ -8,14 +8,15 @@ import { authorizeRequest } from "@/firebase/firebaseAdmin";
 
 export const GET = async (
   _req: Request,
-  { params }: { params: { brandId: string } }
+  { params }: { params: Promise<{ brandId: string }> }
 ) => {
   try {
-    const user = await authorizeRequest(req);
+    const { brandId } = await params;
+    const user = await authorizeRequest(_req);
     if (!user)
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-    const result = await getBrandById(params.brandId);
+    const result = await getBrandById(brandId);
     return NextResponse.json(result);
   } catch (err) {
     console.error("Get Brand Error:", err);
@@ -28,9 +29,10 @@ export const GET = async (
 
 export const PUT = async (
   req: Request,
-  { params }: { params: { brandId: string } }
+  { params }: { params: Promise<{ brandId: string }> }
 ) => {
   try {
+    const { brandId } = await params;
     const user = await authorizeRequest(req);
     if (!user)
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -42,7 +44,7 @@ export const PUT = async (
     const logo = formData.get("logo") as File | null;
 
     const result = await updateBrand(
-      params.brandId,
+      brandId,
       { name, description, status },
       logo || undefined
     );
@@ -58,14 +60,15 @@ export const PUT = async (
 
 export const DELETE = async (
   req: Request,
-  { params }: { params: { brandId: string } }
+  { params }: { params: Promise<{ brandId: string }> }
 ) => {
   try {
+    const { brandId } = await params;
     const user = await authorizeRequest(req);
     if (!user)
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-    const result = await deleteBrand(params.brandId);
+    const result = await deleteBrand(brandId);
     return NextResponse.json(result);
   } catch (err) {
     console.error("Delete Brand Error:", err);

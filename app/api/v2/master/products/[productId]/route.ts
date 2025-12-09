@@ -2,16 +2,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeRequest, adminFirestore } from "@/firebase/firebaseAdmin";
-import {
-  getProductById,
-  updateProduct,
-} from "@/services/ProductService"; // Import your service
+import { getProductById, updateProduct } from "@/services/ProductService"; // Import your service
 import { Product } from "@/model/Product";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     productId: string; // This 'id' comes from the folder name [id]
-  };
+  }>;
 }
 
 /**
@@ -28,7 +25,13 @@ const parseProductFromFormData = async (
     } else if (key === "status" || key === "listing") {
       product[key as "status" | "listing"] = value === "true";
     } else if (
-      ["buyingPrice", "sellingPrice", "marketPrice", "discount","weight"].includes(key)
+      [
+        "buyingPrice",
+        "sellingPrice",
+        "marketPrice",
+        "discount",
+        "weight",
+      ].includes(key)
     ) {
       product[key as "buyingPrice"] = parseFloat(value as string) || 0;
     } else {
@@ -44,7 +47,7 @@ export const GET = async (req: NextRequest, { params }: RouteParams) => {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { productId } = params;
+    const { productId } = await params;
     const product = await getProductById(productId);
 
     if (!product) {
@@ -56,8 +59,7 @@ export const GET = async (req: NextRequest, { params }: RouteParams) => {
 
     return NextResponse.json(product);
   } catch (error: any) {
-    // --- FIX: Update log message to use productId ---
-    console.error(`GET /api/v2/master/products/${params.productId} Error:`, error);
+    console.error(`GET /api/v2/master/products/ Error:`, error);
     return NextResponse.json(
       { message: error.message || "Internal Server Error" },
       { status: 500 }
@@ -75,7 +77,7 @@ export const PUT = async (req: NextRequest, { params }: RouteParams) => {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { productId } = params;
+    const { productId } = await params;
     const formData = await req.formData();
 
     // --- MODIFIED LOGIC ---
@@ -108,7 +110,7 @@ export const PUT = async (req: NextRequest, { params }: RouteParams) => {
 
     return NextResponse.json({ message: "Product updated successfully" });
   } catch (error: any) {
-    console.error(`PUT /api/v2/master/products/${params.productId} Error:`, error);
+    console.error(`PUT /api/v2/master/products/ Error:`, error);
     return NextResponse.json(
       { message: error.message || "Internal Server Error" },
       { status: 500 }
@@ -127,7 +129,7 @@ export const DELETE = async (req: NextRequest, { params }: RouteParams) => {
     }
 
     // --- CRITICAL FIX: Use productId, not id ---
-    const { productId } = params;
+    const { productId } = await params;
 
     // Perform a soft delete by updating the 'isDeleted' flag
     await adminFirestore
@@ -140,8 +142,7 @@ export const DELETE = async (req: NextRequest, { params }: RouteParams) => {
 
     return NextResponse.json({ message: "Product deleted successfully" });
   } catch (error: any) {
-    // --- FIX: Update log message to use productId ---
-    console.error(`DELETE /api/v2/master/products/${params.productId} Error:`, error);
+    console.error(`DELETE /api/v2/master/products/ Error:`, error);
     return NextResponse.json(
       { message: error.message || "Internal Server Error" },
       { status: 500 }

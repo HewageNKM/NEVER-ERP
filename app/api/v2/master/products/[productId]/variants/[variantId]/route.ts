@@ -38,7 +38,7 @@ const parseVariantFormData = (
 
 export const PUT = async (
   req: NextRequest,
-  { params }: { params: { productId: string; variantId: string } }
+  { params }: { params: Promise<{ productId: string; variantId: string }> }
 ) => {
   try {
     const user = await authorizeRequest(req);
@@ -46,7 +46,7 @@ export const PUT = async (
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { productId, variantId } = params;
+    const { productId, variantId } = await params;
     if (!productId || !variantId) {
       return NextResponse.json(
         { message: "Product ID and Variant ID are required" },
@@ -84,7 +84,7 @@ export const PUT = async (
 
 export const DELETE = async (
   req: NextRequest,
-  { params }: { params: { productId: string; variantId: string } }
+  { params }: { params: Promise<{ productId: string; variantId: string }> }
 ) => {
   try {
     const user = await authorizeRequest(req);
@@ -92,7 +92,7 @@ export const DELETE = async (
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { productId, variantId } = params;
+    const { productId, variantId } = await params;
     if (!productId || !variantId) {
       return NextResponse.json(
         { message: "Product ID and Variant ID are required" },

@@ -4,14 +4,15 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const GET = async (
   req: NextRequest,
-  { params }: { params: { productId: string } }
+  { params }: { params: Promise<{ productId: string }> }
 ) => {
   try {
     const user = await authorizeRequest(req);
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
-    const id = params.productId;
+    const { productId } = await params;
+    const id = productId;
     const res = await getProductVariantsForDropdown(id);
     return NextResponse.json(res);
   } catch (error) {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-export async function middleware(req: Request) {
+export default async function proxy(req: Request) {
   const origin = req.headers.get("origin");
   const allowedOrigins = [
     "https://admin.neverbe.lk",

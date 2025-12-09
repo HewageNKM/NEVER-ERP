@@ -42,7 +42,7 @@ const parseVariantFormData = (
 
 export const POST = async (
   req: NextRequest,
-  { params }: { params: { productId: string } }
+  { params }: { params: Promise<{ productId: string }> }
 ) => {
   try {
     const user = await authorizeRequest(req);
@@ -50,7 +50,7 @@ export const POST = async (
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { productId } = params;
+    const { productId } = await params;
     if (!productId) {
       return NextResponse.json(
         { message: "Product ID is required" },

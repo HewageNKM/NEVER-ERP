@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 export const PUT = async (
   req: Request,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) => {
   try {
     const response = await authorizeRequest(req);
@@ -12,6 +12,7 @@ export const PUT = async (
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
+    const { orderId } = await params;
     const body = await req.json();
     if (!body.paymentStatus || !body.status) {
       return NextResponse.json(
@@ -19,7 +20,7 @@ export const PUT = async (
         { status: 400 }
       );
     }
-    const id = params.orderId;
+    const id = orderId;
     await updateOrder(body, id);
 
     return NextResponse.json({ message: "Order updated successfully" });
@@ -30,7 +31,7 @@ export const PUT = async (
 };
 export const GET = async (
   req: Request,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) => {
   try {
     const authorized = await authorizeRequest(req);
@@ -38,8 +39,7 @@ export const GET = async (
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { orderId } = params;
-
+    const { orderId } = await params;
     const order = await getOrder(orderId);
 
     if (!order) {
