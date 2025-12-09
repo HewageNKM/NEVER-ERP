@@ -14,6 +14,12 @@ import {
 } from "@mui/material";
 import { useRouter, useParams } from "next/navigation";
 import { PettyCash } from "@/model/PettyCash";
+import { EXPENSE_CATEGORIES } from "@/utils/expenseCategories";
+import { useAppSelector } from "@/lib/hooks";
+import { RootState } from "@/lib/store";
+import { getToken } from "@/firebase/firebaseClient";
+import { Breadcrumbs, Link as MuiLink } from "@mui/material";
+import Link from "next/link";
 
 export default function EditPettyCash() {
   const router = useRouter();
@@ -25,16 +31,22 @@ export default function EditPettyCash() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const { currentUser } = useAppSelector((state: RootState) => state.authSlice);
 
   useEffect(() => {
-    if (id) {
+    if (id && currentUser) {
       fetchEntry();
     }
-  }, [id]);
+  }, [id, currentUser]);
 
   const fetchEntry = async () => {
     try {
-      const res = await fetch(`/api/v2/petty-cash/${id}`);
+      const token = await getToken();
+      const res = await fetch(`/api/v2/petty-cash/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (!res.ok) throw new Error("Failed to fetch entry");
       const data = await res.json();
       setFormData(data);
@@ -74,10 +86,13 @@ export default function EditPettyCash() {
       if (file) {
         formPayload.append("attachment", file);
       }
-
+      const token = await getToken();
       const res = await fetch(`/api/v2/petty-cash/${id}`, {
         method: "PUT",
         body: formPayload,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!res.ok) {
@@ -97,12 +112,26 @@ export default function EditPettyCash() {
 
   return (
     <Box>
+      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
+        <MuiLink component={Link} href="/dashboard" color="inherit">
+          Dashboard
+        </MuiLink>
+        <MuiLink component={Link} href="/dashboard/petty-cash" color="inherit">
+          Petty Cash
+        </MuiLink>
+        <Typography color="text.primary">Edit</Typography>
+      </Breadcrumbs>
       <Typography variant="h3" mb={3}>
         Edit Petty Cash Entry
       </Typography>
       <Card>
         <CardContent>
           <form onSubmit={handleSubmit}>
+            {formData.status === "APPROVED" && (
+              <Alert severity="info" sx={{ mb: 3 }}>
+                This entry has been approved and cannot be edited.
+              </Alert>
+            )}
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <TextField
@@ -113,6 +142,7 @@ export default function EditPettyCash() {
                   value={formData.amount}
                   onChange={handleChange}
                   required
+                  disabled={formData.status === "APPROVED"}
                 />
               </Grid>
               <Grid item xs={12} md={6}>
@@ -123,6 +153,7 @@ export default function EditPettyCash() {
                   name="type"
                   value={formData.type}
                   onChange={handleChange}
+                  disabled={formData.status === "APPROVED"}
                 >
                   <MenuItem value="expense">Expense</MenuItem>
                   <MenuItem value="income">Income</MenuItem>
@@ -131,32 +162,59 @@ export default function EditPettyCash() {
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
+                  select
                   label="Category"
                   name="category"
-                  value={formData.category}
-                  onChange={handleChange}
+                  value={formData.category || ""}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      category: e.target.value,
+                      subCategory: "", // Reset subcategory
+                    });
+                  }}
                   required
-                />
+                  disabled={formData.status === "APPROVED"}
+                >
+                  {EXPENSE_CATEGORIES.map((cat) => (
+                    <MenuItem key={cat.name} value={cat.name}>
+                      {cat.name}
+                    </MenuItem>
+                  ))}
+                  {/* Handle legacy/custom categories not in the list */}
+                  {formData.category &&
+                    !EXPENSE_CATEGORIES.some(
+                      (c) => c.name === formData.category
+                    ) && (
+                      <MenuItem value={formData.category}>
+                        {formData.category} (Legacy)
+                      </MenuItem>
+                    )}
+                </TextField>
               </Grid>
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
+                  select
                   label="Sub Category"
                   name="subCategory"
                   value={formData.subCategory || ""}
                   onChange={handleChange}
-                />
+                  disabled={
+                    !formData.category || formData.status === "APPROVED"
+                  } // Disable if no category selected OR already approved
+                >
+                  {formData.category &&
+                    EXPENSE_CATEGORIES.find(
+                      (c) => c.name === formData.category
+                    )?.subCategories.map((sub) => (
+                      <MenuItem key={sub} value={sub}>
+                        {sub}
+                      </MenuItem>
+                    ))}
+                </TextField>
               </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="For (Description)"
-                  name="for"
-                  value={formData.for}
-                  onChange={handleChange}
-                  required
-                />
-              </Grid>
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -166,6 +224,8 @@ export default function EditPettyCash() {
                   rows={3}
                   value={formData.note || ""}
                   onChange={handleChange}
+                  required
+                  disabled={formData.status === "APPROVED"}
                 />
               </Grid>
               <Grid item xs={12} md={6}>
@@ -176,6 +236,7 @@ export default function EditPettyCash() {
                   name="paymentMethod"
                   value={formData.paymentMethod}
                   onChange={handleChange}
+                  disabled={formData.status === "APPROVED"}
                 >
                   <MenuItem value="cash">Cash</MenuItem>
                   <MenuItem value="card">Card</MenuItem>
@@ -190,6 +251,7 @@ export default function EditPettyCash() {
                   name="status"
                   value={formData.status}
                   onChange={handleChange}
+                  disabled={formData.status === "APPROVED"}
                 >
                   <MenuItem value="PENDING">Pending</MenuItem>
                   <MenuItem value="APPROVED">Approved</MenuItem>
@@ -211,8 +273,61 @@ export default function EditPettyCash() {
                     </a>
                   </Box>
                 )}
-                <input type="file" onChange={handleFileChange} />
+                <input
+                  type="file"
+                  onChange={handleFileChange}
+                  disabled={formData.status === "APPROVED"}
+                />
               </Grid>
+
+              {/* Read-only Metadata */}
+              {formData.createdAt && (
+                <Grid item xs={12} md={6}>
+                  <Typography
+                    variant="caption"
+                    display="block"
+                    color="textSecondary"
+                  >
+                    Created At:{" "}
+                    {new Date(formData.createdAt as string).toLocaleString()}
+                  </Typography>
+                </Grid>
+              )}
+              {formData.updatedAt && (
+                <Grid item xs={12} md={6}>
+                  <Typography
+                    variant="caption"
+                    display="block"
+                    color="textSecondary"
+                  >
+                    Updated At:{" "}
+                    {new Date(formData.updatedAt as string).toLocaleString()}
+                  </Typography>
+                </Grid>
+              )}
+              {formData.reviewedBy && (
+                <Grid item xs={12} md={6}>
+                  <Typography
+                    variant="caption"
+                    display="block"
+                    color="textSecondary"
+                  >
+                    Reviewed By: {formData.reviewedBy}
+                  </Typography>
+                </Grid>
+              )}
+              {formData.reviewedAt && (
+                <Grid item xs={12} md={6}>
+                  <Typography
+                    variant="caption"
+                    display="block"
+                    color="textSecondary"
+                  >
+                    Reviewed At:{" "}
+                    {new Date(formData.reviewedAt as string).toLocaleString()}
+                  </Typography>
+                </Grid>
+              )}
 
               <Grid item xs={12}>
                 {error && (
@@ -232,7 +347,7 @@ export default function EditPettyCash() {
                     type="submit"
                     variant="contained"
                     color="primary"
-                    disabled={saving}
+                    disabled={saving || formData.status === "APPROVED"}
                   >
                     {saving ? "Saving..." : "Save Changes"}
                   </Button>

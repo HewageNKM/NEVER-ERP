@@ -4,7 +4,7 @@ import { nanoid } from "nanoid";
 import { Timestamp } from "firebase-admin/firestore";
 import { uploadFile } from "@/firebase/firebaseAdmin"; // Reusing existing upload function
 
-const COLLECTION_NAME = "petty-cash";
+const COLLECTION_NAME = "expenses";
 
 export const addPettyCash = async (
   data: Partial<PettyCash>,
@@ -26,7 +26,6 @@ export const addPettyCash = async (
     category: data.category || "",
     subCategory: data.subCategory || "",
     subCategoryId: data.subCategoryId || "",
-    for: data.for || "",
     note: data.note || "",
     paymentMethod: data.paymentMethod || "cash",
     type: data.type || "expense",
@@ -57,12 +56,19 @@ export const updatePettyCash = async (
     throw new Error(`Petty Cash entry with ID ${id} not found`);
   }
 
-  let attachmentUrl = (doc.data() as PettyCash).attachment;
+  const currentData = doc.data() as PettyCash;
+  if (currentData.status === "APPROVED") {
+    throw new Error("Cannot edit an approved entry.");
+  }
+
+  let attachmentUrl = currentData.attachment;
 
   if (file) {
     const uploadResult = await uploadFile(file, `petty-cash/${id}`);
     attachmentUrl = uploadResult.url;
   }
+
+  delete data.isDeleted;
 
   const updates = {
     ...data,
@@ -80,7 +86,12 @@ export const updatePettyCash = async (
 export const getPettyCashList = async (
   page: number = 1,
   size: number = 20,
-  filters?: { status?: string; type?: string; category?: string }
+  filters?: {
+    status?: string;
+    type?: string;
+    category?: string;
+    search?: string;
+  }
 ): Promise<{ data: PettyCash[]; total: number }> => {
   let query: FirebaseFirestore.Query = adminFirestore
     .collection(COLLECTION_NAME)
@@ -96,14 +107,20 @@ export const getPettyCashList = async (
     query = query.where("category", "==", filters.category);
   }
 
-  // Get total count for pagination (simplified, for better performance use aggregation queries if available/needed)
-  const snapshotInit = await query.get();
-  const total = snapshotInit.size;
+  // Apply search filter (overrides default sorting if present to avoid composite index issues)
+  if (filters?.search && filters.search.trim()) {
+    const s = filters.search.trim();
+    // Search by note (prefix search)
+    query = query.where("note", ">=", s).where("note", "<=", s + "\uf8ff");
+    // When searching, we typically cannot assume "createdAt" ordering without a specific composite index
+  }
 
-  query = query
-    .orderBy("createdAt", "desc")
-    .limit(size)
-    .offset((page - 1) * size);
+  // Get total count (not perfect with search/filters without aggregation, but standard approach)
+  // Get total count using aggregation for efficiency
+  const countSnapshot = await query.count().get();
+  const total = countSnapshot.data().count;
+
+  query = query.limit(size).offset((page - 1) * size);
 
   const snapshot = await query.get();
   const data = snapshot.docs.map((doc) => {

@@ -11,8 +11,13 @@ import {
   MenuItem,
   Stack,
   Alert,
+  Breadcrumbs,
+  Link as MuiLink,
 } from "@mui/material";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { EXPENSE_CATEGORIES } from "@/utils/expenseCategories";
+import { getToken } from "@/firebase/firebaseClient";
 
 export default function CreatePettyCash() {
   const router = useRouter();
@@ -20,7 +25,7 @@ export default function CreatePettyCash() {
     amount: "",
     category: "",
     subCategory: "",
-    for: "",
+
     note: "",
     paymentMethod: "cash",
     type: "expense",
@@ -53,10 +58,13 @@ export default function CreatePettyCash() {
       if (file) {
         formPayload.append("attachment", file);
       }
-
+      const token = await getToken();
       const res = await fetch("/api/v2/petty-cash", {
         method: "POST",
         body: formPayload,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!res.ok) {
@@ -74,6 +82,16 @@ export default function CreatePettyCash() {
 
   return (
     <Box>
+      {/* Breadcrumb + Header */}
+      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
+        <Typography color="text.primary">
+          <Link href="/dashboard">Dashboard</Link>
+        </Typography>
+        <Typography color="text.primary">
+          <Link href="/dashboard/petty-cash">Petty Cash</Link>
+        </Typography>
+        <Typography color="text.primary">Create</Typography>
+      </Breadcrumbs>
       <Typography variant="h3" mb={3}>
         Create Petty Cash Entry
       </Typography>
@@ -108,32 +126,47 @@ export default function CreatePettyCash() {
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
+                  select
                   label="Category"
                   name="category"
                   value={formData.category}
-                  onChange={handleChange}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      category: e.target.value,
+                      subCategory: "", // Reset subcategory
+                    });
+                  }}
                   required
-                />
+                >
+                  {EXPENSE_CATEGORIES.map((cat) => (
+                    <MenuItem key={cat.name} value={cat.name}>
+                      {cat.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
               </Grid>
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
+                  select
                   label="Sub Category"
                   name="subCategory"
                   value={formData.subCategory}
                   onChange={handleChange}
-                />
+                  disabled={!formData.category}
+                >
+                  {formData.category &&
+                    EXPENSE_CATEGORIES.find(
+                      (c) => c.name === formData.category
+                    )?.subCategories.map((sub) => (
+                      <MenuItem key={sub} value={sub}>
+                        {sub}
+                      </MenuItem>
+                    ))}
+                </TextField>
               </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="For (Description)"
-                  name="for"
-                  value={formData.for}
-                  onChange={handleChange}
-                  required
-                />
-              </Grid>
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -143,6 +176,7 @@ export default function CreatePettyCash() {
                   rows={3}
                   value={formData.note}
                   onChange={handleChange}
+                  required
                 />
               </Grid>
               <Grid item xs={12} md={6}>

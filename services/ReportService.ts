@@ -1451,6 +1451,7 @@ export const getDailyRevenueReport = async (
   // Fetch approved expenses
   const expensesSnapshot = await adminFirestore
     .collection("expenses")
+    .where("type", "==", "expense")
     .where("status", "==", "APPROVED")
     .where("createdAt", ">=", Timestamp.fromDate(fromDate))
     .where("createdAt", "<=", Timestamp.fromDate(toDate))
@@ -1630,6 +1631,7 @@ export const getMonthlyRevenueReport = async (
   // Fetch approved expenses
   const expensesSnapshot = await adminFirestore
     .collection("expenses")
+    .where("type", "==", "expense")
     .where("status", "==", "APPROVED")
     .where("createdAt", ">=", Timestamp.fromDate(fromDate))
     .where("createdAt", "<=", Timestamp.fromDate(toDate))
@@ -1802,6 +1804,7 @@ export const getYearlyRevenueReport = async (
   // Fetch approved expenses
   const expensesSnapshot = await adminFirestore
     .collection("expenses")
+    .where("type", "==", "expense")
     .where("status", "==", "APPROVED")
     .where("createdAt", ">=", Timestamp.fromDate(fromDate))
     .where("createdAt", "<=", Timestamp.fromDate(toDate))
@@ -1957,6 +1960,7 @@ export const getCashFlowReport = async (from: string, to: string) => {
     // Fetch approved expenses
     let expenseQuery = adminFirestore
       .collection("expenses")
+      .where("type", "==", "expense")
       .where("status", "==", "APPROVED");
 
     if (from && to) {

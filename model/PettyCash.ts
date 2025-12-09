@@ -8,7 +8,6 @@ export interface PettyCash {
   subCategory: string;
   subCategoryId: string;
 
-  for: string; // Description/Purpose
   note: string;
   paymentMethod: string; // e.g. "cash"
 

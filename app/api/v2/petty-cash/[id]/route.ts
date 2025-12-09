@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeAndGetUser } from "@/firebase/firebaseAdmin";
+import { Timestamp } from "firebase-admin/firestore";
 import {
   getPettyCashById,
   updatePettyCash,
@@ -62,6 +63,12 @@ export const PUT = async (
     // Update user tracking
     if (user.userId) {
       data.updatedBy = user.userId;
+
+      // If status is being changed to APPROVED or REJECTED, record reviewer
+      if (data.status === "APPROVED" || data.status === "REJECTED") {
+        data.reviewedBy = user.userId;
+        data.reviewedAt = Timestamp.now();
+      }
     }
 
     const updatedEntry = await updatePettyCash(id, data, file || undefined);
