@@ -48,8 +48,7 @@ const OrderView = ({ orderId }: { orderId: string }) => {
       const res = await axios.get(`/api/v1/orders/${orderId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // Set  res.data || null
-      setOrder(null);
+      setOrder(res.data || null);
     } catch (error: any) {
       console.error(error);
       showNotification(error?.message || "Failed to fetch order", "error");
@@ -280,20 +279,17 @@ const OrderView = ({ orderId }: { orderId: string }) => {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography>
-                    <b>Shipping Name:</b>{" "}
-                    {order?.customer?.shippingName || "—"}
+                    <b>Shipping Name:</b> {order?.customer?.shippingName || "—"}
                   </Typography>
                   <Typography>
                     <b>Shipping Address:</b>{" "}
                     {order?.customer?.shippingAddress || "—"}
                   </Typography>
                   <Typography>
-                    <b>Shipping City:</b>{" "}
-                    {order?.customer?.shippingCity || "—"}
+                    <b>Shipping City:</b> {order?.customer?.shippingCity || "—"}
                   </Typography>
                   <Typography>
-                    <b>Shipping ZIP:</b>{" "}
-                    {order?.customer?.shippingZip || "—"}
+                    <b>Shipping ZIP:</b> {order?.customer?.shippingZip || "—"}
                   </Typography>
                   <Typography>
                     <b>Shipping Phone:</b>{" "}
@@ -362,11 +358,7 @@ const OrderView = ({ orderId }: { orderId: string }) => {
                     </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      align="right"
-                      sx={{ color: "red" }}
-                    >
+                    <TableCell colSpan={6} align="right" sx={{ color: "red" }}>
                       Discount
                     </TableCell>
                     <TableCell align="right" sx={{ color: "red" }}>
@@ -388,11 +380,7 @@ const OrderView = ({ orderId }: { orderId: string }) => {
                     <TableCell align="right">Rs.{fee.toFixed(2)}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      align="right"
-                      className="font-bold"
-                    >
+                    <TableCell colSpan={6} align="right" className="font-bold">
                       Grand Total
                     </TableCell>
                     <TableCell
@@ -403,11 +391,7 @@ const OrderView = ({ orderId }: { orderId: string }) => {
                     </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      align="right"
-                      sx={{ color: "red" }}
-                    >
+                    <TableCell colSpan={6} align="right" sx={{ color: "red" }}>
                       Transaction Fee
                     </TableCell>
                     <TableCell align="right" sx={{ color: "red" }}>
