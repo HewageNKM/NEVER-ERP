@@ -46,6 +46,7 @@ interface MonthlyRow {
   totalDiscount: number;
   totalTransactionFee: number;
   totalExpenses: number;
+  totalOtherIncome: number;
   grossProfit: number;
   grossProfitMargin: number;
   netProfit: number;
@@ -60,6 +61,7 @@ interface SummaryType {
   totalDiscount: number;
   totalTransactionFee: number;
   totalExpenses: number;
+  totalOtherIncome: number;
   grossProfit: number;
   grossProfitMargin: number;
   netProfit: number;
@@ -228,6 +230,7 @@ export default function MonthlyRevenuePage() {
               value: summary.totalTransactionFee,
             },
             { label: "Total Expenses", value: summary.totalExpenses },
+            { label: "Other Income", value: summary.totalOtherIncome },
             { label: "Gross Profit", value: summary.grossProfit },
             {
               label: "Gross Margin",
@@ -341,6 +344,7 @@ export default function MonthlyRevenuePage() {
                   <TableCell>Total Discount</TableCell>
                   <TableCell>Total Transaction Fee</TableCell>
                   <TableCell>Total Expenses</TableCell>
+                  <TableCell>Other Income</TableCell>
                   <TableCell>Gross Profit</TableCell>
                   <TableCell>Margin %</TableCell>
                   <TableCell>Net Profit</TableCell>
@@ -362,6 +366,7 @@ export default function MonthlyRevenuePage() {
                         Rs {r.totalTransactionFee.toFixed(2)}
                       </TableCell>
                       <TableCell>Rs {r.totalExpenses.toFixed(2)}</TableCell>
+                      <TableCell>Rs {r.totalOtherIncome.toFixed(2)}</TableCell>
                       <TableCell>Rs {r.grossProfit.toFixed(2)}</TableCell>
                       <TableCell>{r.grossProfitMargin.toFixed(2)}%</TableCell>
                       <TableCell>Rs {r.netProfit.toFixed(2)}</TableCell>

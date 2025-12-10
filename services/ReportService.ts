@@ -1421,6 +1421,7 @@ export interface DailyRevenue {
   totalDiscount: number;
   totalTransactionFee: number;
   totalExpenses: number;
+  totalOtherIncome: number;
   grossProfit: number;
   grossProfitMargin: number;
   netProfit: number;
@@ -1451,7 +1452,7 @@ export const getDailyRevenueReport = async (
   // Fetch approved expenses
   const expensesSnapshot = await adminFirestore
     .collection("expenses")
-    .where("type", "==", "expense")
+    // .where("type", "==", "expense") // Include income
     .where("status", "==", "APPROVED")
     .where("createdAt", ">=", Timestamp.fromDate(fromDate))
     .where("createdAt", "<=", Timestamp.fromDate(toDate))
@@ -1471,14 +1472,22 @@ export const getDailyRevenueReport = async (
 
   // Group expenses by date
   const expensesByDate: Record<string, number> = {};
+  const incomeByDate: Record<string, number> = {};
   expensesSnapshot.forEach((doc) => {
     const expense = doc.data();
     const dateStr = (expense.createdAt as Timestamp)
       .toDate()
       .toISOString()
       .split("T")[0];
-    if (!expensesByDate[dateStr]) expensesByDate[dateStr] = 0;
-    expensesByDate[dateStr] += expense.amount || 0;
+
+    if (expense.type === "income") {
+      if (!incomeByDate[dateStr]) incomeByDate[dateStr] = 0;
+      incomeByDate[dateStr] += Number(expense.amount || 0);
+    } else {
+      // Default to expense
+      if (!expensesByDate[dateStr]) expensesByDate[dateStr] = 0;
+      expensesByDate[dateStr] += Number(expense.amount || 0);
+    }
   });
 
   const daily: DailyRevenue[] = [];
@@ -1491,6 +1500,7 @@ export const getDailyRevenueReport = async (
     totalDiscount: 0,
     totalTransactionFee: 0,
     totalExpenses: 0,
+    totalOtherIncome: 0,
     grossProfit: 0,
     grossProfitMargin: 0,
     netProfit: 0,
@@ -1530,10 +1540,13 @@ export const getDailyRevenueReport = async (
       });
 
       const totalExpenses = expensesByDate[dateStr] || 0;
+      const totalOtherIncome = incomeByDate[dateStr] || 0;
+
       const grossProfit = totalSales - totalCOGS;
       const grossProfitMargin =
         totalSales > 0 ? (grossProfit / totalSales) * 100 : 0;
-      const netProfit = totalNetSales - totalExpenses - totalCOGS;
+      const netProfit =
+        totalNetSales + totalOtherIncome - totalExpenses - totalCOGS;
       const netProfitMargin =
         totalNetSales > 0 ? (netProfit / totalNetSales) * 100 : 0;
 
@@ -1546,6 +1559,7 @@ export const getDailyRevenueReport = async (
         totalDiscount,
         totalTransactionFee,
         totalExpenses,
+        totalOtherIncome,
         grossProfit,
         grossProfitMargin,
         netProfit,
@@ -1559,6 +1573,7 @@ export const getDailyRevenueReport = async (
       summaryTotals.totalDiscount += totalDiscount;
       summaryTotals.totalTransactionFee += totalTransactionFee;
       summaryTotals.totalExpenses += totalExpenses;
+      summaryTotals.totalOtherIncome += totalOtherIncome;
       summaryTotals.grossProfit += grossProfit;
       summaryTotals.netProfit += netProfit;
     });
@@ -1587,6 +1602,7 @@ export interface MonthlyRevenue {
   totalDiscount: number;
   totalTransactionFee: number;
   totalExpenses: number;
+  totalOtherIncome: number;
   grossProfit: number;
   grossProfitMargin: number;
   netProfit: number;
@@ -1631,7 +1647,7 @@ export const getMonthlyRevenueReport = async (
   // Fetch approved expenses
   const expensesSnapshot = await adminFirestore
     .collection("expenses")
-    .where("type", "==", "expense")
+    // .where("type", "==", "expense") // Fetch all to include income
     .where("status", "==", "APPROVED")
     .where("createdAt", ">=", Timestamp.fromDate(fromDate))
     .where("createdAt", "<=", Timestamp.fromDate(toDate))
@@ -1653,6 +1669,7 @@ export const getMonthlyRevenueReport = async (
 
   // Group expenses by month YYYY-MM
   const expensesByMonth: Record<string, number> = {};
+  const incomeByMonth: Record<string, number> = {};
   expensesSnapshot.forEach((doc) => {
     const expense = doc.data();
     const date = (expense.createdAt as Timestamp).toDate();
@@ -1661,8 +1678,13 @@ export const getMonthlyRevenueReport = async (
       date.getMonth() + 1
     ).padStart(2, "0")}`;
 
-    if (!expensesByMonth[monthStr]) expensesByMonth[monthStr] = 0;
-    expensesByMonth[monthStr] += Number(expense.amount || 0);
+    if (expense.type === "income") {
+      if (!incomeByMonth[monthStr]) incomeByMonth[monthStr] = 0;
+      incomeByMonth[monthStr] += Number(expense.amount || 0);
+    } else {
+      if (!expensesByMonth[monthStr]) expensesByMonth[monthStr] = 0;
+      expensesByMonth[monthStr] += Number(expense.amount || 0);
+    }
   });
 
   const monthly: MonthlyRevenue[] = [];
@@ -1675,6 +1697,7 @@ export const getMonthlyRevenueReport = async (
     totalDiscount: 0,
     totalTransactionFee: 0,
     totalExpenses: 0,
+    totalOtherIncome: 0,
     grossProfit: 0,
     grossProfitMargin: 0,
     netProfit: 0,
@@ -1717,10 +1740,12 @@ export const getMonthlyRevenueReport = async (
       });
 
       const totalExpenses = Number(expensesByMonth[monthStr] || 0);
+      const totalOtherIncome = Number(incomeByMonth[monthStr] || 0);
       const grossProfit = totalSales - totalCOGS;
       const grossProfitMargin =
         totalSales > 0 ? (grossProfit / totalSales) * 100 : 0;
-      const netProfit = totalNetSales - totalExpenses - totalCOGS;
+      const netProfit =
+        totalNetSales + totalOtherIncome - totalExpenses - totalCOGS;
       const netProfitMargin =
         totalNetSales > 0 ? (netProfit / totalNetSales) * 100 : 0;
 
@@ -1733,6 +1758,7 @@ export const getMonthlyRevenueReport = async (
         totalDiscount,
         totalTransactionFee,
         totalExpenses,
+        totalOtherIncome,
         grossProfit,
         grossProfitMargin,
         netProfit,
@@ -1746,6 +1772,7 @@ export const getMonthlyRevenueReport = async (
       summaryTotals.totalDiscount += totalDiscount;
       summaryTotals.totalTransactionFee += totalTransactionFee;
       summaryTotals.totalExpenses += totalExpenses;
+      summaryTotals.totalOtherIncome += totalOtherIncome;
       summaryTotals.grossProfit += grossProfit;
       summaryTotals.netProfit += netProfit;
     });
@@ -1774,6 +1801,7 @@ export interface YearlyRevenue {
   totalDiscount: number;
   totalTransactionFee: number;
   totalExpenses: number;
+  totalOtherIncome: number;
   grossProfit: number;
   grossProfitMargin: number;
   netProfit: number;
@@ -1804,7 +1832,7 @@ export const getYearlyRevenueReport = async (
   // Fetch approved expenses
   const expensesSnapshot = await adminFirestore
     .collection("expenses")
-    .where("type", "==", "expense")
+    // .where("type", "==", "expense") // Include income
     .where("status", "==", "APPROVED")
     .where("createdAt", ">=", Timestamp.fromDate(fromDate))
     .where("createdAt", "<=", Timestamp.fromDate(toDate))
@@ -1823,13 +1851,19 @@ export const getYearlyRevenueReport = async (
 
   // Group expenses by year YYYY
   const expensesByYear: Record<string, number> = {};
+  const incomeByYear: Record<string, number> = {};
   expensesSnapshot.forEach((doc) => {
     const expense = doc.data();
     const date = (expense.createdAt as Timestamp).toDate();
     const yearStr = String(date.getFullYear());
 
-    if (!expensesByYear[yearStr]) expensesByYear[yearStr] = 0;
-    expensesByYear[yearStr] += Number(expense.amount || 0);
+    if (expense.type === "income") {
+      if (!incomeByYear[yearStr]) incomeByYear[yearStr] = 0;
+      incomeByYear[yearStr] += Number(expense.amount || 0);
+    } else {
+      if (!expensesByYear[yearStr]) expensesByYear[yearStr] = 0;
+      expensesByYear[yearStr] += Number(expense.amount || 0);
+    }
   });
 
   const yearly: YearlyRevenue[] = [];
@@ -1841,6 +1875,7 @@ export const getYearlyRevenueReport = async (
     totalDiscount: 0,
     totalTransactionFee: 0,
     totalExpenses: 0,
+    totalOtherIncome: 0,
     grossProfit: 0,
     grossProfitMargin: 0,
     netProfit: 0,
@@ -1883,10 +1918,12 @@ export const getYearlyRevenueReport = async (
       });
 
       const totalExpenses = Number(expensesByYear[yearStr] || 0);
+      const totalOtherIncome = Number(incomeByYear[yearStr] || 0);
       const grossProfit = totalSales - totalCOGS;
       const grossProfitMargin =
         totalSales > 0 ? (grossProfit / totalSales) * 100 : 0;
-      const netProfit = totalNetSales - totalExpenses - totalCOGS;
+      const netProfit =
+        totalNetSales + totalOtherIncome - totalExpenses - totalCOGS;
       const netProfitMargin =
         totalNetSales > 0 ? (netProfit / totalNetSales) * 100 : 0;
 
@@ -1899,6 +1936,7 @@ export const getYearlyRevenueReport = async (
         totalDiscount,
         totalTransactionFee,
         totalExpenses,
+        totalOtherIncome,
         grossProfit,
         grossProfitMargin,
         netProfit,
@@ -1912,6 +1950,7 @@ export const getYearlyRevenueReport = async (
       summaryTotals.totalDiscount += totalDiscount;
       summaryTotals.totalTransactionFee += totalTransactionFee;
       summaryTotals.totalExpenses += totalExpenses;
+      summaryTotals.totalOtherIncome += totalOtherIncome;
       summaryTotals.grossProfit += grossProfit;
       summaryTotals.netProfit += netProfit;
     });

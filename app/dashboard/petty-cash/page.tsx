@@ -259,6 +259,7 @@ export default function PettyCashList() {
                 <TableRow>
                   <TableCell>Amount</TableCell>
                   <TableCell>Category</TableCell>
+                  <TableCell>Type</TableCell>
                   <TableCell>Note</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Date</TableCell>
@@ -278,6 +279,13 @@ export default function PettyCashList() {
                     <TableRow key={entry.id}>
                       <TableCell>{entry.amount}</TableCell>
                       <TableCell>{entry.category}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={entry.type === "income" ? "Income" : "Expense"}
+                          color={entry.type === "income" ? "success" : "error"}
+                          size="small"
+                        />
+                      </TableCell>
                       <TableCell>{entry.note}</TableCell>
                       <TableCell>
                         <Chip

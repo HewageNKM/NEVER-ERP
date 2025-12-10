@@ -1,4 +1,4 @@
-  "use client";
+"use client";
 import React, { useState } from "react";
 import {
   Box,
@@ -82,6 +82,7 @@ const YearRevenuePage = () => {
         "Total Discount (Rs)": y.totalDiscount.toFixed(2),
         "Transaction Fee (Rs)": y.totalTransactionFee.toFixed(2),
         "Total Expenses (Rs)": y.totalExpenses.toFixed(2),
+        "Other Income (Rs)": y.totalOtherIncome.toFixed(2),
         "Gross Profit (Rs)": y.grossProfit.toFixed(2),
         "Gross Margin (%)": y.grossProfitMargin.toFixed(2),
         "Net Profit (Rs)": y.netProfit.toFixed(2),
@@ -208,6 +209,10 @@ const YearRevenuePage = () => {
               value: `Rs ${summary.totalExpenses.toFixed(2)}`,
             },
             {
+              label: "Other Income",
+              value: `Rs ${summary.totalOtherIncome.toFixed(2)}`,
+            },
+            {
               label: "Gross Profit",
               value: `Rs ${summary.grossProfit.toFixed(2)}`,
             },
@@ -308,6 +313,7 @@ const YearRevenuePage = () => {
                 <TableCell>Total Discount</TableCell>
                 <TableCell>Transaction Fee</TableCell>
                 <TableCell>Total Expenses</TableCell>
+                <TableCell>Other Income</TableCell>
                 <TableCell>Gross Profit</TableCell>
                 <TableCell>Margin %</TableCell>
                 <TableCell>Net Profit</TableCell>
@@ -338,6 +344,7 @@ const YearRevenuePage = () => {
                     <TableCell>Rs {y.totalDiscount.toFixed(2)}</TableCell>
                     <TableCell>Rs {y.totalTransactionFee.toFixed(2)}</TableCell>
                     <TableCell>Rs {y.totalExpenses.toFixed(2)}</TableCell>
+                    <TableCell>Rs {y.totalOtherIncome.toFixed(2)}</TableCell>
                     <TableCell>Rs {y.grossProfit.toFixed(2)}</TableCell>
                     <TableCell>{y.grossProfitMargin.toFixed(2)}%</TableCell>
                     <TableCell>Rs {y.netProfit.toFixed(2)}</TableCell>

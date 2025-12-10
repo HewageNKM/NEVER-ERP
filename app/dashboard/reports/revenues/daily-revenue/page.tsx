@@ -47,6 +47,7 @@ interface DailyRevenue {
   totalDiscount: number;
   totalTransactionFee: number;
   totalExpenses: number;
+  totalOtherIncome: number;
   grossProfit: number;
   grossProfitMargin: number;
   netProfit: number;
@@ -131,6 +132,7 @@ const DailyRevenuePage = () => {
       "Total Discount (Rs)": d.totalDiscount.toFixed(2),
       "Total Transaction Fee (Rs)": d.totalTransactionFee.toFixed(2),
       "Total Expenses (Rs)": d.totalExpenses.toFixed(2),
+      "Other Income (Rs)": d.totalOtherIncome.toFixed(2),
       "Gross Profit (Rs)": d.grossProfit.toFixed(2),
       "Gross Profit Margin (%)": d.grossProfitMargin.toFixed(2),
       "Net Profit (Rs)": d.netProfit.toFixed(2),
@@ -241,6 +243,7 @@ const DailyRevenuePage = () => {
               value: summary.totalTransactionFee,
             },
             { label: "Total Expenses", value: summary.totalExpenses },
+            { label: "Other Income", value: summary.totalOtherIncome },
             { label: "Gross Profit", value: summary.grossProfit },
             {
               label: "Gross Margin",
@@ -352,6 +355,7 @@ const DailyRevenuePage = () => {
                   <TableCell>Total Discount (Rs)</TableCell>
                   <TableCell>Total Transaction Fee (Rs)</TableCell>
                   <TableCell>Total Expenses (Rs)</TableCell>
+                  <TableCell>Other Income (Rs)</TableCell>
                   <TableCell>Gross Profit (Rs)</TableCell>
                   <TableCell>Margin %</TableCell>
                   <TableCell>Net Profit (Rs)</TableCell>
@@ -373,6 +377,7 @@ const DailyRevenuePage = () => {
                         {day.totalTransactionFee.toFixed(2)}
                       </TableCell>
                       <TableCell>{day.totalExpenses.toFixed(2)}</TableCell>
+                      <TableCell>{day.totalOtherIncome.toFixed(2)}</TableCell>
                       <TableCell>{day.grossProfit.toFixed(2)}</TableCell>
                       <TableCell>{day.grossProfitMargin.toFixed(2)}%</TableCell>
                       <TableCell>{day.netProfit.toFixed(2)}</TableCell>
