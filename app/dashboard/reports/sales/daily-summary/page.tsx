@@ -40,18 +40,22 @@ import {
   Legend,
 } from "recharts";
 import { useSnackbar } from "@/contexts/SnackBarContext";
+import { useAppSelector } from "@/lib/hooks";
+import { RootState } from "@/lib/store";
+import { useEffect } from "react";
 
 const MAX_RANGE_DAYS = 31;
 
 const Page = () => {
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const [from, setFrom] = useState(new Date().toISOString().split("T")[0]);
+  const [to, setTo] = useState(new Date().toISOString().split("T")[0]);
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<any>(null);
   const { showNotification } = useSnackbar();
+  const { currentUser } = useAppSelector((state: RootState) => state.authSlice);
 
-  const fetchReport = async (evt: any) => {
-    evt.preventDefault();
+  const fetchReport = async (evt?: React.FormEvent) => {
+    if (evt) evt.preventDefault();
 
     // --- Date range validation (max 31 days) ---
     const start = new Date(from);
@@ -83,6 +87,10 @@ const Page = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (currentUser) fetchReport();
+  }, [currentUser]);
 
   const handleExportExcel = () => {
     if (!summary?.daily || summary.daily.length === 0) return;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Paper,
@@ -36,61 +36,63 @@ import {
 import axios from "axios";
 import { useSnackbar } from "@/contexts/SnackBarContext";
 import { getToken } from "@/firebase/firebaseClient";
+import { useAppSelector } from "@/lib/hooks";
+import { RootState } from "@/lib/store";
 
 interface MonthlyRow {
-  month: string;
-  totalSales: number;
-  totalNetSales: number;
-  totalCOGS: number;
-  totalOrders: number;
-  totalDiscount: number;
-  totalTransactionFee: number;
-  totalExpenses: number;
-  totalOtherIncome: number;
-  grossProfit: number;
-  grossProfitMargin: number;
-  netProfit: number;
-  netProfitMargin: number;
+  month?: string;
+  totalSales?: number;
+  totalNetSales?: number;
+  totalCOGS?: number;
+  totalOrders?: number;
+  totalDiscount?: number;
+  totalTransactionFee?: number;
+  totalExpenses?: number;
+  totalOtherIncome?: number;
+  grossProfit?: number;
+  grossProfitMargin?: number;
+  netProfit?: number;
+  netProfitMargin?: number;
 }
 
 interface SummaryType {
-  totalSales: number;
-  totalNetSales: number;
-  totalCOGS: number;
-  totalOrders: number;
-  totalDiscount: number;
-  totalTransactionFee: number;
-  totalExpenses: number;
-  totalOtherIncome: number;
-  grossProfit: number;
-  grossProfitMargin: number;
-  netProfit: number;
-  netProfitMargin: number;
+  totalSales?: number;
+  totalNetSales?: number;
+  totalCOGS?: number;
+  totalOrders?: number;
+  totalDiscount?: number;
+  totalTransactionFee?: number;
+  totalExpenses?: number;
+  totalOtherIncome?: number;
+  grossProfit?: number;
+  grossProfitMargin?: number;
+  netProfit?: number;
+  netProfitMargin?: number;
 }
 
 const MAX_MONTH_RANGE = 12;
 
 export default function MonthlyRevenuePage() {
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const [from, setFrom] = useState(new Date().toISOString().slice(0, 7));
+  const [to, setTo] = useState(new Date().toISOString().slice(0, 7));
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<MonthlyRow[]>([]);
   const [summary, setSummary] = useState<SummaryType | null>(null);
 
+  const { currentUser } = useAppSelector((state: RootState) => state.authSlice);
   const { showNotification } = useSnackbar();
 
-  // pagination
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(6);
 
-  // Convert "YYYY-MM" → first day
-  const getMonthStart = (monthStr: string) => {
+  const getMonthStart = (monthStr: string | null | undefined) => {
+    if (!monthStr || !monthStr.includes("-")) return "";
     const [y, m] = monthStr.split("-");
     return `${y}-${m}-01`;
   };
 
-  // Convert "YYYY-MM" → last day
-  const getMonthEnd = (monthStr: string) => {
+  const getMonthEnd = (monthStr: string | null | undefined) => {
+    if (!monthStr || !monthStr.includes("-")) return "";
     const [y, m] = monthStr.split("-");
     const lastDay = new Date(Number(y), Number(m), 0).getDate();
     return `${y}-${m}-${lastDay}`;
@@ -101,6 +103,9 @@ export default function MonthlyRevenuePage() {
 
     const start = new Date(getMonthStart(from));
     const end = new Date(getMonthEnd(to));
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime()))
+      return "Invalid date range.";
 
     if (start > end) return "From month cannot be after To month.";
 
@@ -115,8 +120,8 @@ export default function MonthlyRevenuePage() {
     return null;
   };
 
-  const fetchReport = async (evt: any) => {
-    evt.preventDefault();
+  const fetchReport = async (evt?: React.FormEvent) => {
+    if (evt) evt.preventDefault();
 
     const err = validateRange();
     if (err) {
@@ -127,6 +132,7 @@ export default function MonthlyRevenuePage() {
     setLoading(true);
     try {
       const token = await getToken();
+
       const res = await axios.get("/api/v2/reports/revenues/monthly-revenue", {
         params: {
           from: getMonthStart(from),
@@ -135,15 +141,24 @@ export default function MonthlyRevenuePage() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setRows(res.data.monthly || []);
-      setSummary(res.data.summary || null);
+      setRows(Array.isArray(res.data?.monthly) ? res.data.monthly : []); // SAFE
+      setSummary(res.data?.summary || null);
       setPage(0);
     } catch (error) {
       console.error(error);
+      showNotification("Failed to load report", "error");
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (currentUser) fetchReport();
+  }, [currentUser]);
+
+  const safeMoney = (v?: number) => `Rs ${Number(v ?? 0).toFixed(2)}`; // SAFE MONEY FORMAT
+
+  const safePercent = (v?: number) => `${Number(v ?? 0).toFixed(2)}%`; // SAFE PERCENT
 
   return (
     <PageContainer title="Monthly Revenue">
@@ -172,11 +187,7 @@ export default function MonthlyRevenuePage() {
       <Paper sx={{ p: 2, mb: 3 }}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
           <form
-            style={{
-              display: "flex",
-              gap: "10px",
-              flexWrap: "wrap",
-            }}
+            style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}
             onSubmit={fetchReport}
           >
             <TextField
@@ -184,7 +195,7 @@ export default function MonthlyRevenuePage() {
               type="month"
               label="From Month"
               InputLabelProps={{ shrink: true }}
-              value={from}
+              value={from || ""}
               onChange={(e) => setFrom(e.target.value)}
               size="small"
             />
@@ -193,7 +204,7 @@ export default function MonthlyRevenuePage() {
               type="month"
               label="To Month"
               InputLabelProps={{ shrink: true }}
-              value={to}
+              value={to || ""}
               onChange={(e) => setTo(e.target.value)}
               size="small"
             />
@@ -221,27 +232,34 @@ export default function MonthlyRevenuePage() {
         <Box sx={{ mb: 3, display: "flex", flexWrap: "wrap", gap: 2 }}>
           {[
             { label: "Total Orders", value: summary.totalOrders },
-            { label: "Total Sales", value: summary.totalSales },
-            { label: "Net Sales", value: summary.totalNetSales },
-            { label: "COGS", value: summary.totalCOGS },
-            { label: "Total Discount", value: summary.totalDiscount },
+            { label: "Total Sales", value: safeMoney(summary.totalSales) },
+            { label: "Net Sales", value: safeMoney(summary.totalNetSales) },
+            { label: "COGS", value: safeMoney(summary.totalCOGS) },
+            {
+              label: "Total Discount",
+              value: safeMoney(summary.totalDiscount),
+            },
             {
               label: "Total Trans. Fee",
-              value: summary.totalTransactionFee,
+              value: safeMoney(summary.totalTransactionFee),
             },
-            { label: "Total Expenses", value: summary.totalExpenses },
-            { label: "Other Income", value: summary.totalOtherIncome },
-            { label: "Gross Profit", value: summary.grossProfit },
+            {
+              label: "Total Expenses",
+              value: safeMoney(summary.totalExpenses),
+            },
+            {
+              label: "Other Income",
+              value: safeMoney(summary.totalOtherIncome),
+            },
+            { label: "Gross Profit", value: safeMoney(summary.grossProfit) },
             {
               label: "Gross Margin",
-              value: `${summary.grossProfitMargin.toFixed(2)}%`,
-              isPercent: true,
+              value: safePercent(summary.grossProfitMargin),
             },
-            { label: "Net Profit", value: summary.netProfit },
+            { label: "Net Profit", value: safeMoney(summary.netProfit) },
             {
               label: "Net Margin",
-              value: `${summary.netProfitMargin.toFixed(2)}%`,
-              isPercent: true,
+              value: safePercent(summary.netProfitMargin),
             },
           ].map((card) => (
             <Paper
@@ -252,10 +270,9 @@ export default function MonthlyRevenuePage() {
                 {card.label}
               </Typography>
               <Typography variant="h6" fontWeight={600}>
-                {/* @ts-ignore */}
-                {card.isPercent
-                  ? card.value
-                  : `Rs ${(card.value || 0).toFixed(2)}`}
+                {card.value === undefined || card.value === null
+                  ? "—"
+                  : card.value}
               </Typography>
             </Paper>
           ))}
@@ -268,7 +285,7 @@ export default function MonthlyRevenuePage() {
           {/* Line Chart */}
           <Box sx={{ width: "100%", height: 400, mb: 3 }}>
             <ResponsiveContainer>
-              <LineChart data={rows}>
+              <LineChart data={rows.map((r) => ({ ...r }))}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
@@ -356,28 +373,25 @@ export default function MonthlyRevenuePage() {
                   .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                   .map((r, idx) => (
                     <TableRow key={idx} hover>
-                      <TableCell>{r.month}</TableCell>
-                      <TableCell>{r.totalOrders}</TableCell>
-                      <TableCell>Rs {r.totalSales.toFixed(2)}</TableCell>
-                      <TableCell>Rs {r.totalNetSales.toFixed(2)}</TableCell>
-                      <TableCell>Rs {r.totalCOGS.toFixed(2)}</TableCell>
-                      <TableCell>Rs {r.totalDiscount.toFixed(2)}</TableCell>
-                      <TableCell>
-                        Rs {r.totalTransactionFee.toFixed(2)}
-                      </TableCell>
-                      <TableCell>Rs {r.totalExpenses.toFixed(2)}</TableCell>
-                      <TableCell>Rs {r.totalOtherIncome.toFixed(2)}</TableCell>
-                      <TableCell>Rs {r.grossProfit.toFixed(2)}</TableCell>
-                      <TableCell>{r.grossProfitMargin.toFixed(2)}%</TableCell>
-                      <TableCell>Rs {r.netProfit.toFixed(2)}</TableCell>
-                      <TableCell>{r.netProfitMargin.toFixed(2)}%</TableCell>
+                      <TableCell>{r.month ?? "—"}</TableCell>
+                      <TableCell>{r.totalOrders ?? 0}</TableCell>
+                      <TableCell>{safeMoney(r.totalSales)}</TableCell>
+                      <TableCell>{safeMoney(r.totalNetSales)}</TableCell>
+                      <TableCell>{safeMoney(r.totalCOGS)}</TableCell>
+                      <TableCell>{safeMoney(r.totalDiscount)}</TableCell>
+                      <TableCell>{safeMoney(r.totalTransactionFee)}</TableCell>
+                      <TableCell>{safeMoney(r.totalExpenses)}</TableCell>
+                      <TableCell>{safeMoney(r.totalOtherIncome)}</TableCell>
+                      <TableCell>{safeMoney(r.grossProfit)}</TableCell>
+                      <TableCell>{safePercent(r.grossProfitMargin)}</TableCell>
+                      <TableCell>{safeMoney(r.netProfit)}</TableCell>
+                      <TableCell>{safePercent(r.netProfitMargin)}</TableCell>
                     </TableRow>
                   ))}
               </TableBody>
             </Table>
           </TableContainer>
 
-          {/* Pagination */}
           <TablePagination
             rowsPerPageOptions={[6, 12, 24]}
             component="div"

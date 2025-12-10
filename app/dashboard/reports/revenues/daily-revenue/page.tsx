@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import {
   Box,
@@ -37,6 +37,8 @@ import {
 import axios from "axios";
 import { getToken } from "@/firebase/firebaseClient";
 import { useSnackbar } from "@/contexts/SnackBarContext";
+import { useAppSelector } from "@/lib/hooks";
+import { RootState } from "@/lib/store";
 
 interface DailyRevenue {
   date: string;
@@ -61,12 +63,13 @@ interface RevenueReport {
 const MAX_RANGE_DAYS = 31;
 
 const DailyRevenuePage = () => {
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const [from, setFrom] = useState(new Date().toISOString().split("T")[0]);
+  const [to, setTo] = useState(new Date().toISOString().split("T")[0]);
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<DailyRevenue[]>([]);
   const [summary, setSummary] = useState<RevenueReport["summary"] | null>(null);
   const { showNotification } = useSnackbar();
+  const { currentUser } = useAppSelector((state: RootState) => state.authSlice);
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -82,8 +85,8 @@ const DailyRevenuePage = () => {
     setPage(0);
   };
 
-  const fetchReport = async (evt: any) => {
-    evt.preventDefault();
+  const fetchReport = async (evt?: React.FormEvent) => {
+    if (evt) evt.preventDefault();
 
     const fromDate = new Date(from);
     const toDate = new Date(to);
@@ -116,6 +119,10 @@ const DailyRevenuePage = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (currentUser) fetchReport();
+  }, [currentUser]);
 
   const handleExportExcel = () => {
     if (!report || report.length === 0) {

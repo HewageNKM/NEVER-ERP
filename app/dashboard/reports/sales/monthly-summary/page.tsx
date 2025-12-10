@@ -40,18 +40,22 @@ import {
   Legend,
 } from "recharts";
 import { useSnackbar } from "@/contexts/SnackBarContext";
+import { useAppSelector } from "@/lib/hooks";
+import { RootState } from "@/lib/store";
+import { useEffect } from "react";
 
 const MAX_MONTHS_RANGE = 12;
 
 const MonthlySummaryPage = () => {
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const [from, setFrom] = useState(new Date().toISOString().slice(0, 7));
+  const [to, setTo] = useState(new Date().toISOString().slice(0, 7));
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<any>(null);
   const { showNotification } = useSnackbar();
+  const { currentUser } = useAppSelector((state: RootState) => state.authSlice);
 
-  const fetchReport = async (evt: any) => {
-    evt.preventDefault();
+  const fetchReport = async (evt?: React.FormEvent) => {
+    if (evt) evt.preventDefault();
 
     if (!from || !to) return;
 
@@ -93,6 +97,10 @@ const MonthlySummaryPage = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (currentUser) fetchReport();
+  }, [currentUser]);
 
   const handleExportExcel = () => {
     if (!summary?.monthly || summary.monthly.length === 0) return;
