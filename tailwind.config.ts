@@ -8,16 +8,25 @@ const config: Config = {
   ],
   theme: {
     extend: {
-      boxShadow: {
-        primary:"rgba(0, 0, 0, 0.16) 0px 3px 6px, rgba(0, 0, 0, 0.23) 0px 3px 6px"
-      },
       colors: {
-        'primary-50':'#F0F9E8',
-        'primary-100':'#97E13E',
-        'primary-200':'#7CAB3D',
-        'primary-300':'#6B903B',
-        'primary-400':'#5A7539',
-      }
+        // Nike-like minimalist palette
+        primary: "var(--color-primary)",
+        secondary: "var(--color-secondary)",
+        accent: "var(--color-accent)",
+        "off-white": "var(--color-off-white)",
+        "light-gray": "var(--color-light-gray)",
+      },
+      fontFamily: {
+        sans: ["var(--font-sans)"],
+        heading: ["var(--font-heading)"],
+      },
+      boxShadow: {
+        // Subtle, premium shadows
+        subtle:
+          "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)",
+        premium:
+          "0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025)",
+      },
     },
   },
   plugins: [],
