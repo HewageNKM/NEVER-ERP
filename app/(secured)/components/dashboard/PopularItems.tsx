@@ -16,7 +16,11 @@ const PopularItems = () => {
   const [items, setItems] = useState<PopularItem[] | null>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { currentUser } = useAppSelector((state) => state.authSlice);
+
+  // State for Month and Size
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [fetchSize, setFetchSize] = useState(10); // Default to Top 10
+
   const sliderRef = useRef<HTMLDivElement>(null);
 
   const months = [
@@ -34,19 +38,32 @@ const PopularItems = () => {
     { value: 11, label: "DECEMBER" },
   ];
 
+  const sizeOptions = [
+    { value: 5, label: "TOP 5" },
+    { value: 10, label: "TOP 10" },
+    { value: 20, label: "TOP 20" },
+    { value: 50, label: "TOP 50" },
+  ];
+
+  // Re-fetch when User, Month, OR Size changes
   useEffect(() => {
     if (currentUser) {
       fetchPopularItems();
     }
-  }, [currentUser, selectedMonth]);
+  }, [currentUser, selectedMonth, fetchSize]);
 
   const fetchPopularItems = async () => {
     try {
       setIsLoading(true);
-      // Fetch more items (e.g., 10) since it's now a scrollable slider
+      const currentYear = new Date().getFullYear();
+      const startDate = new Date(currentYear, selectedMonth, 1);
+      const endDate = new Date(currentYear, selectedMonth + 1, 0);
+      endDate.setHours(23, 59, 59, 999);
+
       const items: PopularItem[] = await getPopularItemsAction(
-        10,
-        selectedMonth
+        fetchSize, // Pass the dynamic size here
+        startDate,
+        endDate
       );
       setItems(items);
     } catch (e: any) {
@@ -59,7 +76,7 @@ const PopularItems = () => {
 
   const scrollSlider = (direction: "left" | "right") => {
     if (sliderRef.current) {
-      const scrollAmount = 240; // Card width (220) + Gap (20)
+      const scrollAmount = 240;
       sliderRef.current.scrollBy({
         left: direction === "right" ? scrollAmount : -scrollAmount,
         behavior: "smooth",
@@ -67,7 +84,6 @@ const PopularItems = () => {
     }
   };
 
-  // Nike aesthetic styling for controls
   const controlStyles = {
     select:
       "bg-[#f5f5f5] border-2 border-transparent text-black text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-sm focus:outline-none focus:border-black transition-colors cursor-pointer appearance-none",
@@ -78,19 +94,16 @@ const PopularItems = () => {
   return (
     <DashboardCard>
       <div className="mb-2">
-        {/* Header Controls */}
         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-6 gap-4 pb-4 border-b border-black">
           <div className="flex items-center gap-4">
             <h4 className="text-xl font-black uppercase tracking-tighter text-black leading-none">
               Trending Products
             </h4>
 
-            {/* Action Group */}
             <div className="flex gap-1">
               <button
                 onClick={fetchPopularItems}
                 className={controlStyles.iconBtn}
-                aria-label="refresh"
                 title="Refresh"
               >
                 <IconRefresh size={16} stroke={2} />
@@ -99,34 +112,50 @@ const PopularItems = () => {
               <button
                 onClick={() => scrollSlider("left")}
                 className={controlStyles.iconBtn}
-                aria-label="previous"
               >
                 <IconChevronLeft size={16} stroke={2} />
               </button>
               <button
                 onClick={() => scrollSlider("right")}
                 className={controlStyles.iconBtn}
-                aria-label="next"
               >
                 <IconChevronRight size={16} stroke={2} />
               </button>
             </div>
           </div>
 
-          <div className="relative w-full xl:w-auto">
-            <select
-              value={selectedMonth}
-              onChange={(e) =>
-                setSelectedMonth(Number.parseInt(e.target.value))
-              }
-              className={`${controlStyles.select} w-full xl:w-auto`}
-            >
-              {months.map((month) => (
-                <option key={month.value} value={month.value}>
-                  {month.label}
-                </option>
-              ))}
-            </select>
+          <div className="flex gap-2 w-full xl:w-auto">
+            {/* Size Selector */}
+            <div className="relative w-1/3 xl:w-auto">
+              <select
+                value={fetchSize}
+                onChange={(e) => setFetchSize(Number(e.target.value))}
+                className={`${controlStyles.select} w-full text-center`}
+              >
+                {sizeOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Month Selector */}
+            <div className="relative w-2/3 xl:w-auto">
+              <select
+                value={selectedMonth}
+                onChange={(e) =>
+                  setSelectedMonth(Number.parseInt(e.target.value))
+                }
+                className={`${controlStyles.select} w-full xl:w-auto`}
+              >
+                {months.map((month) => (
+                  <option key={month.value} value={month.value}>
+                    {month.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -135,11 +164,10 @@ const PopularItems = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
           </div>
         ) : (
-          /* SLIDER CONTAINER */
           <div
             ref={sliderRef}
             className="flex gap-5 overflow-x-auto pb-4 scrollbar-hide scroll-smooth snap-x snap-mandatory"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }} // Hide scrollbar for Firefox/IE
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {items?.map((item: PopularItem) => (
               <div key={item.item.itemId} className="snap-start">

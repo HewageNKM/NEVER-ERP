@@ -434,20 +434,30 @@ export const deleteItemById = async (itemId: string) => {
   }
 };
 
-export const getPopularItems = async (limit: number = 10, month: number) => {
+export const getPopularItems = async (
+  limit: number = 10,
+  month: number, // 0-indexed (0 = Jan, 11 = Dec)
+  year: number
+): Promise<PopularItem[]> => {
   try {
-    const date = new Date();
-    const startDay = new Date(date.getFullYear(), month, 1);
-    const endDay = new Date(date.getFullYear(), month + 1, 0);
+    // 1. Calculate First Day: Year, Month, 1st day
+    const startDay = new Date(year, month, 1);
+    startDay.setHours(0, 0, 0, 0); // Start of the day (00:00:00.000)
 
-    startDay.setHours(0, 0, 0);
-    endDay.setHours(23, 59, 59);
+    // 2. Calculate Last Day: "0th" day of the NEXT month gives the last day of THIS month
+    // This automatically handles Feb 28/29 and months with 30/31 days.
+    const endDay = new Date(year, month + 1, 0);
+    endDay.setHours(23, 59, 59, 999); // End of the day (23:59:59.999)
 
-    console.log(`Fetching popular items from ${startDay} to ${endDay}`);
+    console.log(
+      `Fetching popular items from ${startDay.toString()} to ${endDay.toString()}`
+    );
 
-    const startTimestamp = admin.firestore.Timestamp.fromDate(startDay);
-    const endTimestamp = admin.firestore.Timestamp.fromDate(endDay);
+    // Convert to Firestore Timestamps
+    const startTimestamp = Timestamp.fromDate(startDay);
+    const endTimestamp = Timestamp.fromDate(endDay);
 
+    // 3. Query Orders
     const orders = await adminFirestore
       .collection("orders")
       .where("paymentStatus", "==", "Paid")
@@ -456,39 +466,66 @@ export const getPopularItems = async (limit: number = 10, month: number) => {
       .get();
 
     console.log(`Fetched ${orders.size} orders`);
+
+    // 4. Aggregate Sales Counts
     const itemsMap = new Map<string, number>();
     orders.forEach((doc) => {
       const order = doc.data() as Order;
-      order.items.forEach((item) => {
-        const count = itemsMap.get(item.itemId) || 0;
-        itemsMap.set(item.itemId, count + item.quantity);
-      });
+      if (order.items && Array.isArray(order.items)) {
+        order.items.forEach((item) => {
+          const count = itemsMap.get(item.itemId) || 0;
+          itemsMap.set(item.itemId, count + item.quantity);
+        });
+      }
     });
-    console.log(`Fetched ${itemsMap.size} items sold`);
-    const itemIds = Array.from(itemsMap.keys());
-    const itemDocs = await Promise.all(
-      itemIds.map((itemId) =>
-        adminFirestore.collection("products").doc(itemId).get()
-      )
+
+    console.log(`Fetched ${itemsMap.size} unique items sold`);
+
+    // 5. OPTIMIZATION: Sort IDs by count FIRST, slice top N, THEN fetch product data.
+    // This prevents reading 100 documents if you only need the top 10.
+    const sortedEntries = Array.from(itemsMap.entries())
+      .sort((a, b) => b[1] - a[1]) // Sort descending
+      .slice(0, limit); // Take top 'limit' (e.g., 10)
+
+    // 6. Fetch details only for the winners
+    const popularItems: PopularItem[] = [];
+
+    await Promise.all(
+      sortedEntries.map(async ([itemId, count]) => {
+        try {
+          const productDoc = await adminFirestore
+            .collection("products")
+            .doc(itemId)
+            .get();
+
+          if (productDoc.exists) {
+            const itemData = productDoc.data() as Product; // Changed cast to Product
+            popularItems.push({
+              item: {
+                ...itemData,
+                // Explicitly nullify or format dates to avoid serialization issues
+                createdAt: null,
+                updatedAt: null,
+              },
+              soldCount: count,
+            });
+          }
+        } catch (fetchErr) {
+          console.error(`Error fetching product ${itemId}:`, fetchErr);
+        }
+      })
     );
-    const popularItem: PopularItem[] = itemDocs.map((doc) => {
-      const item = doc.data() as Item;
-      return {
-        item: {
-          ...item,
-          createdAt: null,
-          updatedAt: null,
-        },
-        soldCount: itemsMap.get(item.itemId) || 0,
-      };
-    });
-    console.log(`Fetched ${popularItem.length} popular items`);
-    popularItem.sort((a, b) => b.soldCount - a.soldCount);
-    return popularItem.slice(0, limit);
+
+    console.log(`Fetched ${popularItems.length} popular items`);
+
+    // 7. Final sort (Promise.all might return out of order)
+    return popularItems.sort((a, b) => b.soldCount - a.soldCount);
   } catch (e) {
+    console.error("Error in getPopularItems:", e);
     throw e;
   }
 };
+
 export const getSaleReport = async (fromDate: string, toDate: string) => {
   try {
     console.log(`Fetching sales data from ${fromDate} to ${toDate}`);

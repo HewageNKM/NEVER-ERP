@@ -5,6 +5,8 @@ import { nanoid } from "nanoid";
 import { generateTags } from "./AIService";
 import { FieldValue } from "firebase-admin/firestore";
 import { toSafeLocaleString } from "./UtilService";
+import { Order, PopularItem } from "@/model";
+import { Timestamp } from "firebase-admin/firestore";
 
 const PRODUCTS_COLLECTION = "products";
 const BUCKET = adminStorageBucket;
@@ -257,5 +259,92 @@ export const getProductDropdown = async () => {
   } catch (error) {
     console.error("Get Product Dropdown Error:", error);
     throw error;
+  }
+};
+
+export const getPopularProducts = async (
+  startDate: string,
+  endDate: string,
+  size: number
+): Promise<PopularItem[]> => {
+  try {
+    // Construct dates using the explicit year provided
+    const startDay = new Date(startDate);
+
+    // Setting day to 0 of (month + 1) gets the last day of the target month
+    const endDay = new Date(endDate);
+
+    startDay.setHours(0, 0, 0, 0);
+    endDay.setHours(23, 59, 59, 999);
+
+    console.log(`Fetching popular items from ${startDay} to ${endDay}`);
+
+    const startTimestamp = Timestamp.fromDate(startDay);
+    const endTimestamp = Timestamp.fromDate(endDay);
+
+    // Query orders within the exact start and end timestamps
+    const orders = await adminFirestore
+      .collection("orders")
+      .where("paymentStatus", "==", "Paid")
+      .where("createdAt", ">=", startTimestamp)
+      .where("createdAt", "<=", endTimestamp)
+      .get();
+
+    console.log(`Fetched ${orders.size} orders`);
+
+    const itemsMap = new Map<string, number>();
+
+    orders.forEach((doc) => {
+      const order = doc.data() as Order;
+      if (order.items && Array.isArray(order.items)) {
+        order.items.forEach((item) => {
+          const count = itemsMap.get(item.itemId) || 0;
+          itemsMap.set(item.itemId, count + item.quantity);
+        });
+      }
+    });
+
+    console.log(`Fetched ${itemsMap.size} unique items sold`);
+
+    // Sort by sales count (descending) and take top 'size' items
+    const sortedEntries = Array.from(itemsMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, size);
+
+    const popularItems: PopularItem[] = [];
+
+    // Fetch product details for the top items only
+    await Promise.all(
+      sortedEntries.map(async ([itemId, count]) => {
+        try {
+          const productDoc = await adminFirestore
+            .collection("products")
+            .doc(itemId)
+            .get();
+
+          if (productDoc.exists) {
+            const itemData = productDoc.data() as Product;
+            popularItems.push({
+              item: {
+                ...itemData,
+                createdAt: toSafeLocaleString(itemData.createdAt),
+                updatedAt: toSafeLocaleString(itemData.updatedAt),
+              },
+              soldCount: count,
+            });
+          }
+        } catch (err) {
+          console.error(`Failed to fetch product details for ${itemId}`, err);
+        }
+      })
+    );
+
+    console.log(`Returning ${popularItems.length} popular items`);
+
+    // Ensure final array is sorted by count (Promise.all might mix order)
+    return popularItems.sort((a, b) => b.soldCount - a.soldCount);
+  } catch (e) {
+    console.error("Error getting popular products:", e);
+    throw e;
   }
 };
