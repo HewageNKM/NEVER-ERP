@@ -8,7 +8,12 @@ import VariantList from "./VariantList";
 import VariantFormModal from "./VariantFormModal";
 import Image from "next/image";
 import { showNotification } from "@/utils/toast";
-import { IconX, IconUpload, IconLoader } from "@tabler/icons-react";
+import {
+  IconX,
+  IconUpload,
+  IconLoader,
+  IconPackage,
+} from "@tabler/icons-react";
 
 const emptyProduct: Omit<Product, "itemId"> & { itemId: string | null } = {
   name: "",
@@ -45,6 +50,20 @@ interface ProductFormModalProps {
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
 const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
+// --- NIKE AESTHETIC STYLES ---
+const styles = {
+  label:
+    "block text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-2",
+  input:
+    "block w-full bg-[#f5f5f5] text-gray-900 text-sm font-medium px-4 py-3 rounded-sm border-2 border-transparent focus:bg-white focus:border-black transition-all duration-200 outline-none placeholder:text-gray-400",
+  select:
+    "block w-full bg-[#f5f5f5] text-gray-900 text-sm font-medium px-4 py-3 rounded-sm border-2 border-transparent focus:bg-white focus:border-black transition-all duration-200 outline-none appearance-none cursor-pointer uppercase",
+  primaryBtn:
+    "flex items-center justify-center px-8 py-4 bg-black text-white text-xs font-black uppercase tracking-widest hover:bg-gray-900 transition-all shadow-lg hover:shadow-xl disabled:opacity-50",
+  secondaryBtn:
+    "flex items-center justify-center px-6 py-4 border-2 border-transparent hover:border-gray-200 text-black text-xs font-black uppercase tracking-widest transition-all",
+};
+
 const ProductFormModal: React.FC<ProductFormModalProps> = ({
   open,
   onClose,
@@ -75,14 +94,13 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     }
   }, [product, open]);
 
-  // --- General Form Handlers ---
+  // --- Handlers ---
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => {
     const { name, value, type } = e.target;
-    // Handle checkbox/switch manually since types might vary
     const checked = (e.target as HTMLInputElement).checked;
 
     if (errors[name as keyof ProductErrors]) {
@@ -104,7 +122,6 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     }));
   };
 
-  // --- Thumbnail File Handler ---
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files ? e.target.files[0] : null;
     if (!file) {
@@ -129,7 +146,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     }
   };
 
-  // --- Variant Modal Handlers ---
+  // --- Variant Handlers ---
   const handleOpenAddVariant = () => {
     setEditingVariantIndex(null);
     setIsVariantModalOpen(true);
@@ -148,7 +165,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const handleDeleteVariant = async (index: number) => {
     if (
       window.confirm(
-        "Are you sure you want to remove this variant locally? It will be permanently deleted when you save the product."
+        "REMOVE VARIANT? This action will be saved when you update the product."
       )
     ) {
       setFormData((prev) => ({
@@ -181,24 +198,18 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     });
   };
 
-  // --- Validation & Main Save Handler ---
+  // --- Validation & Save ---
   const validateForm = (): boolean => {
     const newErrors: ProductErrors = {};
-    if (!formData.name.trim()) newErrors.name = "Product name is required";
-    if (!formData.category) newErrors.category = "Category is required";
-    if (!formData.brand) newErrors.brand = "Brand is required";
-    if (Number(formData.weight) <= 0)
-      newErrors.weight = "Weight must be greater than 0";
-    if (Number(formData.sellingPrice) <= 0)
-      newErrors.sellingPrice = "Selling price must be greater than 0";
-    if (Number(formData.buyingPrice) < 0)
-      newErrors.buyingPrice = "Buying price cannot be negative";
-    if (Number(formData.marketPrice) < 0)
-      newErrors.marketPrice = "Market price cannot be negative";
-    if (Number(formData.discount) < 0)
-      newErrors.discount = "Discount cannot be negative";
-    if (!isEditing && !thumbnailFile)
-      newErrors.thumbnail = "Thumbnail image is required";
+    if (!formData.name.trim()) newErrors.name = "REQUIRED";
+    if (!formData.category) newErrors.category = "REQUIRED";
+    if (!formData.brand) newErrors.brand = "REQUIRED";
+    if (Number(formData.weight) <= 0) newErrors.weight = "INVALID";
+    if (Number(formData.sellingPrice) <= 0) newErrors.sellingPrice = "INVALID";
+    if (Number(formData.buyingPrice) < 0) newErrors.buyingPrice = "INVALID";
+    if (Number(formData.marketPrice) < 0) newErrors.marketPrice = "INVALID";
+    if (Number(formData.discount) < 0) newErrors.discount = "INVALID";
+    if (!isEditing && !thumbnailFile) newErrors.thumbnail = "REQUIRED";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -230,68 +241,71 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
   return (
     <>
-      {/* Backdrop */}
       <AnimatePresence>
         {open && (
           <motion.div
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto"
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/90 backdrop-blur-md p-4 overflow-y-auto"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
           >
-            {/* Modal Container */}
             <motion.div
-              className="bg-white w-full max-w-4xl rounded-sm shadow-xl flex flex-col max-h-[90vh] overflow-hidden"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{ duration: 0.2 }}
+              className="bg-white w-full max-w-5xl shadow-2xl flex flex-col h-[90vh] overflow-hidden border-2 border-black"
+              initial={{ opacity: 0, y: 20, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.98 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             >
               {/* Header */}
-              <div className="flex justify-between items-center p-6 border-b border-gray-100">
-                <h2 className="text-xl font-bold uppercase tracking-wide text-gray-900">
-                  {isEditing ? "Edit Product" : "Create New Product"}
-                </h2>
+              <div className="flex justify-between items-center p-8 border-b-2 border-black bg-white shrink-0">
+                <div>
+                  <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1 flex items-center gap-2">
+                    <IconPackage size={14} /> Product Management
+                  </span>
+                  <h2 className="text-3xl font-black uppercase tracking-tighter text-black leading-none">
+                    {isEditing ? "Modify Product" : "New Entry"}
+                  </h2>
+                </div>
                 <button
                   onClick={saving ? undefined : onClose}
                   disabled={saving}
-                  className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+                  className="group relative flex items-center justify-center w-12 h-12 bg-gray-100 hover:bg-black transition-colors duration-300"
                 >
-                  <IconX size={24} />
+                  <IconX
+                    size={24}
+                    className="text-black group-hover:text-white transition-colors"
+                  />
                 </button>
               </div>
 
               {/* Content */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="flex-1 overflow-y-auto p-8 space-y-10">
                 {/* Thumbnail Section */}
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 uppercase mb-2">
-                    Product Thumbnail
-                  </label>
-                  <div className="flex flex-wrap items-center gap-4 p-4 border border-dashed border-gray-300 rounded-sm bg-gray-50">
-                    <label className="cursor-pointer inline-flex items-center px-4 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                      <IconUpload size={18} className="mr-2" />
-                      Upload Image
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/webp, image/png, image/jpeg"
-                        onChange={handleFileChange}
-                        disabled={saving}
-                      />
-                    </label>
-
-                    <div className="flex-1 min-w-[200px]">
-                      <p className="text-sm text-gray-500">
+                  <label className={styles.label}>Main Visual</label>
+                  <div className="flex flex-col sm:flex-row items-start gap-6 p-6 border-2 border-dashed border-gray-200 hover:border-black transition-colors bg-gray-50/50">
+                    <div className="flex-1 space-y-4 w-full">
+                      <label className="cursor-pointer inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors">
+                        <IconUpload size={16} className="mr-2" />
+                        Select Image
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/webp, image/png, image/jpeg"
+                          onChange={handleFileChange}
+                          disabled={saving}
+                        />
+                      </label>
+                      <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">
                         {thumbnailFile
-                          ? thumbnailFile.name
+                          ? `Selected: ${thumbnailFile.name}`
                           : isEditing && formData.thumbnail?.url
-                          ? "Current image will be kept"
-                          : "No file selected"}
-                      </p>
+                          ? "Current Image Active"
+                          : "No file selected (Max 1MB)"}
+                      </div>
                       {errors.thumbnail && (
-                        <p className="text-xs text-red-500 mt-1">
+                        <p className="text-xs font-bold text-red-600 uppercase">
                           {errors.thumbnail}
                         </p>
                       )}
@@ -299,7 +313,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
                     {(thumbnailFile ||
                       (isEditing && formData.thumbnail?.url)) && (
-                      <div className="relative w-32 h-32 rounded-sm overflow-hidden border border-gray-200">
+                      <div className="relative w-40 h-40 bg-white border border-gray-200 p-2 shadow-sm">
                         <Image
                           width={300}
                           height={300}
@@ -308,19 +322,19 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                               ? URL.createObjectURL(thumbnailFile)
                               : formData.thumbnail?.url || ""
                           }
-                          alt="Thumbnail Preview"
-                          className="w-full h-full object-cover"
+                          alt="Preview"
+                          className="w-full h-full object-contain"
                         />
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Basic Info */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                      Product Name
+                {/* Core Details */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="lg:col-span-2">
+                    <label className={styles.label}>
+                      Product Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -328,85 +342,66 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                       value={formData.name}
                       onChange={handleChange}
                       disabled={saving}
-                      className={`w-full px-3 py-2 border rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors ${
-                        errors.name ? "border-red-500" : "border-gray-300"
+                      className={`${styles.input} ${
+                        errors.name ? "border-red-500 bg-red-50" : ""
                       }`}
+                      placeholder="ENTER PRODUCT NAME..."
                     />
-                    {errors.name && (
-                      <p className="text-xs text-red-500 mt-1">{errors.name}</p>
-                    )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                      Weight (kg)
-                    </label>
+                    <label className={styles.label}>Weight (kg)</label>
                     <input
                       type="number"
                       name="weight"
                       value={formData.weight}
                       onChange={handleChange}
                       disabled={saving}
-                      className={`w-full px-3 py-2 border rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors ${
-                        errors.weight ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={styles.input}
+                      placeholder="0.00"
                     />
-                    {errors.weight && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {errors.weight}
-                      </p>
-                    )}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                    Description
-                  </label>
+                  <label className={styles.label}>Description</label>
                   <textarea
                     name="description"
-                    rows={3}
+                    rows={4}
                     value={formData.description}
                     onChange={handleChange}
                     disabled={saving}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+                    className={`${styles.input} min-h-[120px] resize-none`}
+                    placeholder="ENTER DETAILS..."
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Categories & Brands */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                      Category
-                    </label>
+                    <label className={styles.label}>Category</label>
                     <select
                       name="category"
-                      value={formData.category} // Assuming label is stored, adjust if logic requires ID
+                      value={formData.category}
                       onChange={(e) =>
                         handleSelectChange("category", e.target.value)
                       }
                       disabled={saving}
-                      className={`w-full px-3 py-2 border rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 bg-white transition-colors ${
-                        errors.category ? "border-red-500" : "border-gray-300"
+                      className={`${styles.select} ${
+                        errors.category ? "border-red-500" : ""
                       }`}
                     >
-                      <option value="">Select Category</option>
+                      <option value="">SELECT...</option>
                       {categories.map((opt) => (
                         <option key={opt.id} value={opt.label}>
                           {opt.label}
                         </option>
                       ))}
                     </select>
-                    {errors.category && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {errors.category}
-                      </p>
-                    )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                      Brand
-                    </label>
+                    <label className={styles.label}>Brand</label>
                     <select
                       name="brand"
                       value={formData.brand}
@@ -414,169 +409,125 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                         handleSelectChange("brand", e.target.value)
                       }
                       disabled={saving}
-                      className={`w-full px-3 py-2 border rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 bg-white transition-colors ${
-                        errors.brand ? "border-red-500" : "border-gray-300"
+                      className={`${styles.select} ${
+                        errors.brand ? "border-red-500" : ""
                       }`}
                     >
-                      <option value="">Select Brand</option>
+                      <option value="">SELECT...</option>
                       {brands.map((opt) => (
                         <option key={opt.id} value={opt.label}>
                           {opt.label}
                         </option>
                       ))}
                     </select>
-                    {errors.brand && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {errors.brand}
-                      </p>
-                    )}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                      Selling Price
-                    </label>
-                    <input
-                      type="number"
-                      name="sellingPrice"
-                      value={formData.sellingPrice}
-                      onChange={handleChange}
-                      disabled={saving}
-                      className={`w-full px-3 py-2 border rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors ${
-                        errors.sellingPrice
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      }`}
-                    />
-                    {errors.sellingPrice && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {errors.sellingPrice}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                      Market Price
-                    </label>
-                    <input
-                      type="number"
-                      name="marketPrice"
-                      value={formData.marketPrice}
-                      onChange={handleChange}
-                      disabled={saving}
-                      className={`w-full px-3 py-2 border rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors ${
-                        errors.marketPrice
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      }`}
-                    />
-                    {errors.marketPrice && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {errors.marketPrice}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                      Buying Price
-                    </label>
-                    <input
-                      type="number"
-                      name="buyingPrice"
-                      value={formData.buyingPrice}
-                      onChange={handleChange}
-                      disabled={saving}
-                      className={`w-full px-3 py-2 border rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors ${
-                        errors.buyingPrice
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      }`}
-                    />
-                    {errors.buyingPrice && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {errors.buyingPrice}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                      Discount %
-                    </label>
-                    <input
-                      type="number"
-                      name="discount"
-                      value={formData.discount}
-                      onChange={handleChange}
-                      disabled={saving}
-                      className={`w-full px-3 py-2 border rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors ${
-                        errors.discount ? "border-red-500" : "border-gray-300"
-                      }`}
-                    />
-                    {errors.discount && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {errors.discount}
-                      </p>
-                    )}
+                {/* Pricing Grid */}
+                <div className="p-6 bg-gray-50 border border-gray-200">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-4 border-b border-gray-200 pb-2">
+                    Pricing Strategy
+                  </h3>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div>
+                      <label className={styles.label}>Selling Price</label>
+                      <input
+                        type="number"
+                        name="sellingPrice"
+                        value={formData.sellingPrice}
+                        onChange={handleChange}
+                        disabled={saving}
+                        className={`${styles.input} bg-white`}
+                      />
+                    </div>
+                    <div>
+                      <label className={styles.label}>Market Price</label>
+                      <input
+                        type="number"
+                        name="marketPrice"
+                        value={formData.marketPrice}
+                        onChange={handleChange}
+                        disabled={saving}
+                        className={`${styles.input} bg-white`}
+                      />
+                    </div>
+                    <div>
+                      <label className={styles.label}>Cost Price</label>
+                      <input
+                        type="number"
+                        name="buyingPrice"
+                        value={formData.buyingPrice}
+                        onChange={handleChange}
+                        disabled={saving}
+                        className={`${styles.input} bg-white`}
+                      />
+                    </div>
+                    <div>
+                      <label className={styles.label}>Discount %</label>
+                      <input
+                        type="number"
+                        name="discount"
+                        value={formData.discount}
+                        onChange={handleChange}
+                        disabled={saving}
+                        className={`${styles.input} bg-white`}
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex gap-8">
-                  <label className="flex items-center space-x-3 cursor-pointer">
+                {/* Toggles */}
+                <div className="flex gap-8 p-4 border-2 border-transparent bg-[#f5f5f5]">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <div
+                      className={`w-5 h-5 border-2 flex items-center justify-center transition-all ${
+                        formData.listing
+                          ? "bg-black border-black"
+                          : "bg-white border-gray-400"
+                      }`}
+                    >
+                      {formData.listing && <div className="w-2 h-2 bg-white" />}
+                    </div>
                     <input
                       type="checkbox"
                       name="listing"
                       checked={formData.listing}
                       onChange={handleChange}
                       disabled={saving}
-                      className="w-5 h-5 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
+                      className="hidden"
                     />
-                    <span className="text-sm font-bold text-gray-700 uppercase">
-                      Listing
+                    <span className="text-xs font-bold text-black uppercase tracking-wide">
+                      Public Listing
                     </span>
                   </label>
 
-                  <label className="flex items-center space-x-3 cursor-pointer">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <div
+                      className={`w-5 h-5 border-2 flex items-center justify-center transition-all ${
+                        formData.status
+                          ? "bg-black border-black"
+                          : "bg-white border-gray-400"
+                      }`}
+                    >
+                      {formData.status && <div className="w-2 h-2 bg-white" />}
+                    </div>
                     <input
                       type="checkbox"
                       name="status"
                       checked={formData.status}
                       onChange={handleChange}
                       disabled={saving}
-                      className="w-5 h-5 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
+                      className="hidden"
                     />
-                    <span className="text-sm font-bold text-gray-700 uppercase">
-                      Status (Active)
+                    <span className="text-xs font-bold text-black uppercase tracking-wide">
+                      Active Status
                     </span>
                   </label>
                 </div>
 
-                {/* Tags Display */}
-                {isEditing && formData.tags && formData.tags.length > 0 && (
-                  <div>
-                    <p className="text-sm font-bold text-gray-700 uppercase mb-2">
-                      Generated Keywords (Read-Only)
-                    </p>
-                    <div className="flex flex-wrap gap-2 p-2 border border-gray-200 rounded-sm bg-gray-50 max-h-24 overflow-y-auto">
-                      {formData.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="px-2 py-1 bg-white border border-gray-300 text-xs font-semibold text-gray-700 uppercase rounded-sm"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 {/* Variants */}
                 {isEditing && (
-                  <div className="pt-4 border-t border-gray-100">
+                  <div className="pt-8 border-t-2 border-black">
                     <VariantList
                       variants={formData.variants || []}
                       onAddVariant={handleOpenAddVariant}
@@ -588,23 +539,23 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
               </div>
 
               {/* Footer */}
-              <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+              <div className="p-8 border-t border-gray-200 bg-white flex justify-end gap-4 shrink-0 z-10">
                 <button
                   onClick={onClose}
                   disabled={saving}
-                  className="px-6 py-2 text-sm font-bold text-gray-600 uppercase hover:bg-gray-200 rounded-sm transition-colors"
+                  className={styles.secondaryBtn}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSubmit}
                   disabled={saving}
-                  className="px-6 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center"
+                  className={styles.primaryBtn}
                 >
                   {saving ? (
                     <>
                       <IconLoader size={18} className="animate-spin mr-2" />
-                      Saving...
+                      Processing
                     </>
                   ) : (
                     "Save Product"

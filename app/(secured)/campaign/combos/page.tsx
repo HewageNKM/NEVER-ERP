@@ -13,18 +13,20 @@ import ComboListTable from "./components/ComboListTable";
 import ComboFormModal from "./components/ComboFormModal"; // Will create next
 import { showNotification } from "@/utils/toast";
 import PageContainer from "../../components/container/PageContainer";
+import { useAppSelector } from "@/lib/hooks";
 
 const CombosPage = () => {
   const [combos, setCombos] = useState<ComboProduct[]>([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, size: 20, total: 0 });
-
+  const { currentUser } = useAppSelector((state) => state.authSlice);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ComboProduct | null>(null);
 
   useEffect(() => {
+    if (!currentUser) return;
     fetchCombos();
-  }, [pagination.page]);
+  }, [pagination.page, currentUser]);
 
   const fetchCombos = async () => {
     setLoading(true);

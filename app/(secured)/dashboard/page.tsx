@@ -10,16 +10,19 @@ import PopularItems from "../components/dashboard/PopularItems";
 const Dashboard = () => {
   return (
     <PageContainer title="Dashboard" description="This is the Dashboard">
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        {/* Sales Overview Section (8/12 width) */}
-        <div className="md:col-span-8 flex flex-col gap-6">
-          <SalesOverview />
-          <PopularItems />
+      <div className="grid grid-cols-1 row-auto lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="lg:col-span-2 xl:col-span-3 flex flex-col gap-6">
+          <div className="row-span-2">
+            <SalesOverview />
+          </div>
+          <div className="row-span-2">
+            <PopularItems />
+          </div>
         </div>
-
-        {/* Side Section (4/12 width) */}
-        <div className="md:col-span-4 flex flex-col gap-6">
-          <DailyEarnings />
+        <div className="lg:col-span-1 xl:col-span-1 flex flex-col gap-6">
+          <div className="row-span-2">
+            <DailyEarnings />
+          </div>
           <RecentTransactions />
         </div>
       </div>
@@ -27,5 +30,4 @@ const Dashboard = () => {
   );
 };
 
-export const dynamic = "force-dynamic";
 export default Dashboard;

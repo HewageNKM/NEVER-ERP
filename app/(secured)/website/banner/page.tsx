@@ -17,6 +17,7 @@ import {
   IconUpload,
   IconCloudUpload,
   IconLoader,
+  IconPhoto,
 } from "@tabler/icons-react";
 
 // ============ BANNER CARD ============
@@ -31,38 +32,39 @@ const BannerCard = ({
 
   const handleDelete = () => {
     showConfirmation({
-      title: "Delete Banner",
-      message: "Are you sure you want to delete this banner?",
+      title: "DELETE BANNER?",
+      message: "This asset will be permanently removed.",
+      variant: "danger",
       onSuccess: () => onDelete(banner.id),
     });
   };
 
   return (
-    <div className="group relative w-full sm:w-[300px] bg-white border border-gray-200 rounded-sm overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-      <div className="relative aspect-[1200/628] w-full">
+    <div className="group relative w-full sm:w-[320px] bg-gray-50 border-2 border-transparent hover:border-black transition-all duration-300">
+      <div className="relative aspect-[1200/628] w-full overflow-hidden">
         <Image
           src={banner.url}
-          alt="Banner"
+          alt="Banner Asset"
           fill
-          className="object-cover"
+          className="object-cover transition-transform duration-500 group-hover:scale-105 grayscale group-hover:grayscale-0"
           onError={(e) => console.error("Image failed to load", e)}
         />
 
-        {/* Overlay with Delete Button */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 flex justify-end p-2">
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-start justify-end p-3 opacity-0 group-hover:opacity-100">
           <button
             onClick={handleDelete}
-            className="bg-black/60 hover:bg-red-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-y-2 group-hover:translate-y-0"
-            title="Delete Banner"
+            className="bg-black text-white w-8 h-8 flex items-center justify-center hover:bg-red-600 transition-colors"
+            title="Delete"
           >
-            <IconTrash size={18} />
+            <IconTrash size={16} />
           </button>
         </div>
       </div>
 
-      <div className="p-3 border-t border-gray-100">
-        <p className="text-xs text-gray-400 font-mono truncate">
-          {banner.fileName || "banner_image.jpg"}
+      <div className="p-4 border-t-2 border-transparent group-hover:border-black bg-white transition-colors">
+        <p className="text-[10px] font-mono text-gray-400 uppercase truncate tracking-widest group-hover:text-black">
+          {banner.fileName || "UNTITLED_ASSET"}
         </p>
       </div>
     </div>
@@ -79,7 +81,7 @@ const BannerForm = ({ onSuccess }: { onSuccess: () => void }) => {
   const validateImage = (file: File): Promise<void> => {
     return new Promise((resolve, reject) => {
       if (file.size > 4 * 1024 * 1024) {
-        return reject("File size must be 4MB or less.");
+        return reject("SIZE EXCEEDED: MAX 4MB");
       }
 
       const img = new window.Image();
@@ -87,11 +89,11 @@ const BannerForm = ({ onSuccess }: { onSuccess: () => void }) => {
       img.onload = () => {
         setImageResolution(`${img.width}x${img.height}`);
         if (img.width !== 1200 || img.height !== 628) {
-          return reject("Image resolution must be 1200x628 pixels.");
+          return reject("INVALID DIMENSIONS: REQUIRED 1200x628px");
         }
         resolve();
       };
-      img.onerror = () => reject("Invalid image file.");
+      img.onerror = () => reject("FILE ERROR");
     });
   };
 
@@ -133,7 +135,7 @@ const BannerForm = ({ onSuccess }: { onSuccess: () => void }) => {
       setImagePreview(null);
       // @ts-ignore
       e.target.reset();
-      showNotification("Banner uploaded successfully", "success");
+      showNotification("BANNER UPLOADED", "success");
       onSuccess();
     } catch (e: any) {
       console.error(e);
@@ -146,14 +148,14 @@ const BannerForm = ({ onSuccess }: { onSuccess: () => void }) => {
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full max-w-lg mx-auto mt-8 p-6 bg-gray-50 border border-dashed border-gray-300 rounded-sm"
+      className="w-full max-w-2xl bg-white border-2 border-gray-200 p-8"
     >
-      <div className="flex flex-col items-center gap-6">
+      <div className="flex flex-col gap-6">
         <div
-          className={`w-full h-48 border-2 border-dashed rounded-sm flex items-center justify-center cursor-pointer relative overflow-hidden transition-colors ${
+          className={`w-full aspect-[2/1] border-2 border-dashed flex items-center justify-center cursor-pointer relative overflow-hidden transition-all group ${
             selectedFile
-              ? "border-gray-900 bg-white"
-              : "border-gray-300 bg-white hover:border-gray-400"
+              ? "border-black bg-gray-50"
+              : "border-gray-300 hover:border-black hover:bg-gray-50"
           }`}
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
@@ -169,57 +171,67 @@ const BannerForm = ({ onSuccess }: { onSuccess: () => void }) => {
           />
           <label
             htmlFor="upload-button"
-            className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-4"
+            className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-4 z-10"
           >
             {imagePreview ? (
               <img
                 src={imagePreview}
                 alt="Preview"
-                className="w-full h-full object-contain rounded-sm"
+                className="w-full h-full object-contain"
               />
             ) : (
-              <div className="text-center">
+              <div className="text-center space-y-3">
                 <IconCloudUpload
-                  className="mx-auto text-gray-300 mb-2"
+                  className="mx-auto text-gray-300 group-hover:text-black transition-colors"
                   size={48}
+                  stroke={1}
                 />
-                <p className="text-sm font-bold uppercase text-gray-500">
-                  {isLoading ? "Validating..." : "Click or Drop Image"}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Resolution: 1200 x 628px
-                </p>
-                <p className="text-xs text-gray-400">Max: 4MB (*.png, *.jpg)</p>
+                <div className="space-y-1">
+                  <p className="text-xs font-black uppercase tracking-widest text-black">
+                    {isLoading ? "Validating..." : "Drag & Drop Asset"}
+                  </p>
+                  <p className="text-[10px] font-mono text-gray-400 uppercase">
+                    REQ: 1200x628px | MAX: 4MB
+                  </p>
+                </div>
               </div>
             )}
           </label>
         </div>
 
-        {selectedFile && (
-          <div className="text-center">
-            <p className="text-sm font-bold text-gray-900">
-              {selectedFile.name}
-            </p>
-            <p className="text-xs text-green-600 font-medium mt-1">
-              Resolution: {imageResolution} (Valid)
-            </p>
+        <div className="flex items-center justify-between border-t border-gray-100 pt-6">
+          <div className="flex flex-col">
+            {selectedFile ? (
+              <>
+                <span className="text-xs font-bold uppercase text-black">
+                  {selectedFile.name}
+                </span>
+                <span className="text-[10px] font-mono text-green-600 uppercase">
+                  Resolution: {imageResolution} OK
+                </span>
+              </>
+            ) : (
+              <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+                No File Selected
+              </span>
+            )}
           </div>
-        )}
 
-        <button
-          type="submit"
-          disabled={isLoading || !selectedFile}
-          className="flex items-center justify-center px-8 py-3 bg-gray-900 text-white text-sm font-bold uppercase tracking-wide rounded-full hover:bg-gray-800 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
-        >
-          {isLoading ? (
-            <IconLoader className="animate-spin" size={20} />
-          ) : (
-            <>
-              <IconUpload size={20} className="mr-2" />
-              Upload Banner
-            </>
-          )}
-        </button>
+          <button
+            type="submit"
+            disabled={isLoading || !selectedFile}
+            className="flex items-center justify-center px-8 py-3 bg-black text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+          >
+            {isLoading ? (
+              <IconLoader className="animate-spin" size={16} />
+            ) : (
+              <>
+                <IconUpload size={16} className="mr-2" />
+                Upload
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </form>
   );
@@ -253,7 +265,7 @@ const BannerPage = () => {
   const handleDelete = async (bannerId: string) => {
     try {
       await deleteBannerAction(bannerId);
-      showNotification("Banner deleted successfully", "success");
+      showNotification("ASSET DELETED", "success");
       fetchBanners();
     } catch (e: any) {
       showNotification(e.message, "error");
@@ -262,30 +274,32 @@ const BannerPage = () => {
   };
 
   return (
-    <div className="flex flex-col gap-8 w-full p-2">
-      <div className="space-y-4">
-        <h3 className="text-lg font-bold uppercase text-gray-900 border-b border-gray-100 pb-2">
-          Active Banners
-        </h3>
+    <div className="flex flex-col gap-12 w-full">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between border-b-2 border-black pb-4">
+          <h3 className="text-xl font-black uppercase tracking-tighter text-black">
+            Active Assets{" "}
+            <span className="text-gray-400 text-lg ml-2 font-mono">
+              ({banners.length})
+            </span>
+          </h3>
+        </div>
 
         {isLoading && (
-          <div className="relative h-48 w-full">
-            <ComponentsLoader
-              title={"Loading Banners..."}
-              position={"absolute"}
-            />
+          <div className="relative h-64 w-full border-2 border-dashed border-gray-200">
+            <ComponentsLoader title="LOADING ASSETS" position="absolute" />
           </div>
         )}
 
         {!isLoading && banners.length === 0 && (
           <EmptyState
-            title={"No Banners Found"}
-            subtitle={"Upload a new banner to get started."}
+            title="NO ASSETS FOUND"
+            subtitle="Upload a banner to initialize the slider."
           />
         )}
 
         {!isLoading && banners.length > 0 && (
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap gap-6">
             {banners.map(
               (banner: { file: string; url: string; id: string }) => (
                 <BannerCard
@@ -299,9 +313,9 @@ const BannerPage = () => {
         )}
       </div>
 
-      <div className="space-y-4">
-        <h3 className="text-lg font-bold uppercase text-gray-900 border-b border-gray-100 pb-2">
-          Upload New Banner
+      <div className="space-y-6">
+        <h3 className="text-xl font-black uppercase tracking-tighter text-black border-b-2 border-black pb-4">
+          Upload New Asset
         </h3>
         <BannerForm onSuccess={fetchBanners} />
       </div>

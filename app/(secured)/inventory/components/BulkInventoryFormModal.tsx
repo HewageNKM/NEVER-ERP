@@ -23,6 +23,14 @@ interface BulkInventoryFormModalProps {
   stockLocations: StockLocationOption[];
 }
 
+// --- NIKE AESTHETIC STYLES ---
+const styles = {
+  label:
+    "block text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-2",
+  select:
+    "block w-full bg-[#f5f5f5] text-gray-900 text-sm font-medium px-4 py-3 rounded-sm border-2 border-transparent focus:bg-white focus:border-black transition-all duration-200 outline-none appearance-none cursor-pointer",
+};
+
 const BulkInventoryFormModal: React.FC<BulkInventoryFormModalProps> = ({
   open,
   onClose,
@@ -178,15 +186,12 @@ const BulkInventoryFormModal: React.FC<BulkInventoryFormModalProps> = ({
 
   const handleSubmit = async () => {
     if (!productId || !variantId || !stockId) {
-      showNotification(
-        "Please select Product, Variant, and Location",
-        "warning"
-      );
+      showNotification("Missing Required Selections", "warning");
       return;
     }
 
     if (changedCount === 0) {
-      showNotification("No changes to save", "info");
+      showNotification("No changes detected", "info");
       return;
     }
 
@@ -208,7 +213,7 @@ const BulkInventoryFormModal: React.FC<BulkInventoryFormModalProps> = ({
       });
 
       showNotification(
-        `Bulk entry complete! ${response.data.success} sizes updated.`,
+        `BULK ENTRY SUCCESS: ${response.data.success} UPDATED`,
         "success"
       );
       onSave();
@@ -230,48 +235,52 @@ const BulkInventoryFormModal: React.FC<BulkInventoryFormModalProps> = ({
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto"
+          className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-white/80 backdrop-blur-md p-0 sm:p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
         >
           <motion.div
-            className="bg-white w-full max-w-2xl rounded-sm shadow-xl flex flex-col max-h-[90vh] overflow-hidden"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.2 }}
+            className="bg-white w-full max-w-3xl shadow-2xl flex flex-col h-full sm:h-auto sm:max-h-[90vh] overflow-hidden border border-gray-200"
+            initial={{ opacity: 0, scale: 0.98, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98, y: 20 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="flex justify-between items-center p-6 border-b border-gray-100">
-              <div className="flex items-center gap-3">
-                <IconStack2 size={24} className="text-gray-700" />
-                <h2 className="text-xl font-bold uppercase tracking-wide text-gray-900">
-                  Bulk Add Stock
+            {/* Header */}
+            <div className="bg-white px-6 py-6 border-b-2 border-black flex justify-between items-center shrink-0 z-10">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1">
+                  Mass Update
+                </span>
+                <h2 className="text-xl md:text-2xl font-black text-black uppercase tracking-tighter leading-none">
+                  Bulk Stock Entry
                 </h2>
               </div>
               <button
                 onClick={saving ? undefined : onClose}
                 disabled={saving}
-                className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+                className="group relative flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-black transition-colors duration-300"
               >
-                <IconX size={24} />
+                <IconX
+                  size={20}
+                  className="text-black group-hover:text-white transition-colors duration-300"
+                />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 space-y-6 bg-white">
               {/* Product Select */}
               <div>
-                <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                  Product
-                </label>
+                <label className={styles.label}>Product</label>
                 <select
                   value={productId}
                   onChange={handleProductChange}
                   disabled={saving}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+                  className={styles.select}
                 >
-                  <option value="">Select Product...</option>
+                  <option value="">SELECT PRODUCT...</option>
                   {products.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.label}
@@ -280,60 +289,58 @@ const BulkInventoryFormModal: React.FC<BulkInventoryFormModalProps> = ({
                 </select>
               </div>
 
-              {/* Variant Select */}
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-sm font-bold text-gray-700 uppercase">
-                    Variant
-                  </label>
-                  {loadingVariants && (
-                    <IconLoader
-                      size={12}
-                      className="animate-spin text-gray-500"
-                    />
-                  )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Variant Select */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className={styles.label + " mb-0"}>Variant</label>
+                    {loadingVariants && (
+                      <IconLoader
+                        size={12}
+                        className="animate-spin text-black"
+                      />
+                    )}
+                  </div>
+                  <select
+                    value={variantId}
+                    onChange={handleVariantChange}
+                    disabled={saving || !productId || loadingVariants}
+                    className={styles.select}
+                  >
+                    <option value="">SELECT VARIANT...</option>
+                    {variants.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <select
-                  value={variantId}
-                  onChange={handleVariantChange}
-                  disabled={saving || !productId || loadingVariants}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors disabled:bg-gray-50"
-                >
-                  <option value="">Select Variant...</option>
-                  {variants.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
 
-              {/* Stock Location Select */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                  Stock Location
-                </label>
-                <select
-                  value={stockId}
-                  onChange={(e) => setStockId(e.target.value)}
-                  disabled={saving}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
-                >
-                  <option value="">Select Location...</option>
-                  {stockLocations.map((loc) => (
-                    <option key={loc.id} value={loc.id}>
-                      {loc.label}
-                    </option>
-                  ))}
-                </select>
+                {/* Stock Location Select */}
+                <div>
+                  <label className={styles.label}>Stock Location</label>
+                  <select
+                    value={stockId}
+                    onChange={(e) => setStockId(e.target.value)}
+                    disabled={saving}
+                    className={styles.select}
+                  >
+                    <option value="">SELECT LOCATION...</option>
+                    {stockLocations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Size Quantities Grid */}
               {selectedVariant && selectedVariant.sizes.length > 0 && (
-                <div className="overflow-x-hidden">
-                  <div className="flex justify-between items-center mb-3">
-                    <label className="block text-sm font-bold text-gray-700 uppercase">
-                      Quantities by Size
+                <div className="pt-4 border-t border-gray-100">
+                  <div className="flex justify-between items-end mb-4">
+                    <label className="text-lg font-black text-black uppercase tracking-tight">
+                      Size Distribution
                     </label>
                     <div className="flex items-center gap-2">
                       {loadingStock && (
@@ -342,12 +349,12 @@ const BulkInventoryFormModal: React.FC<BulkInventoryFormModalProps> = ({
                           className="animate-spin text-gray-500"
                         />
                       )}
-                      <span className="text-xs text-gray-500">
-                        {changedCount} / {selectedVariant.sizes.length} changed
+                      <span className="text-[10px] font-bold text-black uppercase tracking-widest bg-gray-100 px-2 py-1">
+                        {changedCount} / {selectedVariant.sizes.length} Changed
                       </span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {selectedVariant.sizes.map((size) => {
                       const current = currentStock[size] ?? 0;
                       const newQty = sizeQuantities[size] ?? 0;
@@ -355,18 +362,26 @@ const BulkInventoryFormModal: React.FC<BulkInventoryFormModalProps> = ({
                       return (
                         <div
                           key={size}
-                          className={`flex flex-col p-3 border rounded-sm transition-colors ${
+                          className={`flex flex-col p-3 border-2 transition-colors relative group ${
                             isChanged
-                              ? "bg-blue-50 border-blue-300"
-                              : "bg-gray-50 border-gray-200"
+                              ? "bg-black border-black text-white"
+                              : "bg-white border-gray-200 hover:border-black"
                           }`}
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-bold text-gray-700 uppercase">
+                            <span
+                              className={`text-xs font-black uppercase ${
+                                isChanged ? "text-white" : "text-black"
+                              }`}
+                            >
                               {size}
                             </span>
-                            <span className="text-xs text-gray-500">
-                              Now: {current}
+                            <span
+                              className={`text-[9px] font-mono tracking-wider ${
+                                isChanged ? "text-gray-400" : "text-gray-400"
+                              }`}
+                            >
+                              PREV: {current}
                             </span>
                           </div>
                           <input
@@ -377,7 +392,9 @@ const BulkInventoryFormModal: React.FC<BulkInventoryFormModalProps> = ({
                               handleQuantityChange(size, e.target.value)
                             }
                             disabled={saving || loadingStock}
-                            className="w-full px-2 py-1.5 border border-gray-300 rounded-sm text-sm text-center focus:outline-none focus:ring-1 focus:ring-gray-900 disabled:bg-gray-100"
+                            className={`w-full bg-transparent text-xl font-black text-center focus:outline-none ${
+                              isChanged ? "text-white" : "text-black"
+                            }`}
                           />
                         </div>
                       );
@@ -388,55 +405,54 @@ const BulkInventoryFormModal: React.FC<BulkInventoryFormModalProps> = ({
 
               {/* No sizes message */}
               {selectedVariant && selectedVariant.sizes.length === 0 && (
-                <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-sm">
-                  <p className="text-sm font-bold uppercase">
+                <div className="py-12 border-2 border-dashed border-gray-200 flex items-center justify-center">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
                     No sizes defined for this variant
-                  </p>
-                  <p className="text-xs mt-1">
-                    Please add sizes to the variant first
                   </p>
                 </div>
               )}
 
               {/* Prompt to select variant */}
               {!selectedVariant && productId && !loadingVariants && (
-                <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-sm">
-                  <p className="text-sm font-bold uppercase">
-                    Select a variant to enter quantities
+                <div className="py-12 border-2 border-dashed border-gray-200 flex items-center justify-center bg-gray-50/50">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                    Select a variant to populate grid
                   </p>
                 </div>
               )}
             </div>
 
-            <div className="p-6 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-3">
-              <div className="text-sm text-gray-600">
-                {changedCount > 0 && (
-                  <span>
-                    <strong>{changedCount}</strong> size
-                    {changedCount > 1 ? "s" : ""} will be updated
+            {/* Footer */}
+            <div className="bg-white p-6 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4 z-10">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                {changedCount > 0 ? (
+                  <span className="text-black">
+                    Saving updates for <strong>{changedCount}</strong> sizes
                   </span>
+                ) : (
+                  "No changes pending"
                 )}
               </div>
-              <div className="flex gap-3">
+              <div className="flex gap-3 w-full sm:w-auto">
                 <button
                   onClick={onClose}
                   disabled={saving}
-                  className="px-6 py-2 text-sm font-bold text-gray-600 uppercase hover:bg-gray-200 rounded-sm transition-colors"
+                  className="px-6 py-3 text-xs font-black uppercase tracking-widest text-black border border-transparent hover:border-gray-200 transition-colors flex-1 sm:flex-none"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSubmit}
                   disabled={saving || changedCount === 0}
-                  className="px-6 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center"
+                  className="px-8 py-3 bg-black text-white text-xs font-black uppercase tracking-widest hover:bg-gray-900 transition-colors disabled:opacity-50 flex items-center justify-center shadow-lg hover:shadow-xl flex-1 sm:flex-none"
                 >
                   {saving ? (
                     <>
-                      <IconLoader size={18} className="animate-spin mr-2" />
-                      Saving...
+                      <IconLoader size={16} className="animate-spin mr-2" />
+                      Saving
                     </>
                   ) : (
-                    `Save ${changedCount} Changes`
+                    `Save Bulk Entry`
                   )}
                 </button>
               </div>

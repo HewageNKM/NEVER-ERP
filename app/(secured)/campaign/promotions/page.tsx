@@ -4,8 +4,6 @@ import React, { useState, useEffect } from "react";
 import PageContainer from "../../components/container/PageContainer";
 import {
   IconPlus,
-  IconSearch,
-  IconLoader,
   IconChevronLeft,
   IconChevronRight,
 } from "@tabler/icons-react";

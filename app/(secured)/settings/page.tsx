@@ -6,6 +6,9 @@ import {
   IconLoader,
   IconDeviceFloppy,
   IconSettings,
+  IconServer,
+  IconWorld,
+  IconDeviceDesktop,
 } from "@tabler/icons-react";
 import { showNotification } from "@/utils/toast";
 import { useAppSelector } from "@/lib/hooks";
@@ -28,13 +31,28 @@ interface Settings {
   [key: string]: any;
 }
 
+// --- NIKE AESTHETIC STYLES ---
+const styles = {
+  label:
+    "block text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-2",
+  select:
+    "block w-full bg-[#f5f5f5] text-gray-900 text-sm font-bold px-4 py-3 rounded-sm border-2 border-transparent focus:bg-white focus:border-black transition-all duration-200 outline-none appearance-none cursor-pointer uppercase",
+  sectionTitle:
+    "text-lg font-black text-black uppercase tracking-tighter mb-6 flex items-center gap-2",
+  card: "bg-white border border-gray-200 p-8 shadow-sm",
+  toggleContainer:
+    "flex items-center justify-between p-6 border-2 border-transparent bg-[#f5f5f5] hover:border-gray-300 transition-all",
+  toggleLabel: "text-sm font-black text-black uppercase tracking-wide",
+  toggleSub:
+    "text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1",
+};
+
 const SettingPage = () => {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const { currentUser } = useAppSelector((state) => state.authSlice);
-  
 
   // Fetch settings
   const fetchSettings = async () => {
@@ -96,9 +114,9 @@ const SettingPage = () => {
         body: JSON.stringify(settings),
       });
       if (!res.ok) throw new Error("Failed to save settings");
-      showNotification("Settings saved successfully!", "success");
+      showNotification("CONFIGURATION SAVED", "success");
     } catch (err: any) {
-      showNotification(err.message || "Failed to save", "error");
+      showNotification(err.message || "FAILED TO SAVE", "error");
     } finally {
       setSaving(false);
     }
@@ -107,10 +125,10 @@ const SettingPage = () => {
   if (loading) {
     return (
       <PageContainer title="Settings" description="Settings Management">
-        <div className="flex flex-col items-center justify-center min-h-[50vh]">
-          <IconLoader className="animate-spin text-gray-400 mb-2" size={32} />
-          <p className="text-sm font-bold uppercase text-gray-500">
-            Loading Settings...
+        <div className="flex flex-col items-center justify-center min-h-[60vh]">
+          <IconLoader className="animate-spin text-black mb-4" size={32} />
+          <p className="text-xs font-bold uppercase tracking-widest text-gray-400">
+            Loading Configuration...
           </p>
         </div>
       </PageContainer>
@@ -119,160 +137,146 @@ const SettingPage = () => {
 
   return (
     <PageContainer title="Settings" description="Settings Management">
-      <div className="w-full max-w-4xl mx-auto">
+      <div className="w-full max-w-5xl mx-auto space-y-8">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gray-900 text-white rounded-sm">
-              <IconSettings size={24} />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900">
-                ERP Settings
-              </h2>
-              <p className="text-sm text-gray-500 uppercase font-bold">
-                Configuration for POS and Website
-              </p>
-            </div>
+        <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b-2 border-black pb-6">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1 flex items-center gap-2">
+              <IconSettings size={14} /> System Configuration
+            </span>
+            <h2 className="text-4xl font-black text-black uppercase tracking-tighter leading-none">
+              ERP Settings
+            </h2>
           </div>
-
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center px-6 py-2.5 bg-gray-900 text-white text-sm font-bold uppercase tracking-wide rounded-sm hover:bg-gray-800 transition-all shadow-sm disabled:opacity-50"
+            className="flex items-center px-8 py-4 bg-black text-white text-xs font-black uppercase tracking-widest hover:bg-gray-900 transition-all shadow-[4px_4px_0px_0px_rgba(156,163,175,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] disabled:opacity-50"
           >
             {saving ? (
-              <IconLoader className="animate-spin mr-2" size={18} />
+              <IconLoader className="animate-spin mr-2" size={16} />
             ) : (
-              <IconDeviceFloppy size={18} className="mr-2" />
+              <IconDeviceFloppy size={16} className="mr-2" />
             )}
-            {saving ? "Saving..." : "Save Changes"}
+            {saving ? "Processing" : "Save Changes"}
           </button>
         </div>
 
-        {/* Content Card */}
-        <div className="bg-white border border-gray-200 rounded-sm shadow-sm p-8">
-          <h3 className="text-lg font-bold uppercase text-gray-900 mb-6 pb-2 border-b border-gray-100">
-            General Configuration
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Default Stock */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 uppercase mb-2">
-                Default Stock Location
-              </label>
-              <div className="relative">
-                <select
-                  value={settings?.defaultStockId || ""}
-                  onChange={(e) =>
-                    handleChange("defaultStockId", e.target.value)
-                  }
-                  className="w-full px-4 py-3 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors bg-white appearance-none"
-                >
-                  <option value="">Select Stock</option>
-                  {stocks.map((stock) => (
-                    <option key={stock.id} value={stock.id}>
-                      {stock.label}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
-                  <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
-                    <path
-                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                      fillRule="evenodd"
-                    ></path>
-                  </svg>
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 mt-2 font-medium">
-                Primary inventory source for general operations.
-              </p>
-            </div>
-
-            {/* Online Stock */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 uppercase mb-2">
-                Online Stock Location
-              </label>
-              <div className="relative">
-                <select
-                  value={settings?.onlineStockId || ""}
-                  onChange={(e) =>
-                    handleChange("onlineStockId", e.target.value)
-                  }
-                  className="w-full px-4 py-3 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors bg-white appearance-none"
-                >
-                  <option value="">Select Stock</option>
-                  {stocks.map((stock) => (
-                    <option key={stock.id} value={stock.id}>
-                      {stock.label}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
-                  <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
-                    <path
-                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                      fillRule="evenodd"
-                    ></path>
-                  </svg>
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 mt-2 font-medium">
-                Inventory source allocated for e-commerce orders.
-              </p>
-            </div>
-
-            <div className="col-span-1 md:col-span-2 border-t border-gray-100 my-2"></div>
-
-            {/* Website Enabled Toggle */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-100 rounded-sm">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Inventory Source Configuration */}
+          <div className={styles.card}>
+            <h3 className={styles.sectionTitle}>
+              <IconServer size={20} stroke={2} /> Inventory Source
+            </h3>
+            <div className="space-y-6">
+              {/* Default Stock */}
               <div>
-                <h4 className="text-sm font-bold uppercase text-gray-900">
-                  Website E-commerce
-                </h4>
-                <p className="text-xs text-gray-500 mt-1">
-                  Enable or disable the public facing online store.
+                <label className={styles.label}>Default Warehouse</label>
+                <div className="relative">
+                  <select
+                    value={settings?.defaultStockId || ""}
+                    onChange={(e) =>
+                      handleChange("defaultStockId", e.target.value)
+                    }
+                    className={styles.select}
+                  >
+                    <option value="">SELECT LOCATION...</option>
+                    {stocks.map((stock) => (
+                      <option key={stock.id} value={stock.id}>
+                        {stock.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <p className="text-[9px] text-gray-400 mt-2 font-bold uppercase tracking-wide">
+                  Primary source for general operations.
                 </p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings?.ecommerce?.enable || false}
-                  onChange={(e) =>
-                    handleNestedChange("ecommerce", "enable", e.target.checked)
-                  }
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-900"></div>
-              </label>
-            </div>
 
-            {/* POS Enabled Toggle */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-100 rounded-sm">
+              {/* Online Stock */}
               <div>
-                <h4 className="text-sm font-bold uppercase text-gray-900">
-                  Point of Sale (POS)
-                </h4>
-                <p className="text-xs text-gray-500 mt-1">
-                  Enable access to the POS sales interface.
+                <label className={styles.label}>Online Allocation</label>
+                <div className="relative">
+                  <select
+                    value={settings?.onlineStockId || ""}
+                    onChange={(e) =>
+                      handleChange("onlineStockId", e.target.value)
+                    }
+                    className={styles.select}
+                  >
+                    <option value="">SELECT LOCATION...</option>
+                    {stocks.map((stock) => (
+                      <option key={stock.id} value={stock.id}>
+                        {stock.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <p className="text-[9px] text-gray-400 mt-2 font-bold uppercase tracking-wide">
+                  Inventory reserved for digital channels.
                 </p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings?.pos?.enable || false}
-                  onChange={(e) =>
-                    handleNestedChange("pos", "enable", e.target.checked)
-                  }
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-900"></div>
-              </label>
+            </div>
+          </div>
+
+          {/* Feature Toggles */}
+          <div className={styles.card}>
+            <h3 className={styles.sectionTitle}>
+              <IconDeviceDesktop size={20} stroke={2} /> Platform Modules
+            </h3>
+
+            <div className="space-y-4">
+              {/* Website Toggle */}
+              <div className={styles.toggleContainer}>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <IconWorld size={18} className="text-gray-500" />
+                    <h4 className={styles.toggleLabel}>E-Commerce</h4>
+                  </div>
+                  <p className={styles.toggleSub}>Public Storefront Access</p>
+                </div>
+
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings?.ecommerce?.enable || false}
+                    onChange={(e) =>
+                      handleNestedChange(
+                        "ecommerce",
+                        "enable",
+                        e.target.checked
+                      )
+                    }
+                    className="sr-only peer"
+                  />
+                  {/* Sharp Industrial Switch */}
+                  <div className="w-12 h-6 bg-gray-300 peer-focus:outline-none rounded-none peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-none after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
+                </label>
+              </div>
+
+              {/* POS Toggle */}
+              <div className={styles.toggleContainer}>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <IconDeviceDesktop size={18} className="text-gray-500" />
+                    <h4 className={styles.toggleLabel}>Point of Sale</h4>
+                  </div>
+                  <p className={styles.toggleSub}>Internal Sales Interface</p>
+                </div>
+
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings?.pos?.enable || false}
+                    onChange={(e) =>
+                      handleNestedChange("pos", "enable", e.target.checked)
+                    }
+                    className="sr-only peer"
+                  />
+                  {/* Sharp Industrial Switch */}
+                  <div className="w-12 h-6 bg-gray-300 peer-focus:outline-none rounded-none peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-none after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
+                </label>
+              </div>
             </div>
           </div>
         </div>

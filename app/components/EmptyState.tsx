@@ -1,63 +1,30 @@
 import React from "react";
-import { Box, Stack, Typography } from "@mui/material";
-import { IoWarningOutline } from "react-icons/io5";
+import { IconAlertTriangle, IconPackageOff } from "@tabler/icons-react";
 
 const EmptyState = ({
-  title,
-  subtitle,
+  title = "NO DATA FOUND",
+  subtitle = "The requested information is unavailable.",
 }: {
-  title: string;
-  subtitle: string;
+  title?: string;
+  subtitle?: string;
 }) => {
   return (
-    <Stack
-      alignItems="center"
-      justifyContent="center"
-      spacing={3}
-      sx={{
-        height: "100%",
-        minHeight: 300,
-        textAlign: "center",
-        color: "#000000",
-        borderRadius: 0, // NIKE STYLE: Sharp edges
-        border: "1px solid #e5e5e5", // Industrial border
-        backgroundColor: "#ffffff",
-        p: 6,
-      }}
-    >
-      <Box sx={{ fontSize: 64, color: "#000000" }}>
-        <IoWarningOutline style={{ strokeWidth: "20px" }} />
-      </Box>
+    <div className="flex flex-col items-center justify-center text-center p-12 min-h-[300px] w-full border-2 border-dashed border-gray-300 bg-gray-50/50 rounded-sm">
+      {/* Icon */}
+      <div className="mb-6 text-gray-300">
+        <IconPackageOff size={64} stroke={1} />
+      </div>
 
-      <Box>
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 900, // Black weight
-            color: "#000000",
-            textTransform: "uppercase",
-            fontStyle: "italic", // Speed/Motion
-            letterSpacing: "-0.05em", // Tight tracking
-            lineHeight: 1,
-            mb: 1,
-          }}
-        >
+      {/* Typography */}
+      <div className="max-w-md space-y-2">
+        <h3 className="text-3xl font-black text-black uppercase tracking-tighter italic leading-none">
           {title}
-        </Typography>
-        <Typography
-          variant="body2"
-          sx={{
-            textTransform: "uppercase",
-            letterSpacing: "0.15em", // Technical wide tracking
-            fontWeight: 700,
-            color: "#9e9e9e", // Technical gray
-            fontSize: "0.7rem",
-          }}
-        >
+        </h3>
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">
           {subtitle}
-        </Typography>
-      </Box>
-    </Stack>
+        </p>
+      </div>
+    </div>
   );
 };
 

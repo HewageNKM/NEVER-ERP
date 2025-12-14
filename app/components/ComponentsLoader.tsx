@@ -2,11 +2,11 @@ import React from "react";
 import { Box, CircularProgress, Typography } from "@mui/material";
 
 const ComponentsLoader = ({
-  title,
-  position = "fixed",
+  title = "LOADING",
+  position = "absolute",
 }: {
   title?: string;
-  position?: any;
+  position?: "fixed" | "absolute" | "relative";
 }) => {
   return (
     <Box
@@ -20,21 +20,36 @@ const ComponentsLoader = ({
         flexDirection: "column",
         justifyContent: "center",
         alignItems: "center",
-        // NIKE STYLE: Solid White, No Blur
-        backgroundColor: "#ffffff",
+        backgroundColor: "#ffffff", // Solid White foundation
         zIndex: 9999,
-        // NIKE STYLE: Sharp edges, no shadow
-        borderRadius: 0,
-        boxShadow: "none",
+        gap: 2,
       }}
     >
       <CircularProgress
-        size="2.5rem"
-        thickness={5} // Thicker, bolder stroke
+        size={40}
+        thickness={6} // Extra bold stroke
         sx={{
-          color: "#000000", // Pure Black spinner
+          color: "#000000", // Pure Black
+          "& .MuiCircularProgress-circle": {
+            strokeLinecap: "butt", // Sharp, flat ends on the spinner line
+          },
         }}
       />
+
+      {/* Industrial Label */}
+      <Typography
+        variant="caption"
+        sx={{
+          color: "#000000",
+          fontWeight: 900,
+          fontSize: "0.7rem",
+          letterSpacing: "0.2em",
+          textTransform: "uppercase",
+          fontFamily: "monospace", // Technical feel
+        }}
+      >
+        {title}
+      </Typography>
     </Box>
   );
 };

@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import PageContainer from "../../components/container/PageContainer";
-import DashboardCard from "../../components/shared/DashboardCard"; // Try to use this as a container, or replace if needed
 import {
   IconPlus,
   IconSearch,
@@ -9,6 +8,8 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconLoader,
+  IconFilter,
+  IconPackage,
 } from "@tabler/icons-react";
 import { Product } from "@/model/Product";
 import ProductListTable from "./components/ProductListTable";
@@ -32,6 +33,22 @@ const initialFilterState = {
   listing: "all",
 };
 
+// --- NIKE AESTHETIC STYLES ---
+const styles = {
+  label:
+    "block text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-2",
+  input:
+    "block w-full bg-[#f5f5f5] text-gray-900 text-sm font-medium px-4 py-3 rounded-sm border-2 border-transparent focus:bg-white focus:border-black transition-all duration-200 outline-none placeholder:text-gray-400",
+  select:
+    "block w-full bg-[#f5f5f5] text-gray-900 text-sm font-medium px-4 py-3 rounded-sm border-2 border-transparent focus:bg-white focus:border-black transition-all duration-200 outline-none appearance-none cursor-pointer uppercase",
+  primaryBtn:
+    "flex items-center justify-center px-6 py-3 bg-black text-white text-xs font-black uppercase tracking-widest hover:bg-gray-900 transition-all rounded-sm shadow-sm hover:shadow-md",
+  secondaryBtn:
+    "flex items-center justify-center px-6 py-3 border-2 border-black text-black text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all rounded-sm",
+  iconBtn:
+    "w-10 h-10 flex items-center justify-center border border-gray-200 hover:bg-black hover:border-black hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-300",
+};
+
 // --- MAIN PAGE COMPONENT ---
 const ProductPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -41,7 +58,6 @@ const ProductPage = () => {
   const { currentUser, loading: authLoading } = useAppSelector(
     (state) => state.authSlice
   );
-  
 
   // Maps for faster lookups in the table
   const [brandMap, setBrandMap] = useState(new Map<string, string>());
@@ -126,7 +142,8 @@ const ProductPage = () => {
     }
     setFilters(initialFilterState);
     setPagination((prev) => ({ ...prev, page: 1 }));
-    fetchProducts();
+    // Quick re-fetch workaround without useEffect dependency on filters
+    setTimeout(fetchProducts, 0);
   };
 
   const handleFilter = () => {
@@ -223,9 +240,7 @@ const ProductPage = () => {
       }
 
       showNotification(
-        isEditing
-          ? "Product updated successfully"
-          : "Product added successfully",
+        isEditing ? "PRODUCT UPDATED" : "PRODUCT CREATED",
         "success"
       );
       handleCloseModal();
@@ -243,8 +258,9 @@ const ProductPage = () => {
 
   const handleDeleteProduct = async (itemId: string) => {
     showConfirmation({
-      title: "Delete Product",
-      message: "Are you sure you want to delete this product?",
+      title: "DELETE PRODUCT?",
+      message: "This action cannot be undone. Confirm deletion?",
+      variant: "danger",
       onSuccess: async () => {
         setLoading(true);
         try {
@@ -258,7 +274,7 @@ const ProductPage = () => {
           if (response.status !== 200)
             throw new Error("Failed to delete product");
 
-          showNotification("Product deleted successfully", "success");
+          showNotification("PRODUCT DELETED", "success");
           fetchProducts();
         } catch (error: any) {
           console.error("Error deleting product:", error);
@@ -275,48 +291,56 @@ const ProductPage = () => {
 
   return (
     <PageContainer title="Products" description="Products Management">
-      <div className="w-full">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-          <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900">
-            Products Management
-          </h2>
+      <div className="w-full space-y-8">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b-2 border-black pb-6">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1 flex items-center gap-2">
+              <IconPackage size={14} /> Catalog Management
+            </span>
+            <h2 className="text-4xl font-black text-black uppercase tracking-tighter leading-none">
+              Products
+            </h2>
+          </div>
           <button
             onClick={handleOpenCreateModal}
-            className="flex items-center px-5 py-2.5 bg-gray-900 text-white text-sm font-bold uppercase tracking-wide rounded-sm hover:bg-gray-800 transition-all shadow-sm"
+            className="flex items-center px-6 py-4 bg-black text-white text-sm font-black uppercase tracking-widest hover:bg-gray-900 transition-all shadow-[4px_4px_0px_0px_rgba(156,163,175,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
           >
             <IconPlus size={18} className="mr-2" />
-            Add New Product
+            New Product
           </button>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-sm shadow-sm p-6 mb-6">
-          {/* --- FILTER BAR --- */}
-          <div className="flex flex-wrap gap-4 items-end mb-6">
-            <div className="w-full md:w-auto flex-1 min-w-[200px]">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                Search
-              </label>
-              <input
-                type="text"
-                name="search"
-                placeholder="Search..."
-                value={filters.search}
-                onChange={handleFilterChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
-              />
+        {/* Filters Panel */}
+        <div className="bg-white border border-gray-200 p-6 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+            <div className="md:col-span-4">
+              <label className={styles.label}>Search</label>
+              <div className="relative">
+                <IconSearch
+                  size={16}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type="text"
+                  name="search"
+                  placeholder="SEARCH PRODUCTS..."
+                  value={filters.search}
+                  onChange={handleFilterChange}
+                  className={styles.input}
+                />
+              </div>
             </div>
 
-            <div className="w-full md:w-auto min-w-[150px]">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                Category
-              </label>
+            <div className="md:col-span-2">
+              <label className={styles.label}>Category</label>
               <select
                 name="category"
                 value={filters.category}
                 onChange={handleFilterChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+                className={styles.select}
               >
-                <option value="all">All Categories</option>
+                <option value="all">ALL CATEGORIES</option>
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.label}>
                     {cat.label}
@@ -325,17 +349,15 @@ const ProductPage = () => {
               </select>
             </div>
 
-            <div className="w-full md:w-auto min-w-[150px]">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                Brand
-              </label>
+            <div className="md:col-span-2">
+              <label className={styles.label}>Brand</label>
               <select
                 name="brand"
                 value={filters.brand}
                 onChange={handleFilterChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+                className={styles.select}
               >
-                <option value="all">All Brands</option>
+                <option value="all">ALL BRANDS</option>
                 {brands.map((brand) => (
                   <option key={brand.id} value={brand.label}>
                     {brand.label}
@@ -344,128 +366,110 @@ const ProductPage = () => {
               </select>
             </div>
 
-            <div className="w-full md:w-auto min-w-[120px]">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                Status
-              </label>
+            <div className="md:col-span-2">
+              <label className={styles.label}>Status</label>
               <select
                 name="status"
                 value={filters.status}
                 onChange={handleFilterChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+                className={styles.select}
               >
-                <option value="all">All Status</option>
-                <option value="true">Active</option>
-                <option value="false">Inactive</option>
+                <option value="all">ALL STATUS</option>
+                <option value="true">ACTIVE</option>
+                <option value="false">INACTIVE</option>
               </select>
             </div>
 
-            <div className="w-full md:w-auto min-w-[120px]">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                Listing
-              </label>
-              <select
-                name="listing"
-                value={filters.listing}
-                onChange={handleFilterChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
-              >
-                <option value="all">All Listing</option>
-                <option value="true">Listed</option>
-                <option value="false">Unlisted</option>
-              </select>
-            </div>
-
-            <div className="flex gap-2">
+            <div className="md:col-span-2 flex gap-2">
               <button
                 onClick={handleFilter}
                 disabled={loading}
-                className="flex items-center justify-center px-4 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50"
+                className={`${styles.primaryBtn} w-full`}
               >
                 {loading ? (
                   <IconLoader className="animate-spin" size={16} />
                 ) : (
-                  <>
-                    <IconSearch size={16} className="mr-2" />
-                    Filter
-                  </>
+                  <IconFilter size={16} />
                 )}
               </button>
               <button
                 onClick={handleClearFilters}
                 disabled={loading}
-                className="flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 text-sm font-bold uppercase rounded-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className={`${styles.secondaryBtn} w-full`}
               >
-                <IconX size={16} className="mr-2" />
-                Clear
+                <IconX size={16} />
               </button>
             </div>
           </div>
+        </div>
 
-          {/* --- TABLE & PAGINATION --- */}
+        {/* --- TABLE --- */}
+        <div className="bg-white border border-gray-200">
           {loading ? (
-            <div className="text-center py-12">
-              <IconLoader
-                className="animate-spin mx-auto text-gray-400"
-                size={32}
-              />
-              <p className="mt-2 text-gray-500 text-sm font-bold uppercase">
-                Loading Products...
+            <div className="flex flex-col items-center justify-center py-20">
+              <IconLoader className="animate-spin text-black mb-3" size={32} />
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                Loading Data
               </p>
             </div>
           ) : (
-            <>
-              <ProductListTable
-                products={products}
-                onEdit={handleOpenEditModal}
-                onDelete={handleDeleteProduct}
-                brandMap={brandMap}
-                categoryMap={categoryMap}
-              />
-              <div className="flex justify-center mt-6">
-                {/* Simple Pagination */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() =>
-                      setPagination((prev) => ({
-                        ...prev,
-                        page: Math.max(1, prev.page - 1),
-                      }))
-                    }
-                    disabled={pagination.page === 1}
-                    className="p-2 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
-                  >
-                    <IconChevronLeft size={18} />
-                  </button>
-                  <span className="text-sm font-bold text-gray-700 px-4">
-                    Page {pagination.page} of{" "}
-                    {Math.ceil(pagination.total / pagination.size) || 1}
-                  </span>
-                  <button
-                    onClick={() =>
-                      setPagination((prev) => ({
-                        ...prev,
-                        page: Math.min(
-                          Math.ceil(pagination.total / pagination.size),
-                          prev.page + 1
-                        ),
-                      }))
-                    }
-                    disabled={
-                      pagination.page >=
-                      Math.ceil(pagination.total / pagination.size)
-                    }
-                    className="p-2 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
-                  >
-                    <IconChevronRight size={18} />
-                  </button>
-                </div>
-              </div>
-            </>
+            <ProductListTable
+              products={products}
+              onEdit={handleOpenEditModal}
+              onDelete={handleDeleteProduct}
+              brandMap={brandMap}
+              categoryMap={categoryMap}
+            />
           )}
         </div>
 
-        {/* --- Pass saving state to modal --- */}
+        {/* --- PAGINATION --- */}
+        {!loading && (
+          <div className="flex justify-center pt-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() =>
+                  setPagination((prev) => ({
+                    ...prev,
+                    page: Math.max(1, prev.page - 1),
+                  }))
+                }
+                disabled={pagination.page === 1}
+                className={styles.iconBtn}
+              >
+                <IconChevronLeft size={18} />
+              </button>
+
+              <span className="text-xs font-black text-black px-4 uppercase tracking-widest">
+                Page {pagination.page}{" "}
+                <span className="text-gray-400">
+                  / {Math.ceil(pagination.total / pagination.size) || 1}
+                </span>
+              </span>
+
+              <button
+                onClick={() =>
+                  setPagination((prev) => ({
+                    ...prev,
+                    page: Math.min(
+                      Math.ceil(pagination.total / pagination.size),
+                      prev.page + 1
+                    ),
+                  }))
+                }
+                disabled={
+                  pagination.page >=
+                  Math.ceil(pagination.total / pagination.size)
+                }
+                className={styles.iconBtn}
+              >
+                <IconChevronRight size={18} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* --- MODAL --- */}
         <ProductFormModal
           open={isModalOpen}
           onClose={handleCloseModal}

@@ -1,17 +1,14 @@
-import { IoIosApps } from "react-icons/io";
 import {
-  IconShoppingCart,
-  IconReportMoney,
-  IconUsersGroup,
   IconLayoutDashboard,
+  IconApps,
   IconList,
-  IconSettings,
-  IconWorld,
+  IconShoppingCart,
+  IconUsers,
   IconCash,
-  IconReceipt,
-  IconTag,
-  IconTicket,
   IconSpeakerphone,
+  IconWorld,
+  IconChartPie,
+  IconSettings,
 } from "@tabler/icons-react";
 import { uniqueId } from "lodash";
 
@@ -33,14 +30,13 @@ const Menuitems = [
   {
     id: uniqueId(),
     title: "Master Data",
-    icon: IoIosApps,
+    icon: IconApps,
     children: [
       {
         id: uniqueId(),
         title: "Categories",
         href: "/master/categories",
       },
-
       { id: uniqueId(), title: "Brands", href: "/master/brands" },
       { id: uniqueId(), title: "Sizes", href: "/master/sizes" },
       { id: uniqueId(), title: "Products", href: "/master/products" },
@@ -66,7 +62,7 @@ const Menuitems = [
   {
     id: uniqueId(),
     title: "Users",
-    icon: IconUsersGroup,
+    icon: IconUsers,
     href: "/users",
   },
   {
@@ -74,10 +70,7 @@ const Menuitems = [
     title: "Finance",
     icon: IconCash,
     children: [
-      { id: uniqueId(), title: "Petty Cash", href: "/petty-cash" },
-      // Future submenus:
-      // { id: uniqueId(), title: "Expenses", href: "/finance/expenses" },
-      // { id: uniqueId(), title: "Invoices", href: "/finance/invoices" },
+      { id: uniqueId(), title: "Petty Cash", href: "/finance/petty-cash" },
     ],
   },
   {
@@ -122,12 +115,12 @@ const Menuitems = [
   },
   {
     id: uniqueId(),
-    title: "Reports & Analytics",
-    icon: IconReportMoney,
+    title: "Analytics",
+    icon: IconChartPie,
     href: "/reports",
   },
   {
-    subHeader: "Settings",
+    subHeader: "System",
     navLabel: true,
   },
   {

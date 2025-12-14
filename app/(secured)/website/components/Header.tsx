@@ -8,40 +8,30 @@ const Header = ({
   formType: string;
   setFormType: any;
 }) => {
+  const tabs = [
+    { id: "banner", label: "Banner Rotator" },
+    { id: "promotions", label: "Promo Grid" },
+    { id: "navigation", label: "Site Navigation" },
+  ];
+
   return (
-    <div className="flex justify-center mb-6">
-      <div className="flex bg-gray-100 p-1 rounded-sm">
+    <div className="flex justify-start border-b border-gray-200">
+      {tabs.map((tab) => (
         <button
-          onClick={() => setFormType("banner")}
-          className={`px-6 py-2 text-sm font-bold uppercase tracking-wide rounded-sm transition-all duration-200 ${
-            formType === "banner"
-              ? "bg-white text-gray-900 shadow-sm"
-              : "text-gray-500 hover:text-gray-900"
+          key={tab.id}
+          onClick={() => setFormType(tab.id)}
+          className={`px-8 py-4 text-[10px] font-black uppercase tracking-[0.15em] transition-all relative ${
+            formType === tab.id
+              ? "text-black bg-gray-50"
+              : "text-gray-400 hover:text-black hover:bg-gray-50/50"
           }`}
         >
-          Banner
+          {tab.label}
+          {formType === tab.id && (
+            <div className="absolute bottom-0 left-0 w-full h-[2px] bg-black" />
+          )}
         </button>
-        <button
-          onClick={() => setFormType("promotions")}
-          className={`px-6 py-2 text-sm font-bold uppercase tracking-wide rounded-sm transition-all duration-200 ${
-            formType === "promotions"
-              ? "bg-white text-gray-900 shadow-sm"
-              : "text-gray-500 hover:text-gray-900"
-          }`}
-        >
-          Promotions
-        </button>
-        <button
-          onClick={() => setFormType("navigation")}
-          className={`px-6 py-2 text-sm font-bold uppercase tracking-wide rounded-sm transition-all duration-200 ${
-            formType === "navigation"
-              ? "bg-white text-gray-900 shadow-sm"
-              : "text-gray-500 hover:text-gray-900"
-          }`}
-        >
-          Navigation
-        </button>
-      </div>
+      ))}
     </div>
   );
 };

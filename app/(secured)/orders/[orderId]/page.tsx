@@ -20,7 +20,6 @@ const OrderEditPage = () => {
   const { currentUser, loading: authLoading } = useAppSelector(
     (state) => state.authSlice
   );
-  
 
   useEffect(() => {
     if (param.orderId && !authLoading && currentUser) {
@@ -84,14 +83,6 @@ const OrderEditPage = () => {
   return (
     <PageContainer title={`Edit Order #${order.orderId}`}>
       <BreadcrumbNav />
-      {/* 
-         We don't wrapping OrderEditForm in DashboardCard here directly 
-         because OrderEditForm will manage its own sections for cleaner layout, 
-         or we can keep it wrapped if it fits design. 
-         Let's wrap it in a clean container or let it render multiple cards.
-         Original code wrapped it in DashboardCard. Implementation plan suggested removing inner Card usage.
-         I'll stick to a clean background here.
-      */}
       <div className="max-w-5xl mx-auto">
         <OrderEditForm order={order} onRefresh={fetchOrder} />
       </div>

@@ -2,133 +2,123 @@
 import React from "react";
 import Link from "next/link";
 import PageContainer from "../components/container/PageContainer";
-import { IconChartBar, IconChevronRight } from "@tabler/icons-react";
+import {
+  IconChartBar,
+  IconArrowRight,
+  IconPackage,
+  IconCoin,
+  IconReceipt,
+} from "@tabler/icons-react";
 
 const Reports = () => {
   const reportSections = [
     {
-      category: "Sales Reports",
+      id: "01",
+      category: "Sales Analysis",
+      icon: <IconChartBar size={20} stroke={2} />,
       reports: [
-        {
-          title: "Daily Summary",
-          link: "/reports/sales/daily-summary",
-        },
-        {
-          title: "Monthly Summary",
-          link: "/reports/sales/monthly-summary",
-        },
-        {
-          title: "Yearly Summary",
-          link: "/reports/sales/yearly-summary",
-        },
-        {
-          title: "Top Selling Products",
-          link: "/reports/sales/top-products",
-        },
-        {
-          title: "Sales by Category",
-          link: "/reports/sales/by-category",
-        },
+        { title: "Daily Summary", link: "/reports/sales/daily-summary" },
+        { title: "Monthly Summary", link: "/reports/sales/monthly-summary" },
+        { title: "Yearly Summary", link: "/reports/sales/yearly-summary" },
+        { title: "Top Selling Products", link: "/reports/sales/top-products" },
+        { title: "Sales by Category", link: "/reports/sales/by-category" },
         { title: "Sales by Brand", link: "/reports/sales/by-brand" },
         {
           title: "Sales vs Discount",
           link: "/reports/sales/sales-vs-discount",
         },
         {
-          title: "Sales by Payment Method",
+          title: "By Payment Method",
           link: "/reports/sales/by-payment-method",
         },
-        {
-          title: "Refunds & Returns",
-          link: "/reports/sales/refunds-returns",
-        },
+        { title: "Refunds & Returns", link: "/reports/sales/refunds-returns" },
       ],
     },
     {
-      category: "Stock Reports",
+      id: "02",
+      category: "Inventory",
+      icon: <IconPackage size={20} stroke={2} />,
       reports: [
         { title: "Live Stock", link: "/reports/stocks/live-stock" },
-        {
-          title: "Low Stock",
-          link: "/reports/stocks/low-stock",
-        },
-        {
-          title: "Stock Valuation",
-          link: "/reports/stocks/valuation",
-        },
+        { title: "Low Stock Alerts", link: "/reports/stocks/low-stock" },
+        { title: "Stock Valuation", link: "/reports/stocks/valuation" },
       ],
     },
     {
-      category: "Revenue Reports",
+      id: "03",
+      category: "Revenue",
+      icon: <IconCoin size={20} stroke={2} />,
       reports: [
-        {
-          title: "Daily Revenue",
-          link: "/reports/revenues/daily-revenue",
-        },
-        {
-          title: "Monthly Revenue",
-          link: "/reports/revenues/monthly-revenue",
-        },
-        {
-          title: "Yearly Revenue",
-          link: "/reports/revenues/yearly-revenue",
-        },
+        { title: "Daily Revenue", link: "/reports/revenues/daily-revenue" },
+        { title: "Monthly Revenue", link: "/reports/revenues/monthly-revenue" },
+        { title: "Yearly Revenue", link: "/reports/revenues/yearly-revenue" },
       ],
     },
     {
-      category: "Cash Reports",
+      id: "04",
+      category: "Cashflow",
+      icon: <IconReceipt size={20} stroke={2} />,
       reports: [
-        {
-          title: "Cashflow",
-          link: "/reports/cash/cashflow",
-        },
+        { title: "Cashflow Statement", link: "/reports/cash/cashflow" },
       ],
     },
   ];
 
   return (
     <PageContainer title="Reports">
-      <div className="w-full">
+      <div className="w-full space-y-12">
         {/* Header */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900 flex items-center gap-2">
-            <IconChartBar className="text-gray-900" size={28} />
+        <div className="flex flex-col gap-2 border-b-4 border-black pb-8">
+          <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase flex items-center gap-2">
+            <div className="w-2 h-2 bg-black"></div> Data Intelligence
+          </span>
+          <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-black leading-none">
             Reports Center
-          </h2>
-          <p className="text-sm text-gray-500 mt-1 uppercase font-semibold">
-            Analytics and Performance Metrics
-          </p>
+          </h1>
         </div>
 
-        <div className="space-y-10">
-          {reportSections.map((section, i) => (
-            <div
-              key={i}
-              className="animate-in fade-in slide-in-from-bottom-4 duration-500"
-              style={{ animationDelay: `${i * 100}ms` }}
-            >
-              <div className="border-b-2 border-gray-900 mb-6 pb-2">
-                <h3 className="text-lg font-bold uppercase tracking-wide text-gray-900">
+        <div className="space-y-16">
+          {reportSections.map((section) => (
+            <div key={section.id} className="relative">
+              {/* Section Header */}
+              <div className="flex items-end gap-4 mb-6 border-b border-gray-200 pb-4">
+                <span className="text-4xl font-black text-gray-200 leading-none">
+                  {section.id}
+                </span>
+                <h3 className="text-xl font-black uppercase tracking-tight text-black flex items-center gap-2 mb-1">
                   {section.category}
                 </h3>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {/* Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {section.reports.map((report, index) => (
                   <Link
                     key={index}
                     href={report.link}
-                    className="group flex items-center p-4 bg-gray-50 border border-gray-200 rounded-sm hover:bg-gray-900 hover:border-gray-900 hover:text-white transition-all duration-200"
+                    className="group flex flex-col justify-between p-6 h-[140px] bg-white border border-gray-200 hover:border-black hover:bg-black transition-all duration-300 relative overflow-hidden"
                   >
-                    <div className="flex-1">
-                      <span className="text-sm font-bold uppercase tracking-wide group-hover:text-white text-gray-700">
+                    {/* Background Icon Decoration */}
+                    <div className="absolute -right-4 -bottom-4 text-gray-50 opacity-0 group-hover:opacity-10 group-hover:scale-150 transition-all duration-500">
+                      {section.icon}
+                    </div>
+
+                    <div className="flex justify-between items-start">
+                      <div className="w-8 h-1 bg-black group-hover:bg-white transition-colors"></div>
+                      <IconArrowRight
+                        size={20}
+                        className="text-black group-hover:text-white -translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300"
+                      />
+                    </div>
+
+                    <div>
+                      <span className="text-sm font-black uppercase tracking-wide text-black group-hover:text-white transition-colors block max-w-[80%] leading-tight">
                         {report.title}
                       </span>
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-gray-500 mt-2 block">
+                        View Report
+                      </span>
                     </div>
-                    <IconChevronRight
-                      size={18}
-                      className="text-gray-400 group-hover:text-white transform group-hover:translate-x-1 transition-transform"
-                    />
                   </Link>
                 ))}
               </div>

@@ -13,18 +13,20 @@ import { Coupon } from "@/model/Coupon";
 import CouponListTable from "./components/CouponListTable";
 import CouponFormModal from "./components/CouponFormModal"; // Will create next
 import { showNotification } from "@/utils/toast";
+import { useAppSelector } from "@/lib/hooks";
 
 const CouponsPage = () => {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, size: 20, total: 0 });
-
+  const { currentUser } = useAppSelector((state) => state.authSlice);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Coupon | null>(null);
 
   useEffect(() => {
+    if (!currentUser) return;
     fetchCoupons();
-  }, [pagination.page]);
+  }, [pagination.page, currentUser]);
 
   const fetchCoupons = async () => {
     setLoading(true);

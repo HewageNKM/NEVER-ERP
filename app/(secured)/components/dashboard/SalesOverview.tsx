@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useState } from "react";
 import DashboardCard from "../shared/DashboardCard";
 import dynamic from "next/dynamic";
@@ -20,62 +22,104 @@ const SalesOverview = () => {
     website: Array(12).fill(0),
     store: Array(12).fill(0),
   });
-  const [months, setMonths] = useState<string[]>(
+  const [months] = useState<string[]>(
     Array.from({ length: 12 }, (_, i) =>
-      new Date(0, i).toLocaleString("default", { month: "short" })
+      new Date(0, i).toLocaleString("default", { month: "short" }).toUpperCase()
     )
   );
-  
+
   const { currentUser } = useAppSelector((state) => state.authSlice);
 
-  // Nike Chart Colors
-  const primary = "#000000";
-  const secondary = "#E5E5E5";
+  const primaryColor = "#000000";
+  const secondaryColor = "#e5e7eb";
+
+  // REDUCED HEIGHT HERE
+  const chartHeight = 300;
 
   const optionscolumnchart: any = {
     chart: {
       type: "bar",
-      height: 370,
+      height: chartHeight,
       fontFamily: "inherit",
       toolbar: { show: false },
+      animations: { enabled: true, easing: "easeinout", speed: 500 },
     },
-    colors: [primary, secondary],
+    colors: [primaryColor, secondaryColor],
     plotOptions: {
-      bar: { horizontal: false, columnWidth: "40%", borderRadius: 0 },
+      bar: { horizontal: false, columnWidth: "50%", borderRadius: 0 },
     },
     dataLabels: { enabled: false },
-    stroke: { show: true, width: 2, colors: ["transparent"] },
+    stroke: { show: true, width: 0, colors: ["transparent"] },
     xaxis: {
-      categories: months.length ? months : Array(12).fill("No Data"),
-      axisBorder: { show: false },
+      categories: months.length ? months : Array(12).fill("N/A"),
+      axisBorder: {
+        show: true,
+        color: "#000000",
+        height: 1,
+        width: "100%",
+        offsetX: 0,
+        offsetY: 0,
+      },
       axisTicks: { show: false },
       labels: {
-        style: { colors: "#a1a1aa", fontSize: "12px", fontFamily: "inherit" },
+        style: {
+          colors: "#71717a",
+          fontSize: "10px",
+          fontFamily: "inherit",
+          fontWeight: 800,
+          cssClass: "tracking-widest uppercase",
+        },
       },
     },
     yaxis: {
-      tickAmount: 4,
+      tickAmount: 3, // Reduced ticks for smaller height
       labels: {
-        style: { colors: "#a1a1aa", fontSize: "12px", fontFamily: "inherit" },
+        style: {
+          colors: "#71717a",
+          fontSize: "10px",
+          fontFamily: "inherit",
+          fontWeight: 700,
+        },
       },
     },
     grid: {
       borderColor: "#f3f4f6",
-      strokeDashArray: 4,
+      strokeDashArray: 2,
+      xaxis: { lines: { show: false } },
+      yaxis: { lines: { show: true } },
+      padding: { top: 0, right: 0, bottom: 0, left: 10 }, // Tighter padding
     },
-    tooltip: { theme: "light" },
+    legend: {
+      show: true,
+      position: "top",
+      horizontalAlign: "right",
+      offsetY: -20, // Move legend up into header space
+      fontFamily: "inherit",
+      fontWeight: 700,
+      labels: { colors: "#000000", useSeriesColors: false },
+      markers: { width: 8, height: 8, radius: 0 },
+      itemMargin: { horizontal: 10, vertical: 0 },
+    },
+    tooltip: {
+      theme: "light",
+      style: { fontSize: "12px", fontFamily: "inherit" },
+      marker: { show: true },
+      x: { show: false },
+      fixed: { enabled: false, position: "topRight", offsetX: 0, offsetY: 0 },
+      dropShadow: { enabled: false },
+    },
   };
 
   const seriescolumnchart = [
     {
-      name: "Website",
+      name: "WEBSITE",
       data:
         salesData.website && salesData.website.length
           ? salesData.website
           : Array(12).fill(0),
     },
     {
-      name: "Store",
+      name: "STORE",
       data:
         salesData.store && salesData.store.length
           ? salesData.store
@@ -92,24 +136,12 @@ const SalesOverview = () => {
   const fetchSalesData = async () => {
     try {
       setLoading(true);
-
       const now = new Date();
       const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth();
-
       const startOfYear = new Date(currentYear, 0, 1, 0, 0, 0, 0);
-      const endOfMonth = new Date(
-        currentYear,
-        currentMonth + 1,
-        0,
-        23,
-        59,
-        59,
-        999
-      );
-
+      const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59, 999);
       const startTimestamp = Timestamp.fromDate(startOfYear);
-      const endTimestamp = Timestamp.fromDate(endOfMonth);
+      const endTimestamp = Timestamp.fromDate(endOfYear);
 
       const ordersRef = collection(db, "orders");
       const ordersQuery = query(
@@ -120,7 +152,6 @@ const SalesOverview = () => {
       );
 
       const querySnapshot = await getDocs(ordersQuery);
-
       const updatedWebsiteOrders = new Array(12).fill(0);
       const updatedStoreOrders = new Array(12).fill(0);
 
@@ -129,18 +160,16 @@ const SalesOverview = () => {
         const createdAt = data.createdAt?.toDate();
         if (createdAt) {
           const monthIndex = createdAt.getMonth();
-          if (data.from.toString().toLowerCase() === "website") {
-            updatedWebsiteOrders[monthIndex]++;
-          } else if (data.from.toString().toLowerCase() === "store") {
-            updatedStoreOrders[monthIndex]++;
-          }
+          const source = data.from?.toString().toLowerCase() || "store";
+          if (source === "website") updatedWebsiteOrders[monthIndex]++;
+          else updatedStoreOrders[monthIndex]++;
         }
       });
       setSalesData({
         website: updatedWebsiteOrders,
         store: updatedStoreOrders,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       showNotification(error.message, "error");
     } finally {
@@ -149,9 +178,19 @@ const SalesOverview = () => {
   };
 
   return (
-    <DashboardCard title="Sales Overview">
+    <DashboardCard>
+      <div>
+        <h4 className="text-lg font-black uppercase tracking-tighter text-black">
+          Sales Performance
+        </h4>
+        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+          Year to Date Comparison
+        </p>
+      </div>
       {loading ? (
-        <div className="flex justify-center items-center h-[370px]">
+        <div
+          className={`flex justify-center items-center h-[${chartHeight}px]`}
+        >
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
         </div>
       ) : (
@@ -159,7 +198,7 @@ const SalesOverview = () => {
           options={optionscolumnchart}
           series={seriescolumnchart}
           type="bar"
-          height={370}
+          height={chartHeight}
           width={"100%"}
         />
       )}

@@ -1,112 +1,68 @@
+"use client";
 import React from "react";
 import Link from "next/link";
-import { IoLockClosed } from "react-icons/io5"; // Ensure you have react-icons installed
+import { IconLock, IconShieldLock } from "@tabler/icons-react";
 
-const Page = () => {
+const RestrictedPage = () => {
   return (
-    <main
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "100vh",
-        backgroundColor: "#ffffff",
-        fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-        color: "#000000",
-      }}
-    >
+    <main className="flex flex-col items-center justify-center min-h-screen bg-white text-black relative overflow-hidden">
+      {/* Background Hazard Pattern (Subtle) */}
       <div
+        className="absolute inset-0 opacity-[0.03] pointer-events-none"
         style={{
-          textAlign: "center",
-          padding: "2rem",
-          maxWidth: "500px",
+          backgroundImage:
+            "repeating-linear-gradient(45deg, #000 0, #000 1px, transparent 0, transparent 50%)",
+          backgroundSize: "20px 20px",
         }}
-      >
+      />
+
+      <div className="z-10 flex flex-col items-center text-center max-w-lg px-6">
         {/* Icon */}
-        <div
-          style={{
-            fontSize: "4rem",
-            marginBottom: "1rem",
-            display: "flex",
-            justifyContent: "center",
-          }}
-        >
-          <IoLockClosed style={{ color: "#000000" }} />
+        <div className="mb-6 p-4 border-4 border-black rounded-full">
+          <IconLock size={48} stroke={2} className="text-black" />
         </div>
 
-        {/* Main Heading: Industrial/Speed Look */}
-        <h1
-          style={{
-            color: "#000000",
-            fontSize: "3.5rem",
-            fontWeight: "900",
-            fontStyle: "italic",
-            textTransform: "uppercase",
-            letterSpacing: "-0.05em",
-            lineHeight: "0.9",
-            marginBottom: "1.5rem",
-          }}
-        >
+        {/* Main Heading */}
+        <h1 className="text-5xl md:text-7xl font-black italic uppercase tracking-tighter leading-[0.9] mb-6 text-black mix-blend-multiply">
           Restricted
           <br />
           Access
         </h1>
 
-        {/* Subtext: Technical/Spec Look */}
-        <p
-          style={{
-            color: "#757575",
-            fontSize: "0.85rem",
-            fontWeight: "700",
-            textTransform: "uppercase",
-            letterSpacing: "0.1em",
-            lineHeight: "1.6",
-            marginBottom: "3rem",
-          }}
-        >
-          You do not have the required permissions
-          <br />
-          to view this secured area.
-        </p>
+        {/* Technical Subtext */}
+        <div className="space-y-1 mb-10 border-l-2 border-black pl-4 text-left">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-black">
+            Authorization Failed
+          </p>
+          <p className="text-[10px] font-mono text-gray-500 uppercase tracking-wide">
+            Error Code: 403_FORBIDDEN // Insufficient permissions detected.
+          </p>
+        </div>
 
-        {/* Action: Black Pill Button */}
+        {/* Industrial Button */}
         <Link
           href="/"
-          style={{
-            color: "#ffffff",
-            backgroundColor: "#000000",
-            padding: "18px 50px",
-            borderRadius: "9999px", // Pill shape
-            textDecoration: "none",
-            display: "inline-block",
-            fontSize: "0.9rem",
-            fontWeight: "700",
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-            transition: "all 0.2s ease",
-          }}
+          className="group relative inline-flex items-center justify-center px-10 py-4 bg-black text-white text-xs font-black uppercase tracking-[0.2em] hover:bg-gray-900 transition-all duration-300 shadow-[4px_4px_0px_0px_rgba(200,200,200,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
         >
-          Return to Login
+          <IconShieldLock
+            size={16}
+            className="mr-2 group-hover:text-gray-300 transition-colors"
+          />
+          Authenticate
         </Link>
       </div>
 
       {/* Footer Brand Element */}
-      <div
-        style={{
-          position: "fixed",
-          bottom: "2rem",
-          fontSize: "0.7rem",
-          fontWeight: "700",
-          textTransform: "uppercase",
-          letterSpacing: "0.1em",
-          color: "#e5e5e5",
-        }}
-      >
-        NEVERBE SECURITY
+      <div className="absolute bottom-8 text-center opacity-40">
+        <span className="text-[10px] font-black italic tracking-tighter uppercase block">
+          NeverBe.
+        </span>
+        <span className="text-[8px] font-mono text-gray-500 uppercase tracking-widest">
+          Security Protocols Active
+        </span>
       </div>
     </main>
   );
 };
 
-export default Page;
+export default RestrictedPage;

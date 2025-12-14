@@ -7,7 +7,7 @@ import axios from "axios";
 import { getToken } from "@/firebase/firebaseClient";
 import { useAppSelector } from "@/lib/hooks";
 import { Logo } from "@/assets/images";
-import { IconPrinter } from "@tabler/icons-react";
+import { IconPrinter, IconChevronLeft } from "@tabler/icons-react";
 import Link from "next/link";
 
 const OrderInvoice = () => {
@@ -16,7 +16,6 @@ const OrderInvoice = () => {
   const params = useParams();
   const orderId = params?.orderId as string;
   const { currentUser } = useAppSelector((state) => state.authSlice);
-  const router = useRouter();
 
   useEffect(() => {
     if (orderId && currentUser) fetchOrderById();
@@ -41,22 +40,17 @@ const OrderInvoice = () => {
 
   if (loading)
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-white">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-gray-200 border-t-black rounded-full animate-spin"></div>
-          <p className="text-gray-500 font-medium uppercase tracking-wide">
-            Loading Invoice...
+          <div className="w-10 h-10 border-4 border-gray-100 border-t-black rounded-full animate-spin"></div>
+          <p className="text-gray-400 font-bold text-xs uppercase tracking-widest">
+            Generating Invoice...
           </p>
         </div>
       </div>
     );
 
-  if (!order)
-    return (
-      <div className="p-8 text-center text-gray-500 uppercase tracking-wide">
-        Order not found or still loading.
-      </div>
-    );
+  if (!order) return null;
 
   return (
     <>
@@ -65,128 +59,115 @@ const OrderInvoice = () => {
           @media print {
             body * { visibility: hidden; }
             #printable-area, #printable-area * { visibility: visible; }
-            #printable-area { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 20mm; }
+            #printable-area { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; }
             .no-print { display: none !important; }
-            @page { margin: 0; }
+            @page { margin: 10mm; size: auto; }
           }
         `}
       </style>
 
-      {/* Breadcrumbs - Hidden on print */}
-      <div className="max-w-4xl mx-auto mb-6 no-print pt-6">
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-6 font-medium uppercase tracking-wide">
-          <Link href="/orders" className="hover:text-black transition-colors">
-            Orders
-          </Link>
-          <span>/</span>
-          <span className="text-black font-bold">
-            Invoice #{order?.orderId}
-          </span>
-        </div>
+      {/* Nav - Hidden on print */}
+      <div className="max-w-4xl mx-auto mb-6 no-print pt-8 px-4 flex justify-between items-center">
+        <Link
+          href="/orders"
+          className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-black transition-colors"
+        >
+          <IconChevronLeft size={16} /> Back to Orders
+        </Link>
+        <button
+          onClick={handlePrint}
+          className="flex items-center gap-2 px-6 py-3 bg-black text-white text-xs font-black uppercase tracking-widest hover:bg-gray-900 transition-all shadow-lg"
+        >
+          <IconPrinter size={16} /> Print Document
+        </button>
       </div>
 
-      <div className="min-h-screen bg-gray-50 pb-20">
+      <div className="min-h-screen bg-gray-100 pb-20 print:bg-white print:pb-0">
         <div className="max-w-[800px] mx-auto">
-          {/* Action Bar */}
-          <div className="flex justify-end mb-6 no-print">
-            <button
-              onClick={handlePrint}
-              className="flex items-center gap-2 px-6 py-2.5 bg-black text-white text-sm font-bold uppercase tracking-wide rounded-sm hover:bg-gray-800 transition-all shadow-md"
-            >
-              <IconPrinter size={18} />
-              Print Invoice
-            </button>
-          </div>
-
           {/* Invoice Paper */}
           <div
             id="printable-area"
-            className="bg-white p-8 md:p-12 shadow-lg min-h-[1000px] relative text-black"
+            className="bg-white p-12 md:p-16 shadow-2xl min-h-[1100px] relative text-black print:shadow-none print:p-0"
           >
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start gap-8 border-b-2 border-black pb-8">
-              <div className="space-y-4">
-                <div className="w-24 h-24 relative mb-2">
-                  <Image
-                    alt="Store Logo"
-                    src={Logo}
-                    fill
-                    style={{ objectFit: "contain" }}
-                  />
-                </div>
-                <div className="text-sm text-gray-600 leading-relaxed">
-                  <p className="font-bold text-black text-lg tracking-tight uppercase">
-                    NEVERBE
-                  </p>
-                  <p>330/4/10 New Kandy Road, Delgoda</p>
-                  <p>support@neverbe.lk</p>
-                  <p>+94 70 520 8999</p>
-                </div>
-              </div>
-
-              <div className="text-right space-y-2">
-                <h1 className="text-4xl font-black uppercase tracking-tighter text-black mb-4">
+            <div className="flex justify-between items-start border-b-4 border-black pb-8 mb-8">
+              <div className="flex flex-col">
+                <h1 className="text-5xl font-black uppercase tracking-tighter text-black leading-none mb-1">
                   Invoice
                 </h1>
-                <div className="text-sm">
-                  <p>
-                    <span className="font-bold uppercase text-gray-500 mr-2">
-                      Order ID:
-                    </span>{" "}
-                    <span className="font-mono font-bold">
-                      #{order.orderId}
-                    </span>
-                  </p>
-                  <p>
-                    <span className="font-bold uppercase text-gray-500 mr-2">
-                      Date:
-                    </span>{" "}
-                    {new Date(order.createdAt).toLocaleDateString()}
-                  </p>
-                  <p>
-                    <span className="font-bold uppercase text-gray-500 mr-2">
-                      Status:
-                    </span>{" "}
-                    <span className="uppercase">{order.paymentStatus}</span>
-                  </p>
-                </div>
+                <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
+                  Official Receipt
+                </span>
+              </div>
+
+              <div className="text-right">
+                <h2 className="text-xl font-bold uppercase tracking-tight mb-1">
+                  NeverBe.
+                </h2>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  330/4/10 New Kandy Road
+                  <br />
+                  Delgoda, Sri Lanka
+                </p>
+                <p className="text-xs font-medium text-gray-500 mt-1">
+                  +94 70 520 8999
+                </p>
               </div>
             </div>
 
-            {/* Customer Info */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-12 mt-12 mb-12">
-              <div>
-                <h3 className="text-xs font-bold uppercase text-gray-400 mb-2">
-                  Bill To
-                </h3>
-                <div className="text-sm font-medium leading-relaxed">
-                  <p className="font-bold text-black text-base uppercase mb-1">
-                    {order.customer?.name || "N/A"}
+            {/* Meta Data Grid */}
+            <div className="grid grid-cols-2 gap-8 mb-12 border-b border-gray-100 pb-8">
+              <div className="space-y-6">
+                <div>
+                  <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                    Invoice To
+                  </span>
+                  <p className="text-sm font-bold uppercase">
+                    {order.customer?.name || "Guest"}
                   </p>
-                  <p>{order.customer?.address || "N/A"}</p>
-                  <p>
-                    {order.customer?.city || "N/A"}, {order.customer?.zip || ""}
+                  <p className="text-xs text-gray-600 mt-1 uppercase max-w-[200px] leading-relaxed">
+                    {order.customer?.address}
+                    <br />
+                    {order.customer?.city} {order.customer?.zip}
                   </p>
-                  <p className="mt-2">{order.customer?.phone || "N/A"}</p>
-                  <p>{order.customer?.email || "N/A"}</p>
+                </div>
+                <div>
+                  <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                    Ship To
+                  </span>
+                  <p className="text-sm font-bold uppercase">
+                    {order.customer?.shippingName || order.customer?.name}
+                  </p>
+                  <p className="text-xs text-gray-600 mt-1 uppercase max-w-[200px] leading-relaxed">
+                    {order.customer?.shippingAddress}
+                    <br />
+                    {order.customer?.shippingCity} {order.customer?.shippingZip}
+                  </p>
                 </div>
               </div>
-
-              <div>
-                <h3 className="text-xs font-bold uppercase text-gray-400 mb-2">
-                  Ship To
-                </h3>
-                <div className="text-sm font-medium leading-relaxed">
-                  <p className="font-bold text-black text-base uppercase mb-1">
-                    {order.customer?.shippingName || "N/A"}
+              <div className="text-right space-y-6">
+                <div>
+                  <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                    Order No.
+                  </span>
+                  <p className="text-lg font-black uppercase tracking-tight">
+                    #{order.orderId}
                   </p>
-                  <p>{order.customer?.shippingAddress || "N/A"}</p>
-                  <p>
-                    {order.customer?.shippingCity || "N/A"},{" "}
-                    {order.customer?.shippingZip || ""}
+                </div>
+                <div>
+                  <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                    Date Issued
+                  </span>
+                  <p className="text-sm font-bold uppercase">
+                    {new Date(order.createdAt).toLocaleDateString()}
                   </p>
-                  <p className="mt-2 text-gray-600">
-                    Phone: {order.customer?.shippingPhone || "N/A"}
+                </div>
+                <div>
+                  <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                    Payment Status
+                  </span>
+                  <p className="text-sm font-black uppercase tracking-wide">
+                    {order.paymentStatus}
                   </p>
                 </div>
               </div>
@@ -197,23 +178,17 @@ const OrderInvoice = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-black">
-                    <th className="text-left font-bold uppercase py-3 pr-4">
-                      Item
+                    <th className="text-left font-black uppercase tracking-widest text-[10px] py-3 pr-4">
+                      Item Description
                     </th>
-                    <th className="text-left font-bold uppercase py-3 px-4">
-                      Variant
-                    </th>
-                    <th className="text-right font-bold uppercase py-3 px-4">
+                    <th className="text-center font-black uppercase tracking-widest text-[10px] py-3 px-4">
                       Size
                     </th>
-                    <th className="text-right font-bold uppercase py-3 px-4">
+                    <th className="text-center font-black uppercase tracking-widest text-[10px] py-3 px-4">
                       Qty
                     </th>
-                    <th className="text-right font-bold uppercase py-3 px-4">
-                      Price
-                    </th>
-                    <th className="text-right font-bold uppercase py-3 pl-4">
-                      Total
+                    <th className="text-right font-black uppercase tracking-widest text-[10px] py-3 pl-4">
+                      Amount
                     </th>
                   </tr>
                 </thead>
@@ -221,26 +196,23 @@ const OrderInvoice = () => {
                   {order.items.map((item, index) => (
                     <tr key={index}>
                       <td className="py-4 pr-4">
-                        <p className="font-bold text-black">{item.name}</p>
+                        <p className="font-bold text-black uppercase">
+                          {item.name}
+                        </p>
+                        <p className="text-xs text-gray-500 uppercase mt-0.5">
+                          {item.variantName}
+                        </p>
                       </td>
-                      <td className="py-4 px-4 text-gray-600">
-                        {item.variantName}
-                      </td>
-                      <td className="py-4 px-4 text-right text-gray-600">
+                      <td className="py-4 px-4 text-center font-mono text-xs font-bold text-gray-600">
                         {item.size}
                       </td>
-                      <td className="py-4 px-4 text-right font-medium">
-                        {Number(item.quantity) || 0}
+                      <td className="py-4 px-4 text-center font-mono text-xs font-bold text-gray-600">
+                        {Number(item.quantity)}
                       </td>
-                      <td className="py-4 px-4 text-right text-gray-600">
-                        {(Number(item.price) || 0).toFixed(2)}
-                      </td>
-                      <td className="py-4 pl-4 text-right font-bold">
+                      <td className="py-4 pl-4 text-right font-mono font-bold text-black">
                         {(
                           (Number(item.price) || 0) *
-                            (Number(item.quantity) || 0) -
-                          (Number(item.discount) || 0) *
-                            (Number(item.quantity) || 0)
+                          (Number(item.quantity) || 0)
                         ).toFixed(2)}
                       </td>
                     </tr>
@@ -249,27 +221,12 @@ const OrderInvoice = () => {
               </table>
             </div>
 
-            {/* Summary & Footer */}
-            <div className="flex flex-col sm:flex-row justify-between items-end gap-12 border-t-2 border-black pt-8">
-              {/* Footer Message */}
-              <div className="text-sm text-gray-500 max-w-xs">
-                <p className="font-bold text-black uppercase mb-1">
-                  Thank you for your business.
-                </p>
-                <p>
-                  For any questions regarding this invoice, please contact
-                  support@neverbe.lk
-                </p>
-                <p className="mt-4 font-mono text-xs">
-                  Generated from NEVERBE Panel
-                </p>
-              </div>
-
-              {/* Totals */}
-              <div className="w-full sm:w-64 space-y-3 text-sm">
-                <div className="flex justify-between items-center text-gray-600">
+            {/* Financial Summary */}
+            <div className="flex justify-end">
+              <div className="w-64 space-y-3">
+                <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
                   <span>Subtotal</span>
-                  <span>
+                  <span className="font-mono text-black">
                     {order.items
                       .reduce(
                         (acc, item) =>
@@ -281,26 +238,45 @@ const OrderInvoice = () => {
                       .toFixed(2)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-gray-600">
-                  <span>Discount</span>
-                  <span className="text-red-600">
-                    - {(Number(order?.discount) || 0).toFixed(2)}
+                {Number(order.discount) > 0 && (
+                  <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
+                    <span>Discount</span>
+                    <span className="font-mono text-red-600">
+                      - {Number(order.discount).toFixed(2)}
+                    </span>
+                  </div>
+                )}
+                {Number(order.shippingFee) > 0 && (
+                  <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
+                    <span>Shipping</span>
+                    <span className="font-mono text-black">
+                      {Number(order.shippingFee).toFixed(2)}
+                    </span>
+                  </div>
+                )}
+
+                <div className="border-t-2 border-black pt-4 mt-4 flex justify-between items-end">
+                  <span className="text-sm font-black uppercase tracking-tight">
+                    Total Due
                   </span>
-                </div>
-                <div className="flex justify-between items-center text-gray-600">
-                  <span>Shipping</span>
-                  <span>{(Number(order?.shippingFee) || 0).toFixed(2)}</span>
-                </div>
-                <div className="border-t border-gray-200 pt-3 mt-3 flex justify-between items-center text-lg font-black uppercase">
-                  <span>Total (LKR)</span>
-                  <span>{(Number(order?.total) || 0).toFixed(2)}</span>
+                  <span className="text-xl font-black font-mono tracking-tighter">
+                    {Number(order.total).toFixed(2)}{" "}
+                    <span className="text-[10px] text-gray-400 font-bold align-top">
+                      LKR
+                    </span>
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Footer Site */}
-            <div className="absolute bottom-12 left-0 w-full text-center text-xs font-bold uppercase tracking-widest text-gray-300">
-              www.neverbe.lk
+            {/* Footer */}
+            <div className="absolute bottom-12 left-12 right-12 border-t border-gray-100 pt-6 flex justify-between items-end">
+              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Thank you for your purchase.
+              </div>
+              <div className="text-[10px] font-bold text-black uppercase tracking-widest">
+                NEVERBE.LK
+              </div>
             </div>
           </div>
         </div>

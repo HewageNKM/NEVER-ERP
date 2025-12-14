@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { IconEdit, IconLoader } from "@tabler/icons-react";
+import { IconEdit, IconLoader, IconBoxSeam } from "@tabler/icons-react";
 import { DropdownOption } from "@/app/(secured)/master/products/page";
 import { InventoryItem } from "@/model/InventoryItem";
 
@@ -21,80 +21,109 @@ const InventoryListTable: React.FC<StockListTableProps> = ({
   loading,
   onEdit,
 }) => {
+  // Loading State
   if (loading) {
     return (
-      <div className="text-center py-12">
-        <IconLoader className="animate-spin mx-auto text-gray-400" size={32} />
-        <p className="mt-2 text-gray-500 text-sm font-bold uppercase">
-          Loading Inventory...
+      <div className="w-full flex flex-col items-center justify-center py-20 gap-3 border border-gray-200 bg-white">
+        <IconLoader className="animate-spin text-black" size={24} />
+        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+          Loading Inventory Data
+        </span>
+      </div>
+    );
+  }
+
+  // Empty State
+  if (items.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-gray-200 bg-gray-50/50">
+        <IconBoxSeam className="text-gray-300 mb-2" size={48} />
+        <p className="text-lg font-black uppercase tracking-tighter text-gray-300">
+          No Stock Items Found
         </p>
       </div>
     );
   }
 
-  if (items.length === 0) {
-    return (
-      <div className="text-center py-12 text-gray-500">
-        <p className="text-sm font-bold uppercase">No stock items found.</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="w-full overflow-x-auto bg-white border border-gray-200 rounded-sm">
-      <table className="w-full text-left text-sm border-collapse">
-        <thead className="bg-gray-100 text-gray-900 border-b border-gray-200 uppercase text-xs tracking-wider font-bold">
+    <div className="w-full overflow-x-auto border border-gray-200 bg-white">
+      <table className="w-full text-left border-collapse">
+        <thead className="bg-white text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b-2 border-black">
           <tr>
-            <th className="p-4">Product ID</th>
-            <th className="p-4">Product</th>
-            <th className="p-4">Variant ID</th>
-            <th className="p-4">Variant</th>
-            <th className="p-4">Size</th>
-            <th className="p-4">Location</th>
-            <th className="p-4 text-right">Quantity</th>
-            <th className="p-4 text-right">Actions</th>
+            <th className="px-6 py-4">Product Info</th>
+            <th className="px-6 py-4">Variant</th>
+            <th className="px-6 py-4 text-center">Size</th>
+            <th className="px-6 py-4">Location</th>
+            <th className="px-6 py-4 text-center">Qty</th>
+            <th className="px-6 py-4 text-right">Action</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="text-sm">
           {items.map((item) => (
             <tr
               key={item.id}
-              className="hover:bg-gray-50 transition-colors duration-200"
+              className="border-b border-gray-100 group hover:bg-gray-50 transition-colors"
             >
-              <td className="p-4 font-mono text-gray-500 uppercase">
-                {item.productId?.toUpperCase() || "N/A"}
+              {/* Product Info */}
+              <td className="px-6 py-5 align-top">
+                <div className="flex flex-col gap-1">
+                  <span className="font-black text-black uppercase tracking-tight text-base leading-none">
+                    {item.productName?.toUpperCase() || "N/A"}
+                  </span>
+                  <span className="text-[9px] font-mono text-gray-400 uppercase tracking-widest">
+                    ID: {item.productId?.slice(0, 8) || "N/A"}
+                  </span>
+                </div>
               </td>
-              <td className="p-4 font-bold text-gray-900 uppercase">
-                {item.productName?.toUpperCase() || "N/A"}
+
+              {/* Variant */}
+              <td className="px-6 py-5 align-top">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                    {item.variantName?.toUpperCase() || "N/A"}
+                  </span>
+                  <span className="text-[9px] font-mono text-gray-400 uppercase tracking-widest">
+                    SKU: {item.variantId?.slice(0, 8) || "N/A"}
+                  </span>
+                </div>
               </td>
-              <td className="p-4 font-mono text-gray-500 uppercase">
-                {item.variantId?.toUpperCase() || "N/A"}
-              </td>
-              <td className="p-4 text-gray-700 uppercase">
-                {item.variantName?.toUpperCase() || "N/A"}
-              </td>
-              <td className="p-4 text-gray-700 font-bold">{item.size}</td>
-              <td className="p-4 text-gray-700 uppercase">
-                {item.stockName?.toUpperCase() || "N/A"}
-              </td>
-              <td className="p-4 text-right">
-                <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-sm text-xs font-bold uppercase ${
-                    item.quantity > 0
-                      ? "bg-green-100 text-green-800"
-                      : "bg-gray-100 text-gray-800"
-                  }`}
-                >
-                  {item.quantity}
+
+              {/* Size */}
+              <td className="px-6 py-5 align-top text-center">
+                <span className="inline-block border border-gray-300 px-2 py-1 text-[10px] font-bold text-black uppercase min-w-[30px]">
+                  {item.size}
                 </span>
               </td>
-              <td className="p-4 text-right">
+
+              {/* Location */}
+              <td className="px-6 py-5 align-top">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-black rounded-none"></div>
+                  <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">
+                    {item.stockName?.toUpperCase() || "N/A"}
+                  </span>
+                </div>
+              </td>
+
+              {/* Quantity */}
+              <td className="px-6 py-5 align-top text-center">
+                <span
+                  className={`font-mono text-lg font-black tracking-tighter ${
+                    item.quantity > 0 ? "text-black" : "text-gray-300"
+                  }`}
+                >
+                  {item.quantity.toLocaleString()}
+                </span>
+              </td>
+
+              {/* Actions */}
+              <td className="px-6 py-5 align-top text-right">
                 <button
                   onClick={() => onEdit(item)}
-                  className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
-                  title="Edit"
+                  className="w-8 h-8 inline-flex items-center justify-center border border-gray-200 hover:bg-black hover:border-black hover:text-white transition-colors"
+                  title="Edit Stock"
                 >
-                  <IconEdit size={18} />
+                  <IconEdit size={16} stroke={2} />
                 </button>
               </td>
             </tr>

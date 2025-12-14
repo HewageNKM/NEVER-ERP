@@ -15,6 +15,8 @@ import {
   IconSearch,
   IconChevronLeft,
   IconChevronRight,
+  IconBoxSeam,
+  IconLoader,
 } from "@tabler/icons-react";
 import PageContainer from "../components/container/PageContainer";
 import { showNotification } from "@/utils/toast";
@@ -23,15 +25,30 @@ import { useAppSelector } from "@/lib/hooks";
 import { Order } from "@/model";
 
 const paymentStatusList = [
-  { id: 1, name: "Paid", value: "Paid" },
-  { id: 2, name: "Pending", value: "Pending" },
-  { id: 3, name: "Failed", value: "Failed" },
-  { id: 4, name: "Refunded", value: "Refunded" },
+  { id: 1, name: "PAID", value: "Paid" },
+  { id: 2, name: "PENDING", value: "Pending" },
+  { id: 3, name: "FAILED", value: "Failed" },
+  { id: 4, name: "REFUNDED", value: "Refunded" },
 ];
+
+// --- STYLES ---
+const styles = {
+  label:
+    "block text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-2",
+  input:
+    "block w-full bg-[#f5f5f5] text-gray-900 text-sm font-medium px-4 py-3 rounded-sm border-2 border-transparent focus:bg-white focus:border-black transition-all duration-200 outline-none placeholder:text-gray-400",
+  select:
+    "block w-full bg-[#f5f5f5] text-gray-900 text-sm font-medium px-4 py-3 rounded-sm border-2 border-transparent focus:bg-white focus:border-black transition-all duration-200 outline-none appearance-none cursor-pointer",
+  primaryBtn:
+    "flex items-center justify-center px-6 py-3 bg-black text-white text-xs font-black uppercase tracking-widest hover:bg-gray-900 transition-all rounded-sm",
+  secondaryBtn:
+    "flex items-center justify-center px-6 py-3 border-2 border-black text-black text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all rounded-sm",
+  iconBtn:
+    "w-8 h-8 flex items-center justify-center border border-gray-200 hover:bg-black hover:border-black hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-300",
+};
 
 const OrdersPage = () => {
   const router = useRouter();
-  
   const { currentUser } = useAppSelector((state) => state.authSlice);
 
   // --- Pagination state ---
@@ -85,21 +102,6 @@ const OrdersPage = () => {
     }
   };
 
-  // --- Clear all filters ---
-  const clearFilters = () => {
-    setFilters(initialFilters);
-    setPage(1);
-    // Use timeout to ensure state update before fetch, or pass defaults directly
-    setTimeout(() => {
-      // We can't rely on state being updated immediately in this closure
-      // But for simplicity in this refactor, let's just trigger a re-mount effect or similar
-      // actually easier to just call fetch with default params or let effect handle it
-    }, 0);
-  };
-
-  // Effect to handle clear filter logic properly if we add dependency on filters to effect
-  // But original code had manual fetch. Let's stick to manual fetch for filters, auto for pagination.
-
   // Re-fetch when pagination changes
   useEffect(() => {
     if (currentUser) fetchOrders();
@@ -113,282 +115,322 @@ const OrdersPage = () => {
     }
   };
 
+  // Helper for Status Badges
+  const renderStatusBadge = (
+    status: string | undefined,
+    type: "payment" | "order"
+  ) => {
+    if (!status)
+      return <span className="text-gray-300 font-mono text-xs">N/A</span>;
+
+    const s = status.toLowerCase();
+    let styleClass = "bg-gray-100 text-gray-500 border-gray-200";
+
+    if (type === "payment") {
+      if (s === "paid") styleClass = "bg-black text-white border-black";
+      else if (s === "pending") styleClass = "bg-white text-black border-black";
+      else if (s === "failed")
+        styleClass = "bg-red-600 text-white border-red-600";
+      else if (s === "refunded")
+        styleClass = "bg-orange-500 text-white border-orange-500";
+    } else {
+      if (s === "completed")
+        styleClass = "bg-green-600 text-white border-green-600";
+      else if (s === "processing")
+        styleClass = "bg-blue-600 text-white border-blue-600";
+    }
+
+    return (
+      <span
+        className={`px-2 py-1 text-[9px] font-black uppercase tracking-widest border ${styleClass}`}
+      >
+        {status}
+      </span>
+    );
+  };
+
   return (
-    <PageContainer title="Orders" description="Manage all customer orders">
-      <div className="w-full">
+    <PageContainer title="Orders" description="Manage Customer Orders">
+      <div className="w-full space-y-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-          <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900">
-            Order Management
-          </h2>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-gray-500 uppercase">
-              Total Orders: {totalItems}
+        <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b-2 border-black pb-6">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1 flex items-center gap-2">
+              <IconBoxSeam size={14} /> Order Management
             </span>
-            <button
-              onClick={fetchOrders}
-              className="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
-              title="Refresh"
-            >
-              <IconRefresh size={20} />
-            </button>
+            <div className="flex items-baseline gap-3">
+              <h2 className="text-4xl font-black text-black uppercase tracking-tighter leading-none">
+                Orders
+              </h2>
+              <span className="text-sm font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-sm">
+                {totalItems} Total
+              </span>
+            </div>
           </div>
+          <button
+            onClick={fetchOrders}
+            className="w-10 h-10 flex items-center justify-center bg-white border-2 border-black text-black hover:bg-black hover:text-white transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
+            title="Refresh List"
+          >
+            <IconRefresh size={18} stroke={2.5} />
+          </button>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white border border-gray-200 rounded-sm shadow-sm p-6 mb-6">
-          <div className="flex flex-col gap-4">
-            {/* Top Row: Search & Statuses */}
-            <div className="flex flex-wrap gap-4 items-end">
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                  Order ID
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search Order ID..."
-                    value={filters.search}
-                    onChange={(e) =>
-                      setFilters({ ...filters, search: e.target.value })
-                    }
-                    onKeyDown={handleKeyDown}
-                    className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
-                  />
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
-                    <IconSearch size={16} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="min-w-[150px]">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                  Payment
-                </label>
-                <select
-                  value={filters.payment}
+        {/* Filters Panel */}
+        <div className="bg-white border border-gray-200 p-6 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+            {/* Search */}
+            <div className="md:col-span-4">
+              <label className={styles.label}>Order ID</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="SEARCH ID..."
+                  value={filters.search}
                   onChange={(e) =>
-                    setFilters({ ...filters, payment: e.target.value })
+                    setFilters({ ...filters, search: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
-                >
-                  <option value="all">All</option>
-                  {paymentStatusList.map((s) => (
-                    <option key={s.id} value={s.value}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="min-w-[150px]">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                  Status
-                </label>
-                <select
-                  value={filters.status}
-                  onChange={(e) =>
-                    setFilters({ ...filters, status: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
-                >
-                  <option value="all">All</option>
-                  <option value="Processing">Processing</option>
-                  <option value="Completed">Completed</option>
-                </select>
+                  onKeyDown={handleKeyDown}
+                  className={styles.input}
+                />
+                <IconSearch
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={16}
+                />
               </div>
             </div>
 
-            {/* Bottom Row: Dates & Actions */}
-            <div className="flex flex-wrap gap-4 items-end justify-between border-t border-gray-100 pt-4">
-              <div className="flex flex-wrap gap-4 items-end">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                    From Date
-                  </label>
-                  <input
-                    type="date"
-                    value={filters.from}
-                    onChange={(e) =>
-                      setFilters({ ...filters, from: e.target.value })
-                    }
-                    className="px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                    To Date
-                  </label>
-                  <input
-                    type="date"
-                    value={filters.to}
-                    onChange={(e) =>
-                      setFilters({ ...filters, to: e.target.value })
-                    }
-                    className="px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
-                  />
-                </div>
-              </div>
+            {/* Payment Filter */}
+            <div className="md:col-span-2">
+              <label className={styles.label}>Payment</label>
+              <select
+                value={filters.payment}
+                onChange={(e) =>
+                  setFilters({ ...filters, payment: e.target.value })
+                }
+                className={styles.select}
+              >
+                <option value="all">ALL STATUS</option>
+                {paymentStatusList.map((s) => (
+                  <option key={s.id} value={s.value}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setPage(1);
-                    fetchOrders();
-                  }}
-                  disabled={isLoading}
-                  className="flex items-center justify-center px-4 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50"
-                >
-                  <IconFilter size={16} className="mr-2" />
-                  Filter
-                </button>
-                <button
-                  onClick={() => {
-                    setFilters({ ...initialFilters });
-                    setPage(1);
-                    // Trigger re-fetch in effect or next tick
-                    setTimeout(() => fetchOrders(), 0); // Quick hack to re-fetch with cleared state
-                  }}
-                  disabled={isLoading}
-                  className="flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 text-sm font-bold uppercase rounded-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
-                >
-                  <IconX size={16} className="mr-2" />
-                  Clear
-                </button>
-              </div>
+            {/* Order Status Filter */}
+            <div className="md:col-span-2">
+              <label className={styles.label}>Status</label>
+              <select
+                value={filters.status}
+                onChange={(e) =>
+                  setFilters({ ...filters, status: e.target.value })
+                }
+                className={styles.select}
+              >
+                <option value="all">ALL STATUS</option>
+                <option value="Processing">PROCESSING</option>
+                <option value="Completed">COMPLETED</option>
+              </select>
+            </div>
+
+            {/* Date Range */}
+            <div className="md:col-span-2">
+              <label className={styles.label}>From Date</label>
+              <input
+                type="date"
+                value={filters.from}
+                onChange={(e) =>
+                  setFilters({ ...filters, from: e.target.value })
+                }
+                className={styles.input}
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className={styles.label}>To Date</label>
+              <input
+                type="date"
+                value={filters.to}
+                onChange={(e) => setFilters({ ...filters, to: e.target.value })}
+                className={styles.input}
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="md:col-span-12 flex justify-end gap-2 mt-2 pt-4 border-t border-gray-100">
+              <button
+                onClick={() => {
+                  setFilters({ ...initialFilters });
+                  setPage(1);
+                  setTimeout(() => fetchOrders(), 0);
+                }}
+                disabled={isLoading}
+                className={`${styles.secondaryBtn} w-auto px-8`}
+              >
+                <IconX size={16} className="mr-2" /> Clear
+              </button>
+              <button
+                onClick={() => {
+                  setPage(1);
+                  fetchOrders();
+                }}
+                disabled={isLoading}
+                className={`${styles.primaryBtn} w-auto px-8`}
+              >
+                {isLoading ? (
+                  <IconLoader className="animate-spin" size={16} />
+                ) : (
+                  <>
+                    <IconFilter size={16} className="mr-2" /> Filter
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
 
         {/* Table */}
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-2"></div>
-            <p className="text-gray-500 text-sm font-bold uppercase">
-              Loading Orders...
+          <div className="flex flex-col items-center justify-center py-20 border border-gray-200 bg-white">
+            <IconLoader className="animate-spin text-black mb-3" size={32} />
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+              Loading Order Data
             </p>
           </div>
         ) : orders.length === 0 ? (
-          <div className="text-center py-12 text-gray-500 bg-white border border-gray-200 rounded-sm">
-            <p className="text-sm font-bold uppercase">No orders found.</p>
+          <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-gray-200 bg-gray-50/50">
+            <IconBoxSeam className="text-gray-300 mb-2" size={48} />
+            <p className="text-lg font-black uppercase tracking-tighter text-gray-300">
+              No Orders Found
+            </p>
           </div>
         ) : (
-          <>
-            <div className="w-full overflow-x-auto bg-white border border-gray-200 rounded-sm shadow-sm">
-              <table className="w-full text-left text-sm border-collapse">
-                <thead className="bg-gray-100 text-gray-900 border-b border-gray-200 uppercase text-xs tracking-wider font-bold">
+          <div className="w-full">
+            <div className="w-full overflow-x-auto bg-white border border-gray-200">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-white text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b-2 border-black">
                   <tr>
-                    <th className="p-4 w-[1%] whitespace-nowrap">Actions</th>
-                    <th className="p-4">Order ID</th>
-                    <th className="p-4">Customer</th>
-                    <th className="p-4">Method</th>
-                    <th className="p-4">Payment</th>
-                    <th className="p-4">Total</th>
-                    <th className="p-4">Items</th>
-                    <th className="p-4">From</th>
-                    <th className="p-4">Status</th>
-                    <th className="p-4 text-center">Integrity</th>
-                    <th className="p-4">Created</th>
+                    <th className="p-6">Actions</th>
+                    <th className="p-6">Order Details</th>
+                    <th className="p-6">Customer</th>
+                    <th className="p-6 text-center">Payment</th>
+                    <th className="p-6 text-right">Total</th>
+                    <th className="p-6 text-center">Order Status</th>
+                    <th className="p-6 text-center">Check</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="text-sm">
                   {orders.map((order) => (
                     <tr
                       key={order.orderId}
-                      className="hover:bg-gray-50 transition-colors duration-200"
+                      className="border-b border-gray-100 group hover:bg-gray-50 transition-colors"
                     >
-                      <td className="p-4 whitespace-nowrap">
-                        <div className="flex items-center gap-1">
+                      <td className="p-6 align-top whitespace-nowrap">
+                        <div className="flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200">
                           <button
                             onClick={() =>
                               router.push(`/orders/${order.orderId}/invoice`)
                             }
-                            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-sm transition-colors border border-transparent hover:border-blue-100"
+                            className={styles.iconBtn}
                             title="Invoice"
                           >
-                            <IconFileInvoice size={18} />
+                            <IconFileInvoice size={16} stroke={2} />
                           </button>
                           <button
                             onClick={() =>
                               router.push(`/orders/${order.orderId}/view`)
                             }
-                            className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-sm transition-colors border border-transparent hover:border-gray-200"
+                            className={styles.iconBtn}
                             title="View"
                           >
-                            <IconEye size={18} />
+                            <IconEye size={16} stroke={2} />
                           </button>
                           <button
                             onClick={() =>
                               router.push(`/orders/${order.orderId}`)
                             }
-                            className="p-1.5 text-white bg-gray-900 hover:bg-gray-800 rounded-sm transition-colors shadow-sm"
+                            className={`${styles.iconBtn} bg-black text-white hover:bg-gray-800 border-black`}
                             title="Edit"
                           >
-                            <IconEdit size={16} />
+                            <IconEdit size={16} stroke={2} />
                           </button>
                         </div>
                       </td>
-                      <td className="p-4 font-mono text-xs font-bold text-gray-700">
-                        #{order.orderId}
+
+                      {/* Order Details */}
+                      <td className="p-6 align-top">
+                        <div className="flex flex-col gap-1">
+                          <span className="font-mono text-sm font-bold text-black uppercase tracking-tight">
+                            #{order.orderId}
+                          </span>
+                          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                            {order.createdAt || "-"}
+                          </span>
+                          <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wide mt-1">
+                            via {order.from}
+                          </span>
+                        </div>
                       </td>
-                      <td className="p-4 font-medium text-gray-900">
-                        {order.customer?.name || "N/A"}
+
+                      {/* Customer */}
+                      <td className="p-6 align-top">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-gray-900 leading-tight">
+                            {order.customer?.name || "N/A"}
+                          </span>
+                          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1">
+                            {order.items?.length || 0} Items
+                          </span>
+                        </div>
                       </td>
-                      <td className="p-4 text-gray-600 text-xs uppercase font-bold">
-                        {order.paymentMethod || "—"}
+
+                      {/* Payment */}
+                      <td className="p-6 align-top text-center">
+                        <div className="flex flex-col items-center gap-2">
+                          {renderStatusBadge(order.paymentStatus, "payment")}
+                          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                            {order.paymentMethod || "—"}
+                          </span>
+                        </div>
                       </td>
-                      <td className="p-4">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-bold uppercase ${
-                            order.paymentStatus?.toLowerCase() === "paid"
-                              ? "bg-green-100 text-green-800"
-                              : order.paymentStatus?.toLowerCase() === "pending"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : order.paymentStatus?.toLowerCase() === "failed"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {order.paymentStatus || "UNKNOWN"}
-                        </span>
+
+                      {/* Total */}
+                      <td className="p-6 align-top text-right">
+                        <div className="flex flex-col items-end">
+                          <span className="text-[10px] font-bold text-gray-400 mr-1">
+                            LKR
+                          </span>
+                          <span className="font-mono text-lg font-black text-black tracking-tighter">
+                            {order.total?.toLocaleString()}
+                          </span>
+                        </div>
                       </td>
-                      <td className="p-4 font-mono font-bold text-gray-900">
-                        LKR {order.total?.toLocaleString()}
+
+                      {/* Order Status */}
+                      <td className="p-6 align-top text-center">
+                        {renderStatusBadge(order.status, "order")}
                       </td>
-                      <td className="p-4 text-center text-gray-600">
-                        {order.items?.length || 0}
-                      </td>
-                      <td className="p-4 text-xs font-bold uppercase text-gray-500">
-                        {order.from}
-                      </td>
-                      <td className="p-4">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-bold uppercase ${
-                            order.status?.toLowerCase() === "completed"
-                              ? "bg-green-100 text-green-800"
-                              : order.status?.toLowerCase() === "processing"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {order.status || "UNKNOWN"}
-                        </span>
-                      </td>
-                      <td className="p-4 text-center">
+
+                      {/* Integrity Check */}
+                      <td className="p-6 align-top text-center">
                         {order.integrity ? (
-                          <IconCheck
-                            className="text-green-500 mx-auto"
-                            size={20}
-                          />
+                          <div className="w-6 h-6 bg-green-50 rounded-full flex items-center justify-center mx-auto border border-green-200">
+                            <IconCheck
+                              className="text-green-600"
+                              size={14}
+                              stroke={3}
+                            />
+                          </div>
                         ) : (
-                          <IconAlertCircle
-                            className="text-red-500 mx-auto"
-                            size={20}
-                          />
+                          <div className="w-6 h-6 bg-red-50 rounded-full flex items-center justify-center mx-auto border border-red-200">
+                            <IconAlertCircle
+                              className="text-red-600"
+                              size={14}
+                              stroke={3}
+                            />
+                          </div>
                         )}
-                      </td>
-                      <td className="p-4 text-xs text-gray-500">
-                        {order.createdAt ? order.createdAt : "-"}
                       </td>
                     </tr>
                   ))}
@@ -397,10 +439,10 @@ const OrdersPage = () => {
             </div>
 
             {/* Pagination */}
-            <div className="flex flex-col md:flex-row justify-between items-center mt-6 gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-center mt-8 gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-gray-500 uppercase">
-                  Rows per page:
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  Rows:
                 </span>
                 <select
                   value={size}
@@ -408,7 +450,7 @@ const OrdersPage = () => {
                     setSize(Number(e.target.value));
                     setPage(1);
                   }}
-                  className="bg-white border border-gray-300 text-gray-700 text-xs font-bold uppercase rounded-sm focus:ring-gray-900 focus:border-gray-900 block p-1.5"
+                  className="bg-[#f5f5f5] text-black text-xs font-bold uppercase rounded-sm border-transparent focus:ring-0 focus:border-black cursor-pointer py-1 pl-2 pr-6"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -421,25 +463,28 @@ const OrdersPage = () => {
                 <button
                   onClick={() => setPage(Math.max(1, page - 1))}
                   disabled={page === 1}
-                  className="p-2 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
+                  className={styles.iconBtn}
                 >
                   <IconChevronLeft size={18} />
                 </button>
-                <span className="text-sm font-bold text-gray-700 px-4">
-                  Page {page} of {Math.ceil(totalItems / size) || 1}
-                </span>
+
+                <div className="px-6 font-black text-sm tracking-widest uppercase">
+                  PAGE {page} <span className="text-gray-400">/</span>{" "}
+                  {Math.ceil(totalItems / size) || 1}
+                </div>
+
                 <button
                   onClick={() =>
                     setPage(Math.min(Math.ceil(totalItems / size), page + 1))
                   }
                   disabled={page >= Math.ceil(totalItems / size)}
-                  className="p-2 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
+                  className={styles.iconBtn}
                 >
                   <IconChevronRight size={18} />
                 </button>
               </div>
             </div>
-          </>
+          </div>
         )}
       </div>
     </PageContainer>

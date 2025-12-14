@@ -10,6 +10,8 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconStack2,
+  IconBoxSeam,
+  IconFilter,
 } from "@tabler/icons-react";
 import { getToken } from "@/firebase/firebaseClient";
 import { useAppSelector } from "@/lib/hooks";
@@ -28,6 +30,20 @@ const initialFilterState = {
   variantId: "all",
   size: "all",
   stockId: "all",
+};
+
+// --- NIKE AESTHETIC STYLES ---
+const styles = {
+  label:
+    "block text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-2",
+  select:
+    "block w-full bg-[#f5f5f5] text-gray-900 text-sm font-medium px-4 py-3 rounded-sm border-2 border-transparent focus:bg-white focus:border-black transition-all duration-200 outline-none appearance-none cursor-pointer",
+  primaryBtn:
+    "flex items-center justify-center px-6 py-3 bg-black text-white text-xs font-black uppercase tracking-widest hover:bg-gray-900 transition-all rounded-sm",
+  secondaryBtn:
+    "flex items-center justify-center px-6 py-3 border-2 border-black text-black text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all rounded-sm",
+  iconBtn:
+    "w-10 h-10 flex items-center justify-center border border-gray-200 hover:bg-black hover:border-black hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-300",
 };
 
 const InventoryPage = () => {
@@ -61,7 +77,7 @@ const InventoryPage = () => {
     }
   }, [currentUser]);
 
-  // Re-fetch when page or filters change (filters are now handled by buttons)
+  // Re-fetch when page or filters change
   useEffect(() => {
     if (currentUser) {
       fetchInventory();
@@ -154,11 +170,8 @@ const InventoryPage = () => {
     name: string,
     value: string | DropdownOption | null
   ) => {
-    // For standard selects, value is string.
-    // For manual handling (like wrapping Autocomplete logic if we built one), it might be option.
-    // Here we are using standard selects, so value is string ID.
     if (name === "productId") {
-      const newProductId = value as string; // Standard select returns string value
+      const newProductId = value as string;
       setFilters((prev) => ({
         ...prev,
         productId: newProductId || null,
@@ -222,44 +235,49 @@ const InventoryPage = () => {
 
   return (
     <PageContainer title="Stocks" description="Stock Management">
-      <div className="w-full">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-          <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900">
-            Stock Management
-          </h2>
-          <div className="flex gap-3">
+      <div className="w-full space-y-8">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b-2 border-black pb-6">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1 flex items-center gap-2">
+              <IconBoxSeam size={14} /> Inventory Control
+            </span>
+            <h2 className="text-4xl font-black text-black uppercase tracking-tighter leading-none">
+              Stock Management
+            </h2>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
             <button
               onClick={() => setIsBulkModalOpen(true)}
-              className="flex items-center px-5 py-2.5 bg-gray-700 text-white text-sm font-bold uppercase tracking-wide rounded-sm hover:bg-gray-600 transition-all shadow-sm"
+              className="flex items-center justify-center px-6 py-4 bg-white border-2 border-black text-black text-sm font-black uppercase tracking-widest hover:bg-gray-50 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
             >
               <IconStack2 size={18} className="mr-2" />
               Bulk Add
             </button>
             <button
               onClick={handleOpenCreateModal}
-              className="flex items-center px-5 py-2.5 bg-gray-900 text-white text-sm font-bold uppercase tracking-wide rounded-sm hover:bg-gray-800 transition-all shadow-sm"
+              className="flex items-center justify-center px-6 py-4 bg-black text-white text-sm font-black uppercase tracking-widest hover:bg-gray-900 transition-all shadow-[4px_4px_0px_0px_rgba(156,163,175,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
             >
               <IconPlus size={18} className="mr-2" />
-              Add Stock Entry
+              New Entry
             </button>
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-sm shadow-sm p-6 mb-6">
-          {/* --- FILTER BAR --- */}
-          <div className="flex flex-wrap gap-4 items-end mb-6">
-            <div className="w-full md:w-auto flex-1 min-w-[200px]">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                Product
-              </label>
+        {/* Filters Panel */}
+        <div className="bg-white border border-gray-200 p-6 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+            {/* Product Filter */}
+            <div className="md:col-span-3">
+              <label className={styles.label}>Product</label>
               <select
                 value={filters.productId || ""}
                 onChange={(e) =>
                   handleFilterChange("productId", e.target.value)
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+                className={styles.select}
               >
-                <option value="">All Products</option>
+                <option value="">ALL PRODUCTS</option>
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.label}
@@ -268,16 +286,14 @@ const InventoryPage = () => {
               </select>
             </div>
 
-            <div className="w-full md:w-auto min-w-[150px]">
-              <div className="flex justify-between items-center mb-1">
-                <label className="block text-xs font-bold text-gray-500 uppercase">
+            {/* Variant Filter */}
+            <div className="md:col-span-3">
+              <div className="flex justify-between items-center mb-2">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em]">
                   Variant
                 </label>
                 {variantLoading && (
-                  <IconLoader
-                    size={12}
-                    className="animate-spin text-gray-500"
-                  />
+                  <IconLoader size={12} className="animate-spin text-black" />
                 )}
               </div>
               <select
@@ -286,9 +302,9 @@ const InventoryPage = () => {
                   handleFilterChange("variantId", e.target.value)
                 }
                 disabled={!filters.productId || variantLoading}
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors disabled:bg-gray-50"
+                className={styles.select}
               >
-                <option value="all">All Variants</option>
+                <option value="all">ALL VARIANTS</option>
                 {variants.map((v) => (
                   <option key={v.id} value={v.id}>
                     {v.label}
@@ -297,16 +313,15 @@ const InventoryPage = () => {
               </select>
             </div>
 
-            <div className="w-full md:w-auto min-w-[120px]">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                Size
-              </label>
+            {/* Size Filter */}
+            <div className="md:col-span-2">
+              <label className={styles.label}>Size</label>
               <select
                 value={filters.size}
                 onChange={(e) => handleFilterChange("size", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+                className={styles.select}
               >
-                <option value="all">All Sizes</option>
+                <option value="all">ALL SIZES</option>
                 {sizes.map((s) => (
                   <option key={s.id} value={s.label}>
                     {s.label}
@@ -315,16 +330,15 @@ const InventoryPage = () => {
               </select>
             </div>
 
-            <div className="w-full md:w-auto min-w-[150px]">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                Stock Location
-              </label>
+            {/* Location Filter */}
+            <div className="md:col-span-2">
+              <label className={styles.label}>Location</label>
               <select
                 value={filters.stockId}
                 onChange={(e) => handleFilterChange("stockId", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+                className={styles.select}
               >
-                <option value="all">All Locations</option>
+                <option value="all">ALL LOCATIONS</option>
                 {stockLocations.map((loc) => (
                   <option key={loc.id} value={loc.id}>
                     {loc.label}
@@ -333,32 +347,32 @@ const InventoryPage = () => {
               </select>
             </div>
 
-            <div className="flex gap-2">
+            {/* Action Buttons */}
+            <div className="md:col-span-2 flex gap-2">
               <button
                 onClick={handleFilter}
                 disabled={loading || variantLoading}
-                className="flex items-center justify-center px-4 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50"
+                className={`${styles.primaryBtn} w-full`}
               >
                 {loading ? (
                   <IconLoader className="animate-spin" size={16} />
                 ) : (
-                  <>
-                    <IconSearch size={16} className="mr-2" />
-                    Filter
-                  </>
+                  <IconSearch size={16} />
                 )}
               </button>
               <button
                 onClick={handleClearFilters}
                 disabled={loading || variantLoading}
-                className="flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 text-sm font-bold uppercase rounded-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className={`${styles.secondaryBtn} w-full`}
               >
-                <IconX size={16} className="mr-2" />
-                Clear
+                <IconX size={16} />
               </button>
             </div>
           </div>
+        </div>
 
+        {/* Data Table Container */}
+        <div className="w-full">
           <InventoryListTable
             items={inventoryItems}
             loading={loading}
@@ -368,44 +382,50 @@ const InventoryPage = () => {
             stockLocations={stockLocations}
           />
 
-          <div className="flex justify-center mt-6">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() =>
-                  setPagination((prev) => ({
-                    ...prev,
-                    page: Math.max(1, prev.page - 1),
-                  }))
-                }
-                disabled={pagination.page === 1 || loading}
-                className="p-2 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
-              >
-                <IconChevronLeft size={18} />
-              </button>
-              <span className="text-sm font-bold text-gray-700 px-4">
-                Page {pagination.page} of{" "}
-                {Math.ceil(pagination.total / pagination.size) || 1}
-              </span>
-              <button
-                onClick={() =>
-                  setPagination((prev) => ({
-                    ...prev,
-                    page: Math.min(
-                      Math.ceil(pagination.total / pagination.size),
-                      prev.page + 1
-                    ),
-                  }))
-                }
-                disabled={
-                  pagination.page >=
-                    Math.ceil(pagination.total / pagination.size) || loading
-                }
-                className="p-2 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
-              >
-                <IconChevronRight size={18} />
-              </button>
+          {/* Pagination */}
+          {!loading && inventoryItems.length > 0 && (
+            <div className="flex justify-center mt-8">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() =>
+                    setPagination((prev) => ({
+                      ...prev,
+                      page: Math.max(1, prev.page - 1),
+                    }))
+                  }
+                  disabled={pagination.page === 1}
+                  className={styles.iconBtn}
+                >
+                  <IconChevronLeft size={18} />
+                </button>
+
+                <div className="px-6 font-black text-sm tracking-widest uppercase">
+                  PAGE {pagination.page}{" "}
+                  <span className="text-gray-400">/</span>{" "}
+                  {Math.ceil(pagination.total / pagination.size) || 1}
+                </div>
+
+                <button
+                  onClick={() =>
+                    setPagination((prev) => ({
+                      ...prev,
+                      page: Math.min(
+                        Math.ceil(pagination.total / pagination.size),
+                        prev.page + 1
+                      ),
+                    }))
+                  }
+                  disabled={
+                    pagination.page >=
+                    Math.ceil(pagination.total / pagination.size)
+                  }
+                  className={styles.iconBtn}
+                >
+                  <IconChevronRight size={18} />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 

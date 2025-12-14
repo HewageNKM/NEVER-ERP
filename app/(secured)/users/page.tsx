@@ -32,6 +32,24 @@ import { showNotification } from "@/utils/toast";
 import { useConfirmationDialog } from "@/contexts/ConfirmationDialogContext";
 import * as XLSX from "xlsx";
 
+// --- NIKE AESTHETIC STYLES ---
+const styles = {
+  label:
+    "block text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-2",
+  input:
+    "block w-full bg-[#f5f5f5] text-gray-900 text-sm font-medium px-4 py-3 rounded-sm border-2 border-transparent focus:bg-white focus:border-black transition-all duration-200 outline-none placeholder:text-gray-400",
+  select:
+    "block w-full bg-[#f5f5f5] text-gray-900 text-sm font-medium px-4 py-3 rounded-sm border-2 border-transparent focus:bg-white focus:border-black transition-all duration-200 outline-none appearance-none cursor-pointer uppercase",
+  primaryBtn:
+    "flex items-center justify-center px-6 py-3 bg-black text-white text-xs font-black uppercase tracking-widest hover:bg-gray-900 transition-all rounded-sm shadow-sm hover:shadow-md",
+  secondaryBtn:
+    "flex items-center justify-center px-6 py-3 border-2 border-black text-black text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all rounded-sm",
+  iconBtn:
+    "w-8 h-8 flex items-center justify-center border border-gray-200 hover:bg-black hover:border-black hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-300",
+  summaryCard:
+    "bg-white border border-gray-200 p-6 flex flex-col justify-between hover:border-black transition-colors duration-300",
+};
+
 // ============ USER FORM MODAL ============
 const UserForm = ({
   showForm,
@@ -81,10 +99,10 @@ const UserForm = ({
 
       if (userId === "Auto Generated") {
         await addNewUserAction(usr);
-        showNotification("User created successfully", "success");
+        showNotification("USER CREATED", "success");
       } else {
         await updateUserByIdAction(usr);
-        showNotification("User updated successfully", "success");
+        showNotification("USER UPDATED", "success");
       }
 
       setTimeout(() => onSuccess(), 1500);
@@ -103,62 +121,69 @@ const UserForm = ({
     <AnimatePresence>
       {showForm && (
         <motion.div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/80 backdrop-blur-md p-4 overflow-y-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
         >
           <motion.div
-            className="bg-white w-full max-w-lg rounded-sm shadow-xl flex flex-col max-h-[90vh] overflow-hidden"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.2 }}
+            className="bg-white w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-gray-200"
+            initial={{ opacity: 0, scale: 0.98, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98, y: 20 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="flex justify-between items-center p-6 border-b border-gray-100">
-              <h2 className="text-xl font-bold uppercase tracking-wide text-gray-900">
-                {user ? "Edit User" : "Add User"}
-              </h2>
+            <div className="flex justify-between items-center p-6 border-b-2 border-black">
+              <div>
+                <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1">
+                  System Access
+                </span>
+                <h2 className="text-2xl font-black uppercase tracking-tighter text-black leading-none">
+                  {user ? "Modify User" : "New User"}
+                </h2>
+              </div>
               <button
                 onClick={isLoading ? undefined : onClose}
                 disabled={isLoading}
-                className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+                className="group relative flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-black transition-colors duration-300"
               >
-                <IconX size={24} />
+                <IconX
+                  size={20}
+                  className="text-black group-hover:text-white transition-colors"
+                />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-8 space-y-6">
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                    User ID
-                  </label>
+                  <label className={styles.label}>User ID</label>
                   <input
                     name="userId"
                     disabled
                     defaultValue={user?.userId || "Auto Generated"}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-sm bg-gray-50 text-gray-500 font-mono text-sm focus:outline-none"
+                    className={`${styles.input} font-mono text-xs tracking-wider bg-gray-100 text-gray-500 cursor-not-allowed`}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                    Name <span className="text-red-500">*</span>
+                  <label className={styles.label}>
+                    Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     required
                     disabled={isLoading}
                     name="username"
                     defaultValue={user?.username || ""}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+                    className={styles.input}
+                    placeholder="ENTER NAME..."
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                    Email <span className="text-red-500">*</span>
+                  <label className={styles.label}>
+                    Email Address <span className="text-red-500">*</span>
                   </label>
                   <input
                     required
@@ -166,66 +191,66 @@ const UserForm = ({
                     name="email"
                     disabled={!!user || isLoading}
                     defaultValue={user?.email || ""}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                    className={`${styles.input} disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed`}
+                    placeholder="ENTER EMAIL..."
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                      Status
-                    </label>
+                    <label className={styles.label}>Account Status</label>
                     <select
                       name="status"
                       disabled={isLoading}
                       defaultValue={user?.status || "Inactive"}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors bg-white"
+                      className={styles.select}
                     >
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
+                      <option value="Active">ACTIVE</option>
+                      <option value="Inactive">INACTIVE</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                      Role
-                    </label>
+                    <label className={styles.label}>Access Role</label>
                     <select
                       name="role"
                       disabled={isLoading}
                       defaultValue={user?.role?.toLowerCase() || "user"}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors bg-white"
+                      className={styles.select}
                     >
-                      <option value="admin">Admin</option>
-                      <option value="user">User</option>
+                      <option value="admin">ADMIN</option>
+                      <option value="user">USER</option>
                       <option
                         value="owner"
                         disabled={currentUser?.role !== "OWNER"}
                       >
-                        Owner
+                        OWNER
                       </option>
                     </select>
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 mt-8">
                   <button
                     type="button"
                     onClick={onClose}
                     disabled={isLoading}
-                    className="px-6 py-2 text-sm font-bold text-gray-600 uppercase hover:bg-gray-100 rounded-sm transition-colors border border-gray-200"
+                    className="px-6 py-3 text-xs font-black uppercase tracking-widest text-black border border-transparent hover:border-gray-200 transition-colors"
                   >
-                    Close
+                    Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="px-6 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center"
+                    className={styles.primaryBtn}
                   >
-                    {isLoading && (
+                    {isLoading ? (
                       <IconLoader size={16} className="animate-spin mr-2" />
+                    ) : user ? (
+                      "Save Changes"
+                    ) : (
+                      "Create Account"
                     )}
-                    {user ? "Update" : "Create"}
                   </button>
                 </div>
               </form>
@@ -242,23 +267,23 @@ const SummaryCard = ({
   title,
   value,
   icon: Icon,
-  color,
+  color, // Unused in strict black/white theme, kept for interface compat or specific highlights
 }: {
   title: string;
   value: number;
   icon: any;
   color: string;
 }) => (
-  <div className="bg-white border border-gray-200 p-4 rounded-sm shadow-sm flex items-center gap-4">
-    <div className={`p-3 rounded-sm ${color}`}>
-      <Icon size={20} className="text-white" />
-    </div>
-    <div>
-      <p className="text-xs font-bold uppercase tracking-wider text-gray-500">
+  <div className={styles.summaryCard}>
+    <div className="flex justify-between items-start mb-4">
+      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
         {title}
-      </p>
-      <p className="text-2xl font-black text-gray-900">{value}</p>
+      </span>
+      <Icon size={20} className="text-black" stroke={1.5} />
     </div>
+    <p className="text-4xl font-black text-black tracking-tighter leading-none">
+      {value}
+    </p>
   </div>
 );
 
@@ -342,12 +367,13 @@ const UsersPage = () => {
 
   const handleDelete = async (userId: string) => {
     showConfirmation({
-      title: "Delete User",
-      message: "Deleting a user has serious consequences. Are you sure?",
+      title: "DELETE USER?",
+      message: "This action cannot be undone.",
+      variant: "danger",
       onSuccess: async () => {
         try {
           await deleteUserByIdAction(userId);
-          showNotification("User deleted successfully", "success");
+          showNotification("USER DELETED", "success");
           setTimeout(() => fetchUsers(), 1500);
         } catch (e: any) {
           showNotification(e.message, "error");
@@ -357,19 +383,13 @@ const UsersPage = () => {
   };
 
   const handleEdit = (user: User) => {
-    showConfirmation({
-      title: "Edit User",
-      message: "Are you sure you want to edit this user?",
-      onSuccess: () => {
-        setSelectedUser(user);
-        setShowUserForm(true);
-      },
-    });
+    setSelectedUser(user);
+    setShowUserForm(true);
   };
 
   const handleExport = () => {
     if (!displayedUsers.length) {
-      showNotification("No users to export", "info");
+      showNotification("No data to export", "info");
       return;
     }
     const exportData = displayedUsers.map((u) => ({
@@ -385,7 +405,7 @@ const UsersPage = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Users");
     XLSX.writeFile(wb, `users_${new Date().toISOString().split("T")[0]}.xlsx`);
-    showNotification("Exported successfully", "success");
+    showNotification("EXPORT COMPLETE", "success");
   };
 
   // Filter users based on anonymous toggle
@@ -407,115 +427,124 @@ const UsersPage = () => {
     anonymous: users.filter(isAnonymousUser).length,
   };
 
+  // Render Status Badge
+  const renderStatus = (status: string) => {
+    const isSuccess = status === "Active";
+    return (
+      <span
+        className={`px-2 py-1 text-[9px] font-black uppercase tracking-widest border ${
+          isSuccess
+            ? "bg-black text-white border-black"
+            : "bg-white text-gray-400 border-gray-200"
+        }`}
+      >
+        {status}
+      </span>
+    );
+  };
+
   return (
     <PageContainer title="Users" description="Users Management">
-      <div className="w-full space-y-6">
-        {/* Header & Filters */}
-        <div className="flex flex-col gap-6 bg-white border border-gray-200 rounded-sm shadow-sm p-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h2 className="text-xl font-bold uppercase tracking-tight text-gray-900">
-                User Management
-              </h2>
-              <p className="text-sm text-gray-500 font-medium mt-1">
-                Manage access, roles, and permissions.
-              </p>
-            </div>
-            <button
-              onClick={() => fetchUsers()}
-              className="flex items-center px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-sm transition-colors text-sm font-bold uppercase"
-            >
-              <IconRefresh size={16} className="mr-2" />
-              Refresh
-            </button>
+      <div className="w-full space-y-8">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b-2 border-black pb-6">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1 flex items-center gap-2">
+              <IconUsers size={14} /> System Administration
+            </span>
+            <h2 className="text-4xl font-black text-black uppercase tracking-tighter leading-none">
+              User Management
+            </h2>
           </div>
+          <button
+            onClick={() => fetchUsers()}
+            className="w-10 h-10 flex items-center justify-center bg-white border-2 border-black text-black hover:bg-black hover:text-white transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
+            title="Refresh List"
+          >
+            <IconRefresh size={18} stroke={2.5} />
+          </button>
+        </div>
 
-          <div className="flex flex-col lg:flex-row gap-4 items-end">
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                Search
-              </label>
+        {/* Filters */}
+        <div className="bg-white border border-gray-200 p-6 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+            <div className="md:col-span-4">
+              <label className={styles.label}>Search Users</label>
               <div className="relative">
                 <IconSearch
                   size={16}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
                 />
                 <input
                   type="text"
-                  placeholder="Search by name or email..."
+                  placeholder="NAME OR EMAIL..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleFilter()}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gray-900"
+                  className={styles.input}
                 />
               </div>
             </div>
 
-            <div className="min-w-[140px]">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                Status
-              </label>
+            <div className="md:col-span-2">
+              <label className={styles.label}>Status</label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900"
+                className={styles.select}
               >
-                <option value="all">All</option>
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
+                <option value="all">ALL STATUS</option>
+                <option value="Active">ACTIVE</option>
+                <option value="Inactive">INACTIVE</option>
               </select>
             </div>
 
-            <div className="min-w-[140px]">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                Role
-              </label>
+            <div className="md:col-span-2">
+              <label className={styles.label}>Role</label>
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900"
+                className={styles.select}
               >
-                <option value="all">All</option>
-                <option value="OWNER">Owner</option>
-                <option value="ADMIN">Admin</option>
-                <option value="USER">User</option>
+                <option value="all">ALL ROLES</option>
+                <option value="OWNER">OWNER</option>
+                <option value="ADMIN">ADMIN</option>
+                <option value="USER">USER</option>
               </select>
             </div>
 
-            {/* Anonymous Toggle */}
-            <div className="flex items-center gap-3 px-3 py-2 border border-gray-200 rounded-sm bg-gray-50">
-              <span className="text-xs font-bold text-gray-500 uppercase whitespace-nowrap">
-                {showAnonymous ? "Anonymous" : "Users"}
+            {/* Anonymous Toggle - Custom Switch Style */}
+            <div className="md:col-span-2 flex items-center justify-between p-3 border-2 border-transparent bg-[#f5f5f5] hover:border-gray-200 transition-colors h-[48px]">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                {showAnonymous ? "Anonymous" : "Registered"}
               </span>
               <button
                 type="button"
                 onClick={() => setShowAnonymous(!showAnonymous)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  showAnonymous ? "bg-gray-900" : "bg-gray-300"
+                className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors ${
+                  showAnonymous ? "bg-black" : "bg-gray-300"
                 }`}
               >
                 <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    showAnonymous ? "translate-x-6" : "translate-x-1"
+                  className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                    showAnonymous ? "translate-x-4" : "translate-x-0.5"
                   }`}
                 />
               </button>
             </div>
 
-            <div className="flex gap-2">
+            <div className="md:col-span-2 flex gap-2">
               <button
                 onClick={handleFilter}
-                className="flex items-center px-5 py-2 bg-gray-900 text-white text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-black transition-colors"
+                className={`${styles.primaryBtn} w-full`}
               >
-                <IconFilter size={16} className="mr-2" />
-                Filter
+                <IconFilter size={16} />
               </button>
               <button
                 onClick={handleReset}
-                className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-gray-50 transition-colors"
+                className={`${styles.secondaryBtn} w-full bg-white`}
               >
-                <IconX size={16} className="mr-1" />
-                Reset
+                <IconX size={16} />
               </button>
             </div>
           </div>
@@ -550,21 +579,21 @@ const UsersPage = () => {
         </div>
 
         {/* Table */}
-        <div className="bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden">
+        <div className="bg-white border border-gray-200 overflow-hidden">
           <div className="flex justify-between items-center p-6 border-b border-gray-100">
             <div className="flex items-center gap-4">
-              <h3 className="text-lg font-bold uppercase tracking-wide text-gray-900">
-                User List
+              <h3 className="text-lg font-black uppercase tracking-tighter text-black">
+                Directory
               </h3>
-              <span className="text-xs font-bold text-gray-500">
-                ({displayedUsers.length} of {totalUsers})
+              <span className="text-xs font-bold text-gray-400 bg-gray-50 px-2 py-1">
+                {displayedUsers.length} / {totalUsers}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={handleExport}
                 disabled={!displayedUsers.length}
-                className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 text-xs font-bold uppercase rounded-sm hover:bg-gray-50 disabled:opacity-50"
+                className={`${styles.secondaryBtn} py-2 px-4 border-gray-200 hover:border-black text-gray-600 hover:text-black disabled:opacity-50`}
               >
                 <IconDownload size={16} className="mr-2" />
                 Export
@@ -574,7 +603,7 @@ const UsersPage = () => {
                   setSelectedUser(null);
                   setShowUserForm(true);
                 }}
-                className="flex items-center px-4 py-2 bg-gray-900 text-white text-xs font-bold uppercase rounded-sm hover:bg-gray-800"
+                className={`${styles.primaryBtn} py-2 px-4 shadow-none hover:shadow-lg`}
               >
                 <IconPlus size={16} className="mr-2" />
                 Add User
@@ -583,95 +612,81 @@ const UsersPage = () => {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-100 text-gray-900 border-b border-gray-200 uppercase text-xs tracking-wider font-bold">
+            <table className="w-full text-left">
+              <thead className="bg-white text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b-2 border-black">
                 <tr>
-                  <th className="p-4">User ID</th>
-                  <th className="p-4">Name</th>
-                  <th className="p-4">Email</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4">Role</th>
-                  <th className="p-4">Created</th>
-                  <th className="p-4">Updated</th>
-                  <th className="p-4">Actions</th>
+                  <th className="p-6">User Details</th>
+                  <th className="p-6 text-center">Status</th>
+                  <th className="p-6 text-center">Role</th>
+                  <th className="p-6 text-center">Joined</th>
+                  <th className="p-6 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="text-sm">
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="p-8 text-center">
+                    <td colSpan={5} className="p-20 text-center">
                       <IconLoader
-                        className="animate-spin text-gray-400 mx-auto mb-2"
-                        size={24}
+                        className="animate-spin text-black mx-auto mb-2"
+                        size={32}
                       />
-                      <span className="text-gray-500 font-bold uppercase text-xs">
-                        Loading...
+                      <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
+                        Loading Data...
                       </span>
                     </td>
                   </tr>
                 ) : displayedUsers.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan={8}
-                      className="p-8 text-center text-gray-500 font-bold uppercase"
-                    >
-                      No users found.
+                    <td colSpan={5} className="p-20 text-center">
+                      <p className="text-lg font-black uppercase tracking-tighter text-gray-300">
+                        No Users Found
+                      </p>
                     </td>
                   </tr>
                 ) : (
                   displayedUsers.map((user) => (
                     <tr
                       key={user.userId}
-                      className="hover:bg-gray-50 transition-colors"
+                      className="border-b border-gray-100 group hover:bg-gray-50 transition-colors"
                     >
-                      <td className="p-4 font-mono text-xs text-gray-500">
-                        {user.userId}
+                      <td className="p-6 align-top">
+                        <div className="flex flex-col gap-1">
+                          <span className="font-bold text-black uppercase tracking-wide">
+                            {user.username}
+                          </span>
+                          <span className="text-[10px] text-gray-400 font-mono">
+                            {user.email}
+                          </span>
+                          <span className="text-[9px] text-gray-300 font-mono mt-1">
+                            ID: {user.userId.slice(0, 8)}...
+                          </span>
+                        </div>
                       </td>
-                      <td className="p-4 font-bold text-gray-900">
-                        {user.username}
+                      <td className="p-6 align-top text-center">
+                        {renderStatus(user.status)}
                       </td>
-                      <td className="p-4 text-gray-600">{user.email}</td>
-                      <td className="p-4">
-                        <span
-                          className={`px-2 py-0.5 rounded-sm text-xs font-bold uppercase ${
-                            user.status === "Active"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {user.status}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <span
-                          className={`px-2 py-0.5 rounded-sm text-xs font-bold uppercase ${
-                            user.role.toUpperCase() === "OWNER"
-                              ? "bg-purple-100 text-purple-800"
-                              : user.role.toUpperCase() === "ADMIN"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
+                      <td className="p-6 align-top text-center">
+                        <span className="text-xs font-bold text-gray-600 uppercase tracking-wider bg-gray-100 px-2 py-1">
                           {user.role}
                         </span>
                       </td>
-                      <td className="p-4 text-gray-500 text-xs">
-                        {user.createdAt}
+                      <td className="p-6 align-top text-center">
+                        <span className="text-[10px] font-mono text-gray-500 font-bold">
+                          {new Date(user.createdAt).toLocaleDateString()}
+                        </span>
                       </td>
-                      <td className="p-4 text-gray-500 text-xs">
-                        {user.updatedAt}
-                      </td>
-                      <td className="p-4">
-                        <div className="flex gap-2">
+                      <td className="p-6 align-top text-right">
+                        <div className="flex justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200">
                           <button
                             disabled={
                               currentUser?.role !== "OWNER" &&
                               user.role === "OWNER"
                             }
                             onClick={() => handleEdit(user)}
-                            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-sm disabled:opacity-30"
+                            className={styles.iconBtn}
+                            title="Edit"
                           >
-                            <IconPencil size={18} />
+                            <IconPencil size={16} stroke={2} />
                           </button>
                           <button
                             disabled={
@@ -680,9 +695,10 @@ const UsersPage = () => {
                                 user.role === "OWNER")
                             }
                             onClick={() => handleDelete(user.userId)}
-                            className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-sm disabled:opacity-30"
+                            className={`${styles.iconBtn} hover:border-red-600 hover:bg-red-600`}
+                            title="Delete"
                           >
-                            <IconTrash size={18} />
+                            <IconTrash size={16} stroke={2} />
                           </button>
                         </div>
                       </td>
@@ -695,15 +711,15 @@ const UsersPage = () => {
         </div>
 
         {/* Pagination */}
-        <div className="flex flex-col md:flex-row justify-center items-center gap-4">
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-4">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-gray-500 uppercase">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
               Rows:
             </span>
             <select
               value={size}
               onChange={(e) => handleSizeChange(parseInt(e.target.value))}
-              className="bg-white border border-gray-300 text-gray-700 text-xs font-bold rounded-sm p-1.5"
+              className="bg-[#f5f5f5] text-black text-xs font-bold uppercase rounded-sm border-transparent focus:ring-0 focus:border-black cursor-pointer py-1 pl-2 pr-6"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
@@ -715,17 +731,17 @@ const UsersPage = () => {
             <button
               onClick={() => handlePageChange(Math.max(1, page - 1))}
               disabled={page === 1}
-              className="p-2 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50"
+              className={styles.iconBtn}
             >
               <IconChevronLeft size={18} />
             </button>
-            <span className="text-sm font-bold text-gray-700 px-4">
+            <span className="text-xs font-black text-black px-4 uppercase tracking-widest">
               Page {page}
             </span>
             <button
               onClick={() => handlePageChange(page + 1)}
               disabled={!hasMore}
-              className="p-2 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50"
+              className={styles.iconBtn}
             >
               <IconChevronRight size={18} />
             </button>

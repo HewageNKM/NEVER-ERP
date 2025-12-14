@@ -12,6 +12,8 @@ import {
   IconLoader,
   IconChevronLeft,
   IconChevronRight,
+  IconAward,
+  IconPhoto,
 } from "@tabler/icons-react";
 import axios from "axios";
 import PageContainer from "../../components/container/PageContainer";
@@ -20,6 +22,22 @@ import { useAppSelector } from "@/lib/hooks";
 import { Brand } from "@/model/Brand";
 import { showNotification } from "@/utils/toast";
 import { useConfirmationDialog } from "@/contexts/ConfirmationDialogContext";
+
+// --- NIKE AESTHETIC STYLES ---
+const styles = {
+  label:
+    "block text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-2",
+  input:
+    "block w-full bg-[#f5f5f5] text-gray-900 text-sm font-medium px-4 py-3 rounded-sm border-2 border-transparent focus:bg-white focus:border-black transition-all duration-200 outline-none placeholder:text-gray-400",
+  select:
+    "block w-full bg-[#f5f5f5] text-gray-900 text-sm font-medium px-4 py-3 rounded-sm border-2 border-transparent focus:bg-white focus:border-black transition-all duration-200 outline-none appearance-none cursor-pointer uppercase",
+  primaryBtn:
+    "flex items-center justify-center px-6 py-3 bg-black text-white text-xs font-black uppercase tracking-widest hover:bg-gray-900 transition-all rounded-sm shadow-sm hover:shadow-md",
+  secondaryBtn:
+    "flex items-center justify-center px-6 py-3 border-2 border-black text-black text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all rounded-sm",
+  iconBtn:
+    "w-8 h-8 flex items-center justify-center border border-gray-200 hover:bg-black hover:border-black hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-300",
+};
 
 const BrandPage: React.FC = () => {
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -135,9 +153,7 @@ const BrandPage: React.FC = () => {
       }
 
       showNotification(
-        editingBrand
-          ? "Brand updated successfully"
-          : "Brand added successfully",
+        editingBrand ? "BRAND UPDATED" : "BRAND ADDED",
         "success"
       );
       await fetchBrands();
@@ -152,8 +168,9 @@ const BrandPage: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     showConfirmation({
-      title: "Delete Brand",
-      message: "Are you sure you want to delete this brand?",
+      title: "DELETE BRAND?",
+      message: "This action cannot be undone.",
+      variant: "danger",
       onSuccess: async () => {
         try {
           setDeletingId(id);
@@ -177,189 +194,194 @@ const BrandPage: React.FC = () => {
     setSearch("");
     setStatus("all");
     setPagination((prev) => ({ ...prev, page: 1 }));
-    // Trigger fetch via useEffect dependency change if logic allows,
-    // but here explicit fetch is safer if state updates are batched/async not triggering immediate effect
-    // Actually fetchBrands reads state, so we need to wait for state update or pass params.
-    // Better to just update state and let useEffect handle it if dependencies are correct.
-    // But fetchBrands doesn't depend on search/status state in useEffect dependency array.
-    // So we must manually fetch or rely on a "trigger" state.
-    // For now, let's just create a wrapper that updates state and then calls fetch with explicit args or utilize a robust hook.
-    // Given the current structure, let's just reload.
     setTimeout(fetchBrands, 0);
   };
 
-  // Handlers for filters to trigger fetch
   const handleFilterSearch = () => {
     setPagination((prev) => ({ ...prev, page: 1 }));
     fetchBrands();
   };
 
+  const renderStatus = (status: boolean) => {
+    return (
+      <span
+        className={`px-2 py-1 text-[9px] font-black uppercase tracking-widest border ${
+          status
+            ? "bg-black text-white border-black"
+            : "bg-white text-gray-400 border-gray-200"
+        }`}
+      >
+        {status ? "ACTIVE" : "INACTIVE"}
+      </span>
+    );
+  };
+
   return (
     <PageContainer title="Brands" description="Brand Management">
-      <div className="w-full">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-          <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900">
-            Brand Management
-          </h2>
+      <div className="w-full space-y-8">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b-2 border-black pb-6">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1 flex items-center gap-2">
+              <IconAward size={14} /> Partner Relationships
+            </span>
+            <h2 className="text-4xl font-black text-black uppercase tracking-tighter leading-none">
+              Brand Management
+            </h2>
+          </div>
           <button
             onClick={() => handleOpenDialog()}
             disabled={saving}
-            className="flex items-center px-5 py-2.5 bg-gray-900 text-white text-sm font-bold uppercase tracking-wide rounded-sm hover:bg-gray-800 transition-all shadow-sm disabled:opacity-50"
+            className="flex items-center px-6 py-4 bg-black text-white text-sm font-black uppercase tracking-widest hover:bg-gray-900 transition-all shadow-[4px_4px_0px_0px_rgba(156,163,175,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] disabled:opacity-50"
           >
             {saving ? (
               <IconLoader className="animate-spin mr-2" size={18} />
             ) : (
               <IconPlus size={18} className="mr-2" />
             )}
-            Add Brand
+            New Brand
           </button>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-sm shadow-sm p-6 mb-6">
-          {/* --- FILTER BAR --- */}
-          <div className="flex flex-wrap gap-4 items-end mb-6">
-            <div className="w-full md:w-auto flex-1 min-w-[200px]">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                Search
-              </label>
-              <input
-                type="text"
-                placeholder="Search brands..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
-              />
+        {/* Filters */}
+        <div className="bg-white border border-gray-200 p-6 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+            <div className="md:col-span-6">
+              <label className={styles.label}>Search</label>
+              <div className="relative">
+                <IconSearch
+                  size={16}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type="text"
+                  placeholder="SEARCH BRANDS..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className={styles.input}
+                />
+              </div>
             </div>
 
-            <div className="w-full md:w-auto min-w-[150px]">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                Status
-              </label>
+            <div className="md:col-span-3">
+              <label className={styles.label}>Status</label>
               <select
                 value={status}
                 onChange={(e) =>
                   setStatus(e.target.value as "all" | "active" | "inactive")
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+                className={styles.select}
               >
-                <option value="all">All</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="all">ALL STATUS</option>
+                <option value="active">ACTIVE</option>
+                <option value="inactive">INACTIVE</option>
               </select>
             </div>
 
-            <div className="flex gap-2">
+            <div className="md:col-span-3 flex gap-2">
               <button
                 onClick={handleFilterSearch}
                 disabled={loading}
-                className="flex items-center justify-center px-4 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50"
+                className={`${styles.primaryBtn} w-full`}
               >
                 {loading ? (
                   <IconLoader className="animate-spin" size={16} />
                 ) : (
-                  <>
-                    <IconSearch size={16} className="mr-2" />
-                    Filter
-                  </>
+                  <IconSearch size={16} />
                 )}
               </button>
               <button
                 onClick={handleClearFilters}
                 disabled={loading}
-                className="flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 text-sm font-bold uppercase rounded-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className={`${styles.secondaryBtn} w-full`}
               >
-                <IconX size={16} className="mr-2" />
-                Clear
+                <IconX size={16} />
               </button>
             </div>
           </div>
+        </div>
 
-          {/* --- TABLE & PAGINATION --- */}
+        {/* Table */}
+        <div className="bg-white border border-gray-200">
           {loading ? (
-            <div className="text-center py-12">
-              <IconLoader
-                className="animate-spin mx-auto text-gray-400"
-                size={32}
-              />
-              <p className="mt-2 text-gray-500 text-sm font-bold uppercase">
-                Loading Brands...
+            <div className="flex flex-col items-center justify-center py-20">
+              <IconLoader className="animate-spin text-black mb-3" size={32} />
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                Loading Brands
               </p>
             </div>
           ) : brands.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <p className="text-sm font-bold uppercase">No brands found.</p>
+            <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-gray-100 m-4">
+              <p className="text-lg font-black uppercase tracking-tighter text-gray-300">
+                No Brands Found
+              </p>
             </div>
           ) : (
             <>
-              <div className="w-full overflow-x-auto bg-white border border-gray-200 rounded-sm">
-                <table className="w-full text-left text-sm border-collapse">
-                  <thead className="bg-gray-100 text-gray-900 border-b border-gray-200 uppercase text-xs tracking-wider font-bold">
+              <div className="w-full overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-white text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b-2 border-black">
                     <tr>
-                      <th className="p-4">Logo</th>
-                      <th className="p-4">Name</th>
-                      <th className="p-4">Description</th>
-                      <th className="p-4">Status</th>
-                      <th className="p-4 text-right">Actions</th>
+                      <th className="p-6">Identity</th>
+                      <th className="p-6">Brand Name</th>
+                      <th className="p-6">Description</th>
+                      <th className="p-6 text-center">Status</th>
+                      <th className="p-6 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="text-sm">
                     {brands.map((brand) => (
                       <tr
                         key={brand.id}
-                        className="hover:bg-gray-50 transition-colors duration-200"
+                        className="border-b border-gray-100 group hover:bg-gray-50 transition-colors"
                       >
-                        <td className="p-4">
-                          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border border-gray-300">
+                        <td className="p-6 align-middle">
+                          <div className="w-12 h-12 bg-gray-100 rounded-sm flex items-center justify-center overflow-hidden border border-gray-200 relative group-hover:border-black transition-colors">
                             {brand.logoUrl ? (
                               <img
                                 src={brand.logoUrl}
                                 alt={brand.name}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
                               />
                             ) : (
-                              <span className="text-gray-500 font-bold text-xs uppercase">
-                                {brand.name.substring(0, 2)}
-                              </span>
+                              <IconPhoto size={20} className="text-gray-300" />
                             )}
                           </div>
                         </td>
-                        <td className="p-4 font-bold text-gray-900 uppercase">
+                        <td className="p-6 align-middle font-black text-black uppercase tracking-wide text-base">
                           {brand.name}
                         </td>
-                        <td className="p-4 text-gray-600">
-                          {brand.description || "-"}
+                        <td className="p-6 align-middle text-xs text-gray-500 max-w-xs truncate">
+                          {brand.description || "NO DESCRIPTION"}
                         </td>
-                        <td className="p-4">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-sm text-xs font-bold uppercase ${
-                              brand.status
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {brand.status ? "Active" : "Inactive"}
-                          </span>
+                        <td className="p-6 align-middle text-center">
+                          {renderStatus(brand.status)}
                         </td>
-                        <td className="p-4 text-right space-x-2">
-                          <button
-                            onClick={() => handleOpenDialog(brand)}
-                            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
-                            title="Edit"
-                          >
-                            <IconEdit size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(brand.id)}
-                            disabled={deletingId === brand.id}
-                            className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50"
-                            title="Delete"
-                          >
-                            {deletingId === brand.id ? (
-                              <IconLoader size={18} className="animate-spin" />
-                            ) : (
-                              <IconTrash size={18} />
-                            )}
-                          </button>
+                        <td className="p-6 align-middle text-right">
+                          <div className="flex justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200">
+                            <button
+                              onClick={() => handleOpenDialog(brand)}
+                              className={styles.iconBtn}
+                              title="Edit"
+                            >
+                              <IconEdit size={16} stroke={2} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(brand.id)}
+                              disabled={deletingId === brand.id}
+                              className={`${styles.iconBtn} hover:border-red-600 hover:bg-red-600`}
+                              title="Delete"
+                            >
+                              {deletingId === brand.id ? (
+                                <IconLoader
+                                  size={16}
+                                  className="animate-spin"
+                                />
+                              ) : (
+                                <IconTrash size={16} stroke={2} />
+                              )}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -367,8 +389,8 @@ const BrandPage: React.FC = () => {
                 </table>
               </div>
 
-              <div className="flex justify-center mt-6">
-                {/* Simple Pagination */}
+              {/* Pagination */}
+              <div className="flex justify-center p-6 border-t border-gray-100">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() =>
@@ -378,13 +400,12 @@ const BrandPage: React.FC = () => {
                       }))
                     }
                     disabled={pagination.page === 1}
-                    className="p-2 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
+                    className={styles.iconBtn}
                   >
                     <IconChevronLeft size={18} />
                   </button>
-                  <span className="text-sm font-bold text-gray-700 px-4">
-                    Page {pagination.page} of{" "}
-                    {Math.ceil(pagination.total / pagination.size) || 1}
+                  <span className="text-xs font-black text-black px-4 uppercase tracking-widest">
+                    Page {pagination.page}
                   </span>
                   <button
                     onClick={() =>
@@ -400,7 +421,7 @@ const BrandPage: React.FC = () => {
                       pagination.page >=
                       Math.ceil(pagination.total / pagination.size)
                     }
-                    className="p-2 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
+                    className={styles.iconBtn}
                   >
                     <IconChevronRight size={18} />
                   </button>
@@ -415,84 +436,105 @@ const BrandPage: React.FC = () => {
       <AnimatePresence>
         {open && (
           <motion.div
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto"
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/80 backdrop-blur-md p-4 overflow-y-auto"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
           >
             <motion.div
-              className="bg-white w-full max-w-md rounded-sm shadow-xl flex flex-col max-h-[90vh] overflow-hidden"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{ duration: 0.2 }}
+              className="bg-white w-full max-w-md shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-gray-200"
+              initial={{ opacity: 0, scale: 0.98, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98, y: 20 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             >
-              <div className="flex justify-between items-center p-6 border-b border-gray-100">
-                <h2 className="text-xl font-bold uppercase tracking-wide text-gray-900">
-                  {editingBrand ? "Edit Brand" : "Add Brand"}
-                </h2>
+              <div className="flex justify-between items-center p-6 border-b-2 border-black">
+                <div>
+                  <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1">
+                    Form Entry
+                  </span>
+                  <h2 className="text-2xl font-black uppercase tracking-tighter text-black leading-none">
+                    {editingBrand ? "Edit Brand" : "New Brand"}
+                  </h2>
+                </div>
                 <button
                   onClick={saving ? undefined : () => setOpen(false)}
                   disabled={saving}
-                  className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+                  className="group relative flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-black transition-colors duration-300"
                 >
-                  <IconX size={24} />
+                  <IconX
+                    size={20}
+                    className="text-black group-hover:text-white transition-colors"
+                  />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="flex-1 overflow-y-auto p-8 space-y-6">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                    Brand Name
-                  </label>
+                  <label className={styles.label}>Brand Name</label>
                   <input
                     type="text"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     disabled={saving}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+                    className={styles.input}
+                    placeholder="ENTER NAME..."
+                    autoFocus
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                    Description
-                  </label>
+                  <label className={styles.label}>Description</label>
                   <textarea
                     value={form.description}
                     onChange={(e) =>
                       setForm({ ...form, description: e.target.value })
                     }
                     disabled={saving}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors min-h-[80px]"
+                    className={`${styles.input} min-h-[100px]`}
+                    placeholder="ENTER DETAILS..."
                   />
                 </div>
 
-                <div>
-                  <label className="flex items-center space-x-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.status}
-                      onChange={(e) =>
-                        setForm({ ...form, status: e.target.checked })
-                      }
-                      disabled={saving}
-                      className="w-5 h-5 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
-                    />
-                    <span className="text-sm font-bold text-gray-700 uppercase">
+                {/* Custom Checkbox */}
+                <label className="group flex items-center gap-4 cursor-pointer p-4 border-2 border-transparent bg-[#f5f5f5] hover:border-gray-200 transition-colors">
+                  <div
+                    className={`w-6 h-6 border-2 flex items-center justify-center transition-colors ${
+                      form.status
+                        ? "bg-black border-black"
+                        : "bg-white border-gray-300"
+                    }`}
+                  >
+                    {form.status && (
+                      <div className="w-2 h-2 bg-white rounded-full" />
+                    )}
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={form.status}
+                    onChange={(e) =>
+                      setForm({ ...form, status: e.target.checked })
+                    }
+                    disabled={saving}
+                    className="hidden"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-black text-black uppercase tracking-wide">
                       Active Status
                     </span>
-                  </label>
-                </div>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                      Visible in filters
+                    </span>
+                  </div>
+                </label>
 
+                {/* Custom File Upload */}
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 uppercase mb-2">
-                    Brand Logo
-                  </label>
+                  <label className={styles.label}>Brand Logo</label>
                   <div className="flex items-center gap-4">
-                    <label className="cursor-pointer inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-sm font-bold uppercase rounded-sm hover:bg-gray-50 transition-colors disabled:opacity-50">
-                      <IconUpload size={18} className="mr-2" /> Upload
+                    <label className="cursor-pointer inline-flex items-center px-4 py-3 bg-white border border-gray-300 text-xs font-bold uppercase tracking-wide hover:bg-black hover:text-white hover:border-black transition-all">
+                      <IconUpload size={16} className="mr-2" /> Select File
                       <input
                         type="file"
                         className="hidden"
@@ -501,41 +543,61 @@ const BrandPage: React.FC = () => {
                         disabled={saving}
                       />
                     </label>
-                    {form.logoUrl && (
-                      <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 overflow-hidden">
+                    <div className="flex-1">
+                      {form.logoUrl && !form.logoFile ? (
+                        <div className="flex items-center gap-2 text-xs font-bold uppercase text-gray-500">
+                          <span className="w-2 h-2 bg-green-500 rounded-full"></span>{" "}
+                          Current Logo Active
+                        </div>
+                      ) : form.logoFile ? (
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                            Selected
+                          </span>
+                          <span className="text-xs font-bold text-black truncate">
+                            {form.logoFile.name}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">
+                          No file selected
+                        </span>
+                      )}
+                    </div>
+                    {(form.logoUrl || form.logoFile) && (
+                      <div className="w-10 h-10 border border-gray-200 bg-gray-50 p-1">
                         <img
-                          src={form.logoUrl}
-                          alt="Logo Preview"
-                          className="w-full h-full object-cover"
+                          src={
+                            form.logoFile
+                              ? URL.createObjectURL(form.logoFile)
+                              : form.logoUrl
+                          }
+                          alt="Preview"
+                          className="w-full h-full object-cover grayscale"
                         />
                       </div>
-                    )}
-                    {form.logoFile && (
-                      <span className="text-xs text-gray-600 truncate max-w-[150px]">
-                        {form.logoFile.name}
-                      </span>
                     )}
                   </div>
                 </div>
               </div>
 
-              <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+              <div className="p-6 border-t border-gray-200 flex justify-end gap-3 bg-white">
                 <button
                   onClick={() => setOpen(false)}
                   disabled={saving}
-                  className="px-6 py-2 text-sm font-bold text-gray-600 uppercase hover:bg-gray-200 rounded-sm transition-colors"
+                  className="px-6 py-3 text-xs font-black uppercase tracking-widest text-black border border-transparent hover:border-gray-200 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-6 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center"
+                  className={styles.primaryBtn}
                 >
                   {saving ? (
                     <>
-                      <IconLoader size={18} className="animate-spin mr-2" />
-                      Saving...
+                      <IconLoader size={16} className="animate-spin mr-2" />
+                      Processing
                     </>
                   ) : (
                     "Save Brand"
