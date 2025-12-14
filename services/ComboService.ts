@@ -1,10 +1,34 @@
-import { adminFirestore } from "@/firebase/firebaseAdmin";
+import { adminFirestore, adminStorageBucket } from "@/firebase/firebaseAdmin";
 import { ComboProduct } from "@/model";
 import { FieldValue } from "firebase-admin/firestore";
 import { nanoid } from "nanoid";
 import { toSafeLocaleString } from "./UtilService";
 
 const COMBOS_COLLECTION = "combo_products";
+const BUCKET = adminStorageBucket;
+
+const uploadThumbnail = async (
+  file: File,
+  id: string
+): Promise<ComboProduct["thumbnail"]> => {
+  const filePath = `combos/${id}/thumbnail/${file.name}`;
+  const fileRef = BUCKET.file(filePath);
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  await fileRef.save(buffer, {
+    metadata: {
+      contentType: file.type,
+    },
+  });
+
+  await fileRef.makePublic();
+  const url = `https://storage.googleapis.com/${BUCKET.name}/${filePath}`;
+
+  return {
+    url: url,
+    file: filePath,
+  };
+};
 
 export const getCombos = async (
   pageNumber: number = 1,
@@ -44,10 +68,16 @@ export const getCombos = async (
 };
 
 export const createCombo = async (
-  data: Omit<ComboProduct, "id" | "updatedAt" | "createdAt">
+  data: Omit<ComboProduct, "id" | "updatedAt" | "createdAt" | "thumbnail">,
+  file?: File
 ): Promise<ComboProduct> => {
   const docId = `combo-${nanoid(10)}`;
   const now = FieldValue.serverTimestamp();
+
+  let thumbnail;
+  if (file) {
+    thumbnail = await uploadThumbnail(file, docId);
+  }
 
   const newCombo = {
     ...data,
@@ -55,6 +85,7 @@ export const createCombo = async (
     endDate: data.endDate ? new Date(data.endDate as any) : null,
     createdAt: now,
     updatedAt: now,
+    thumbnail: thumbnail || null,
   };
 
   await adminFirestore.collection(COMBOS_COLLECTION).doc(docId).set(newCombo);
@@ -64,14 +95,31 @@ export const createCombo = async (
 
 export const updateCombo = async (
   id: string,
-  data: Partial<ComboProduct>
+  data: Partial<ComboProduct>,
+  file?: File
 ): Promise<void> => {
   // Remove createdAt to prevent overwriting with malformed data
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { createdAt, ...updateData } = data;
 
+  let thumbnail = data.thumbnail;
+
+  if (file) {
+    const oldCombo = await getComboById(id);
+    const oldPath = oldCombo?.thumbnail?.file;
+    if (oldPath) {
+      try {
+        await BUCKET.file(oldPath).delete();
+      } catch (delError) {
+        console.warn(`Failed to delete old thumbnail: ${oldPath}`, delError);
+      }
+    }
+    thumbnail = await uploadThumbnail(file, id);
+  }
+
   const payload: any = {
     ...updateData,
+    thumbnail: thumbnail,
     updatedAt: FieldValue.serverTimestamp(),
   };
 
@@ -96,8 +144,8 @@ export const getComboById = async (
   if (!doc.exists) return null;
   const data = doc.data() as ComboProduct;
   return {
-    id: doc.id,
     ...data,
+    id: doc.id,
     createdAt: toSafeLocaleString(data.createdAt) || "",
     updatedAt: toSafeLocaleString(data.updatedAt) || "",
     startDate: toSafeLocaleString(data.startDate) || "",

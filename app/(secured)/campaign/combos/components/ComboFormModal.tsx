@@ -9,9 +9,11 @@ import {
   IconTrash,
   IconPackage,
   IconCurrencyDollar,
-  IconLayersDifference,
   IconCalendarEvent,
+  IconUpload,
+  IconLayersDifference,
 } from "@tabler/icons-react";
+import Image from "next/image";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFnsV3";
@@ -37,7 +39,11 @@ const emptyCombo: Partial<ComboProduct> = {
   savings: 0,
   type: "BUNDLE",
   status: "ACTIVE",
+  thumbnail: undefined,
 };
+
+const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
+const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 // --- NIKE AESTHETIC STYLES ---
 const styles = {
@@ -57,6 +63,8 @@ const ComboFormModal: React.FC<Props> = ({ open, onClose, onSave, combo }) => {
   const [products, setProducts] = useState<DropdownOption[]>([]);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState<string>("");
 
   const isEditing = !!combo;
 
@@ -87,6 +95,8 @@ const ComboFormModal: React.FC<Props> = ({ open, onClose, onSave, combo }) => {
         setStartDate(null);
         setEndDate(null);
       }
+      setThumbnailFile(null);
+      setUploadError("");
       fetchProducts();
     }
   }, [open, combo]);
@@ -140,6 +150,30 @@ const ComboFormModal: React.FC<Props> = ({ open, onClose, onSave, combo }) => {
     });
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files ? e.target.files[0] : null;
+    if (!file) {
+      setThumbnailFile(null);
+      setUploadError("");
+      return;
+    }
+
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+      setUploadError("Invalid file type. Please use WEBP, PNG, or JPEG.");
+      setThumbnailFile(null);
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      setUploadError("File is too large. Max size is 1MB.");
+      setThumbnailFile(null);
+      return;
+    }
+
+    setUploadError("");
+    setThumbnailFile(file);
+  };
+
   const handleSubmit = async () => {
     if (!formData.name) return showNotification("Name is required", "error");
     if (!formData.items || formData.items.length === 0)
@@ -148,38 +182,56 @@ const ComboFormModal: React.FC<Props> = ({ open, onClose, onSave, combo }) => {
     setSaving(true);
     try {
       const token = await getToken();
-      const payload = {
-        ...formData,
-        startDate: startDate ? startDate.toISOString() : null,
-        endDate: endDate ? endDate.toISOString() : null,
-        items: formData.items.map((i) => ({
-          ...i,
-          quantity: Number(i.quantity),
-          // Clean undefined values
-          variantId: i.variantId || null,
-        })),
-        originalPrice: Number(formData.originalPrice),
-        comboPrice: Number(formData.comboPrice),
-        savings: Number(formData.savings),
-        buyQuantity: formData.buyQuantity
-          ? Number(formData.buyQuantity)
-          : undefined,
-        getQuantity: formData.getQuantity
-          ? Number(formData.getQuantity)
-          : undefined,
-        getDiscount: formData.getDiscount
-          ? Number(formData.getDiscount)
-          : undefined,
-      };
+      const payload = new FormData();
+
+      // Append basic fields
+      if (formData.name) payload.append("name", formData.name);
+      if (formData.description)
+        payload.append("description", formData.description);
+      if (formData.type) payload.append("type", formData.type);
+      if (formData.status) payload.append("status", formData.status);
+      payload.append("originalPrice", String(formData.originalPrice || 0));
+      payload.append("comboPrice", String(formData.comboPrice || 0));
+      payload.append("savings", String(formData.savings || 0));
+
+      if (formData.buyQuantity)
+        payload.append("buyQuantity", String(formData.buyQuantity));
+      if (formData.getQuantity)
+        payload.append("getQuantity", String(formData.getQuantity));
+      if (formData.getDiscount)
+        payload.append("getDiscount", String(formData.getDiscount));
+
+      // Append dates
+      if (startDate) payload.append("startDate", startDate.toISOString());
+      if (endDate) payload.append("endDate", endDate.toISOString());
+
+      // Append items as JSON string
+      const items = (formData.items || []).map((i) => ({
+        ...i,
+        quantity: Number(i.quantity),
+        variantId: i.variantId || null,
+      }));
+      payload.append("items", JSON.stringify(items));
+
+      // Append file if exists
+      if (thumbnailFile) {
+        payload.append("file", thumbnailFile);
+      }
 
       if (isEditing && combo) {
         await axios.put(`/api/v2/combos/${combo.id}`, payload, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
         });
         showNotification("COMBO UPDATED", "success");
       } else {
         await axios.post("/api/v2/combos", payload, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
         });
         showNotification("COMBO CREATED", "success");
       }
@@ -255,6 +307,53 @@ const ComboFormModal: React.FC<Props> = ({ open, onClose, onSave, combo }) => {
                           placeholder="E.G. WEEKEND STARTER PACK"
                           autoFocus
                         />
+                      </div>
+                      <div>
+                        <label className={styles.label}>Thumbnail</label>
+                        <div className="flex flex-col sm:flex-row items-start gap-4 p-4 border-2 border-dashed border-gray-200 hover:border-black transition-colors bg-gray-50/50">
+                          <div className="flex-1 space-y-2 w-full">
+                            <label className="cursor-pointer inline-flex items-center justify-center w-full sm:w-auto px-4 py-3 bg-black text-white text-[10px] font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors">
+                              <IconUpload size={14} className="mr-2" />
+                              Select Image
+                              <input
+                                type="file"
+                                className="hidden"
+                                accept="image/webp, image/png, image/jpeg"
+                                onChange={handleFileChange}
+                                disabled={saving}
+                              />
+                            </label>
+                            <div className="text-[9px] text-gray-400 font-bold uppercase tracking-wide">
+                              {thumbnailFile
+                                ? `Selected: ${thumbnailFile.name}`
+                                : isEditing && formData.thumbnail?.url
+                                ? "Current Image Active"
+                                : "No file selected (Max 1MB)"}
+                            </div>
+                            {uploadError && (
+                              <p className="text-[10px] font-bold text-red-600 uppercase">
+                                {uploadError}
+                              </p>
+                            )}
+                          </div>
+
+                          {(thumbnailFile ||
+                            (isEditing && formData.thumbnail?.url)) && (
+                            <div className="relative w-20 h-20 bg-white border border-gray-200 p-1 shadow-sm shrink-0">
+                              <Image
+                                width={80}
+                                height={80}
+                                src={
+                                  thumbnailFile
+                                    ? URL.createObjectURL(thumbnailFile)
+                                    : formData.thumbnail?.url || ""
+                                }
+                                alt="Preview"
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>

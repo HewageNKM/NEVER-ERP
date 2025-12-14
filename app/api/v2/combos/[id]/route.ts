@@ -7,12 +7,13 @@ import {
 import { NextRequest, NextResponse } from "next/server";
 
 interface Props {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-export const GET = async (req: NextRequest, { params }: Props) => {
+export const GET = async (req: NextRequest, props: Props) => {
+  const params = await props.params;
   try {
     const user = await authorizeRequest(req);
     if (!user)
@@ -28,14 +29,53 @@ export const GET = async (req: NextRequest, { params }: Props) => {
   }
 };
 
-export const PUT = async (req: NextRequest, { params }: Props) => {
+export const PUT = async (req: NextRequest, props: Props) => {
+  const params = await props.params;
   try {
     const user = await authorizeRequest(req);
     if (!user)
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-    const data = await req.json();
-    await updateCombo(params.id, data);
+    const formData = await req.formData();
+    const file = formData.get("file") as File | null;
+
+    const rawItems = formData.get("items");
+    const items = rawItems ? JSON.parse(rawItems as string) : undefined;
+
+    const payload: Partial<UnparsedComboData> = {};
+
+    // Helper to add if exists
+    const addIfExists = (key: keyof UnparsedComboData, val: any) => {
+      if (val !== null && val !== undefined) {
+        payload[key] = val;
+      }
+    };
+
+    if (formData.has("name")) payload.name = formData.get("name") as string;
+    if (formData.has("description"))
+      payload.description = formData.get("description") as string;
+    if (items) payload.items = items;
+    if (formData.has("originalPrice"))
+      payload.originalPrice = Number(formData.get("originalPrice"));
+    if (formData.has("comboPrice"))
+      payload.comboPrice = Number(formData.get("comboPrice"));
+    if (formData.has("savings"))
+      payload.savings = Number(formData.get("savings"));
+    if (formData.has("type")) payload.type = formData.get("type") as string;
+    if (formData.has("status"))
+      payload.status = formData.get("status") as string;
+    if (formData.has("buyQuantity"))
+      payload.buyQuantity = Number(formData.get("buyQuantity"));
+    if (formData.has("getQuantity"))
+      payload.getQuantity = Number(formData.get("getQuantity"));
+    if (formData.has("getDiscount"))
+      payload.getDiscount = Number(formData.get("getDiscount"));
+    if (formData.has("startDate"))
+      payload.startDate = formData.get("startDate") as string;
+    if (formData.has("endDate"))
+      payload.endDate = formData.get("endDate") as string;
+
+    await updateCombo(params.id, payload as any, file || undefined);
 
     return NextResponse.json({ message: "Updated successfully" });
   } catch (error: any) {
@@ -43,7 +83,24 @@ export const PUT = async (req: NextRequest, { params }: Props) => {
   }
 };
 
-export const DELETE = async (req: NextRequest, { params }: Props) => {
+interface UnparsedComboData {
+  name: string;
+  description: string;
+  items: any[];
+  originalPrice: number;
+  comboPrice: number;
+  savings: number;
+  type: string;
+  status: string;
+  buyQuantity?: number;
+  getQuantity?: number;
+  getDiscount?: number;
+  startDate?: string;
+  endDate?: string;
+}
+
+export const DELETE = async (req: NextRequest, props: Props) => {
+  const params = await props.params;
   try {
     const user = await authorizeRequest(req);
     if (!user)
