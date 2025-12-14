@@ -170,7 +170,7 @@ const PopularItems = () => {
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {items?.map((item: PopularItem) => (
-              <div key={item.item.itemId} className="snap-start">
+              <div key={item.item.productId} className="snap-start">
                 <PopularItemCard item={item} />
               </div>
             ))}
