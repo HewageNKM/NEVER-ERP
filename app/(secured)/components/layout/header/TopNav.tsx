@@ -7,6 +7,7 @@ import Menuitems from "../sidebar/MenuItems";
 import { IconChevronDown, IconLogout, IconUser } from "@tabler/icons-react";
 import { useAppDispatch } from "@/lib/hooks";
 import { clearUser } from "@/lib/authSlice/authSlice";
+import Logo from "../shared/logo/Logo";
 
 const TopNav = () => {
   const pathname = usePathname();
@@ -52,12 +53,12 @@ const TopNav = () => {
     <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-light-gray h-16 transition-all duration-300">
       <div className="h-full px-4 sm:px-6 flex items-center justify-between max-w-[1920px] mx-auto gap-4 relative">
         {/* Logo */}
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 scale-[0.4]">
           <Link
             href="/dashboard"
             className="text-2xl font-black tracking-tighter uppercase block"
           >
-            NEVER
+            <Logo />
           </Link>
         </div>
 

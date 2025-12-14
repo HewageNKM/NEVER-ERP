@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   IconPlus,
   IconSearch,
@@ -376,94 +377,108 @@ const StockPage: React.FC = () => {
       </div>
 
       {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white w-full max-w-md rounded-sm shadow-xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="flex justify-between items-center p-6 border-b border-gray-100">
-              <h2 className="text-xl font-bold uppercase tracking-wide text-gray-900">
-                {editingLocation ? "Edit Location" : "Add Location"}
-              </h2>
-              <button
-                onClick={saving ? undefined : handleCloseModal}
-                disabled={saving}
-                className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
-              >
-                <IconX size={24} />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                  Location Name
-                </label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+      <AnimatePresence>
+        {isModalOpen && (
+          <motion.div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+            <motion.div
+              className="bg-white w-full max-w-md rounded-sm shadow-xl flex flex-col max-h-[90vh] overflow-hidden"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="flex justify-between items-center p-6 border-b border-gray-100">
+                <h2 className="text-xl font-bold uppercase tracking-wide text-gray-900">
+                  {editingLocation ? "Edit Location" : "Add Location"}
+                </h2>
+                <button
+                  onClick={saving ? undefined : handleCloseModal}
                   disabled={saving}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
-                />
+                  className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+                >
+                  <IconX size={24} />
+                </button>
               </div>
 
-              <div>
-                <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                  Address
-                </label>
-                <textarea
-                  value={form.address}
-                  onChange={(e) =>
-                    setForm({ ...form, address: e.target.value })
-                  }
-                  disabled={saving}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors min-h-[80px]"
-                />
-              </div>
-
-              <div>
-                <label className="flex items-center space-x-3 cursor-pointer">
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
+                    Location Name
+                  </label>
                   <input
-                    type="checkbox"
-                    checked={form.status}
+                    type="text"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    disabled={saving}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
+                    Address
+                  </label>
+                  <textarea
+                    value={form.address}
                     onChange={(e) =>
-                      setForm({ ...form, status: e.target.checked })
+                      setForm({ ...form, address: e.target.value })
                     }
                     disabled={saving}
-                    className="w-5 h-5 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors min-h-[80px]"
                   />
-                  <span className="text-sm font-bold text-gray-700 uppercase">
-                    Active Status
-                  </span>
-                </label>
-              </div>
-            </div>
+                </div>
 
-            <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
-              <button
-                onClick={handleCloseModal}
-                disabled={saving}
-                className="px-6 py-2 text-sm font-bold text-gray-600 uppercase hover:bg-gray-200 rounded-sm transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveLocation}
-                disabled={saving}
-                className="px-6 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center"
-              >
-                {saving ? (
-                  <>
-                    <IconLoader size={18} className="animate-spin mr-2" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Location"
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                <div>
+                  <label className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.status}
+                      onChange={(e) =>
+                        setForm({ ...form, status: e.target.checked })
+                      }
+                      disabled={saving}
+                      className="w-5 h-5 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
+                    />
+                    <span className="text-sm font-bold text-gray-700 uppercase">
+                      Active Status
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+                <button
+                  onClick={handleCloseModal}
+                  disabled={saving}
+                  className="px-6 py-2 text-sm font-bold text-gray-600 uppercase hover:bg-gray-200 rounded-sm transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveLocation}
+                  disabled={saving}
+                  className="px-6 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center"
+                >
+                  {saving ? (
+                    <>
+                      <IconLoader size={18} className="animate-spin mr-2" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Location"
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </PageContainer>
   );
 };

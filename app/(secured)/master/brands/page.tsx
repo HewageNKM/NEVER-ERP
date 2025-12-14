@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   IconPlus,
   IconSearch,
@@ -411,126 +412,140 @@ const BrandPage: React.FC = () => {
       </div>
 
       {/* --- ADD/EDIT MODAL --- */}
-      {open && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-white w-full max-w-md rounded-sm shadow-xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="flex justify-between items-center p-6 border-b border-gray-100">
-              <h2 className="text-xl font-bold uppercase tracking-wide text-gray-900">
-                {editingBrand ? "Edit Brand" : "Add Brand"}
-              </h2>
-              <button
-                onClick={saving ? undefined : () => setOpen(false)}
-                disabled={saving}
-                className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
-              >
-                <IconX size={24} />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                  Brand Name
-                </label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+            <motion.div
+              className="bg-white w-full max-w-md rounded-sm shadow-xl flex flex-col max-h-[90vh] overflow-hidden"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="flex justify-between items-center p-6 border-b border-gray-100">
+                <h2 className="text-xl font-bold uppercase tracking-wide text-gray-900">
+                  {editingBrand ? "Edit Brand" : "Add Brand"}
+                </h2>
+                <button
+                  onClick={saving ? undefined : () => setOpen(false)}
                   disabled={saving}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
-                />
+                  className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+                >
+                  <IconX size={24} />
+                </button>
               </div>
 
-              <div>
-                <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm({ ...form, description: e.target.value })
-                  }
-                  disabled={saving}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors min-h-[80px]"
-                />
-              </div>
-
-              <div>
-                <label className="flex items-center space-x-3 cursor-pointer">
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
+                    Brand Name
+                  </label>
                   <input
-                    type="checkbox"
-                    checked={form.status}
+                    type="text"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    disabled={saving}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={form.description}
                     onChange={(e) =>
-                      setForm({ ...form, status: e.target.checked })
+                      setForm({ ...form, description: e.target.value })
                     }
                     disabled={saving}
-                    className="w-5 h-5 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors min-h-[80px]"
                   />
-                  <span className="text-sm font-bold text-gray-700 uppercase">
-                    Active Status
-                  </span>
-                </label>
-              </div>
+                </div>
 
-              <div>
-                <label className="block text-sm font-bold text-gray-700 uppercase mb-2">
-                  Brand Logo
-                </label>
-                <div className="flex items-center gap-4">
-                  <label className="cursor-pointer inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-sm font-bold uppercase rounded-sm hover:bg-gray-50 transition-colors disabled:opacity-50">
-                    <IconUpload size={18} className="mr-2" /> Upload
+                <div>
+                  <label className="flex items-center space-x-3 cursor-pointer">
                     <input
-                      type="file"
-                      className="hidden"
-                      accept="image/png, image/jpeg, image/webp"
-                      onChange={handleFileChange}
+                      type="checkbox"
+                      checked={form.status}
+                      onChange={(e) =>
+                        setForm({ ...form, status: e.target.checked })
+                      }
                       disabled={saving}
+                      className="w-5 h-5 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
                     />
-                  </label>
-                  {form.logoUrl && (
-                    <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 overflow-hidden">
-                      <img
-                        src={form.logoUrl}
-                        alt="Logo Preview"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
-                  {form.logoFile && (
-                    <span className="text-xs text-gray-600 truncate max-w-[150px]">
-                      {form.logoFile.name}
+                    <span className="text-sm font-bold text-gray-700 uppercase">
+                      Active Status
                     </span>
-                  )}
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 uppercase mb-2">
+                    Brand Logo
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <label className="cursor-pointer inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-sm font-bold uppercase rounded-sm hover:bg-gray-50 transition-colors disabled:opacity-50">
+                      <IconUpload size={18} className="mr-2" /> Upload
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/png, image/jpeg, image/webp"
+                        onChange={handleFileChange}
+                        disabled={saving}
+                      />
+                    </label>
+                    {form.logoUrl && (
+                      <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 overflow-hidden">
+                        <img
+                          src={form.logoUrl}
+                          alt="Logo Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    {form.logoFile && (
+                      <span className="text-xs text-gray-600 truncate max-w-[150px]">
+                        {form.logoFile.name}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
-              <button
-                onClick={() => setOpen(false)}
-                disabled={saving}
-                className="px-6 py-2 text-sm font-bold text-gray-600 uppercase hover:bg-gray-200 rounded-sm transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="px-6 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center"
-              >
-                {saving ? (
-                  <>
-                    <IconLoader size={18} className="animate-spin mr-2" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Brand"
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+                <button
+                  onClick={() => setOpen(false)}
+                  disabled={saving}
+                  className="px-6 py-2 text-sm font-bold text-gray-600 uppercase hover:bg-gray-200 rounded-sm transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="px-6 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center"
+                >
+                  {saving ? (
+                    <>
+                      <IconLoader size={18} className="animate-spin mr-2" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Brand"
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </PageContainer>
   );
 };

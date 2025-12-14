@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { DropdownOption } from "@/app/(secured)/master/products/page";
 import { getToken } from "@/firebase/firebaseClient";
 import axios from "axios";
@@ -275,155 +276,174 @@ const InventoryFormModal: React.FC<StockFormModalProps> = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-white w-full max-w-lg rounded-sm shadow-xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
-        <div className="flex justify-between items-center p-6 border-b border-gray-100">
-          <h2 className="text-xl font-bold uppercase tracking-wide text-gray-900">
-            {isEditing ? "Edit Stock Quantity" : "Add Stock Entry"}
-          </h2>
-          <button
-            onClick={saving ? undefined : onClose}
-            disabled={saving}
-            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+        >
+          <motion.div
+            className="bg-white w-full max-w-lg rounded-sm shadow-xl flex flex-col max-h-[90vh] overflow-hidden"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.2 }}
           >
-            <IconX size={24} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          <div>
-            <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-              Product
-            </label>
-            <select
-              value={formData.productId}
-              onChange={handleProductChange}
-              disabled={saving || isEditing}
-              className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
-            >
-              <option value="">Select Product...</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="block text-sm font-bold text-gray-700 uppercase">
-                Variant
-              </label>
-              {loadingVariants && (
-                <IconLoader size={12} className="animate-spin text-gray-500" />
-              )}
-            </div>
-            <select
-              value={formData.variantId}
-              onChange={handleVariantChange}
-              disabled={saving || !formData.productId || isEditing}
-              className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors disabled:bg-gray-50"
-            >
-              <option value="">Select Variant...</option>
-              {variants.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                Size
-              </label>
-              <select
-                value={formData.size}
-                onChange={handleSizeChange}
-                disabled={saving || isEditing || !selectedVariant}
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors disabled:bg-gray-50"
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <h2 className="text-xl font-bold uppercase tracking-wide text-gray-900">
+                {isEditing ? "Edit Stock Quantity" : "Add Stock Entry"}
+              </h2>
+              <button
+                onClick={saving ? undefined : onClose}
+                disabled={saving}
+                className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
               >
-                <option value="">Select Size...</option>
-                {availableSizes.map((s) => (
-                  <option key={s.id} value={s.label}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
+                <IconX size={24} />
+              </button>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                Stock Location
-              </label>
-              <select
-                value={formData.stockId}
-                onChange={handleStockChange}
-                disabled={saving || isEditing}
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
+                  Product
+                </label>
+                <select
+                  value={formData.productId}
+                  onChange={handleProductChange}
+                  disabled={saving || isEditing}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+                >
+                  <option value="">Select Product...</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-bold text-gray-700 uppercase">
+                    Variant
+                  </label>
+                  {loadingVariants && (
+                    <IconLoader
+                      size={12}
+                      className="animate-spin text-gray-500"
+                    />
+                  )}
+                </div>
+                <select
+                  value={formData.variantId}
+                  onChange={handleVariantChange}
+                  disabled={saving || !formData.productId || isEditing}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors disabled:bg-gray-50"
+                >
+                  <option value="">Select Variant...</option>
+                  {variants.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
+                    Size
+                  </label>
+                  <select
+                    value={formData.size}
+                    onChange={handleSizeChange}
+                    disabled={saving || isEditing || !selectedVariant}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors disabled:bg-gray-50"
+                  >
+                    <option value="">Select Size...</option>
+                    {availableSizes.map((s) => (
+                      <option key={s.id} value={s.label}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
+                    Stock Location
+                  </label>
+                  <select
+                    value={formData.stockId}
+                    onChange={handleStockChange}
+                    disabled={saving || isEditing}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+                  >
+                    <option value="">Select Location...</option>
+                    {stockLocations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-bold text-gray-700 uppercase">
+                    Quantity
+                  </label>
+                  {loadingQuantity && (
+                    <span className="text-xs text-blue-600 flex items-center font-semibold">
+                      <IconLoader size={12} className="animate-spin mr-1" />{" "}
+                      Check Logic...
+                    </span>
+                  )}
+                </div>
+
+                <input
+                  type="number"
+                  name="quantity"
+                  min="0"
+                  value={formData.quantity}
+                  onChange={handleChange}
+                  disabled={saving || loadingQuantity}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+              <button
+                onClick={onClose}
+                disabled={saving}
+                className="px-6 py-2 text-sm font-bold text-gray-600 uppercase hover:bg-gray-200 rounded-sm transition-colors"
               >
-                <option value="">Select Location...</option>
-                {stockLocations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.label}
-                  </option>
-                ))}
-              </select>
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={saving || loadingQuantity}
+                className="px-6 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center"
+              >
+                {saving ? (
+                  <>
+                    <IconLoader size={18} className="animate-spin mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save"
+                )}
+              </button>
             </div>
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="block text-sm font-bold text-gray-700 uppercase">
-                Quantity
-              </label>
-              {loadingQuantity && (
-                <span className="text-xs text-blue-600 flex items-center font-semibold">
-                  <IconLoader size={12} className="animate-spin mr-1" /> Check
-                  Logic...
-                </span>
-              )}
-            </div>
-
-            <input
-              type="number"
-              name="quantity"
-              min="0"
-              value={formData.quantity}
-              onChange={handleChange}
-              disabled={saving || loadingQuantity}
-              className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
-            />
-          </div>
-        </div>
-
-        <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            disabled={saving}
-            className="px-6 py-2 text-sm font-bold text-gray-600 uppercase hover:bg-gray-200 rounded-sm transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={saving || loadingQuantity}
-            className="px-6 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center"
-          >
-            {saving ? (
-              <>
-                <IconLoader size={18} className="animate-spin mr-2" />
-                Saving...
-              </>
-            ) : (
-              "Save"
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 

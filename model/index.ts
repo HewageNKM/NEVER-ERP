@@ -3,6 +3,9 @@ import Timestamp = firestore.Timestamp;
 
 import { PettyCash } from "./PettyCash";
 export * from "./PettyCash";
+export * from "./Promotion";
+export * from "./Coupon";
+export * from "./ComboProduct";
 
 export interface User {
   userId: string;

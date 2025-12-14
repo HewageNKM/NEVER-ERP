@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   IconPlus,
   IconPencil,
@@ -99,124 +100,140 @@ const UserForm = ({
   if (!showForm) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-white w-full max-w-lg rounded-sm shadow-xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
-        <div className="flex justify-between items-center p-6 border-b border-gray-100">
-          <h2 className="text-xl font-bold uppercase tracking-wide text-gray-900">
-            {user ? "Edit User" : "Add User"}
-          </h2>
-          <button
-            onClick={isLoading ? undefined : onClose}
-            disabled={isLoading}
-            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+    <AnimatePresence>
+      {showForm && (
+        <motion.div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+        >
+          <motion.div
+            className="bg-white w-full max-w-lg rounded-sm shadow-xl flex flex-col max-h-[90vh] overflow-hidden"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.2 }}
           >
-            <IconX size={24} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                User ID
-              </label>
-              <input
-                name="userId"
-                disabled
-                defaultValue={user?.userId || "Auto Generated"}
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm bg-gray-50 text-gray-500 font-mono text-sm focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                required
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <h2 className="text-xl font-bold uppercase tracking-wide text-gray-900">
+                {user ? "Edit User" : "Add User"}
+              </h2>
+              <button
+                onClick={isLoading ? undefined : onClose}
                 disabled={isLoading}
-                name="username"
-                defaultValue={user?.username || ""}
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
-              />
+                className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+              >
+                <IconX size={24} />
+              </button>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                Email <span className="text-red-500">*</span>
-              </label>
-              <input
-                required
-                type="email"
-                name="email"
-                disabled={!!user || isLoading}
-                defaultValue={user?.email || ""}
-                className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
-              />
-            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
+                    User ID
+                  </label>
+                  <input
+                    name="userId"
+                    disabled
+                    defaultValue={user?.userId || "Auto Generated"}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-sm bg-gray-50 text-gray-500 font-mono text-sm focus:outline-none"
+                  />
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                  Status
-                </label>
-                <select
-                  name="status"
-                  disabled={isLoading}
-                  defaultValue={user?.status || "Inactive"}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors bg-white"
-                >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
+                    Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    required
+                    disabled={isLoading}
+                    name="username"
+                    defaultValue={user?.username || ""}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
-                  Role
-                </label>
-                <select
-                  name="role"
-                  disabled={isLoading}
-                  defaultValue={user?.role?.toLowerCase() || "user"}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors bg-white"
-                >
-                  <option value="admin">Admin</option>
-                  <option value="user">User</option>
-                  <option
-                    value="owner"
-                    disabled={currentUser?.role !== "OWNER"}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
+                    Email <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    required
+                    type="email"
+                    name="email"
+                    disabled={!!user || isLoading}
+                    defaultValue={user?.email || ""}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
+                      Status
+                    </label>
+                    <select
+                      name="status"
+                      disabled={isLoading}
+                      defaultValue={user?.status || "Inactive"}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors bg-white"
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
+                      Role
+                    </label>
+                    <select
+                      name="role"
+                      disabled={isLoading}
+                      defaultValue={user?.role?.toLowerCase() || "user"}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors bg-white"
+                    >
+                      <option value="admin">Admin</option>
+                      <option value="user">User</option>
+                      <option
+                        value="owner"
+                        disabled={currentUser?.role !== "OWNER"}
+                      >
+                        Owner
+                      </option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    disabled={isLoading}
+                    className="px-6 py-2 text-sm font-bold text-gray-600 uppercase hover:bg-gray-100 rounded-sm transition-colors border border-gray-200"
                   >
-                    Owner
-                  </option>
-                </select>
-              </div>
+                    Close
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="px-6 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center"
+                  >
+                    {isLoading && (
+                      <IconLoader size={16} className="animate-spin mr-2" />
+                    )}
+                    {user ? "Update" : "Create"}
+                  </button>
+                </div>
+              </form>
             </div>
-
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={isLoading}
-                className="px-6 py-2 text-sm font-bold text-gray-600 uppercase hover:bg-gray-100 rounded-sm transition-colors border border-gray-200"
-              >
-                Close
-              </button>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="px-6 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center"
-              >
-                {isLoading && (
-                  <IconLoader size={16} className="animate-spin mr-2" />
-                )}
-                {user ? "Update" : "Create"}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 
