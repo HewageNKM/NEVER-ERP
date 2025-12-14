@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { ProductVariant } from "@/model/ProductVariant";
 import { DropdownOption } from "../page";
 import { IconPhotoPlus, IconX, IconLoader } from "@tabler/icons-react";
-import { useSnackbar } from "@/contexts/SnackBarContext";
+import { showNotification } from "@/utils/toast";
 import { getToken } from "@/firebase/firebaseClient";
 import axios from "axios";
 
@@ -41,7 +41,7 @@ const VariantFormModal: React.FC<VariantFormModalProps> = ({
   const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
   const [imageErrors, setImageErrors] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const { showNotification } = useSnackbar();
+  
   const isEditing = !!variant;
   const isNewVariant =
     !isEditing || (variant && variant.variantId.startsWith("var_"));

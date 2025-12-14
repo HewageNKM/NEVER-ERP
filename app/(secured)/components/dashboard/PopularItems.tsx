@@ -5,7 +5,7 @@ import { getPopularItemsAction } from "@/actions/inventoryActions";
 import DashboardCard from "@/app/(secured)/components/shared/DashboardCard";
 import PopularItemCard from "@/app/(secured)/components/dashboard/PopularItemCard";
 import { IoRefresh } from "react-icons/io5";
-import { useSnackbar } from "@/contexts/SnackBarContext";
+import { showNotification } from "@/utils/toast";
 import EmptyState from "@/app/components/EmptyState";
 
 const PopularItems = () => {
@@ -13,7 +13,7 @@ const PopularItems = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { currentUser } = useAppSelector((state) => state.authSlice);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  const { showNotification } = useSnackbar();
+  
   const months = [
     { value: 0, label: "January" },
     { value: 1, label: "February" },

@@ -1,6 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
+import { IconFilter, IconDownload } from "@tabler/icons-react";
+import axios from "axios";
+import * as XLSX from "xlsx";
+import { getToken } from "@/firebase/firebaseClient";
+import PageContainer from "@/app/(secured)/components/container/PageContainer";
+import ComponentsLoader from "@/app/components/ComponentsLoader";
 import {
   LineChart,
   Line,
@@ -12,29 +18,6 @@ import {
   CartesianGrid,
 } from "recharts";
 
-import {
-  Box,
-  Paper,
-  Stack,
-  TextField,
-  Button,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TableContainer,
-  Typography,
-  CircularProgress,
-  Breadcrumbs,
-  Link as MUILink,
-} from "@mui/material";
-import axios from "axios";
-import * as XLSX from "xlsx";
-import { getToken } from "@/firebase/firebaseClient";
-import { IconFilter } from "@tabler/icons-react";
-import PageContainer from "@/app/(secured)/components/container/PageContainer";
-
 const SalesVsDiscountPage = () => {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -42,7 +25,7 @@ const SalesVsDiscountPage = () => {
   const [report, setReport] = useState<any[]>([]);
   const [groupBy, setGroupBy] = useState<"day" | "month">("day");
 
-  const fetchReport = async (evt:any) => {
+  const fetchReport = async (evt: React.FormEvent) => {
     evt.preventDefault();
     setLoading(true);
     try {
@@ -66,6 +49,7 @@ const SalesVsDiscountPage = () => {
       "Total Sales (Rs)": r.totalSales.toFixed(2),
       "Total Net Sale": r.totalNetSales.toFixed(2),
       "Total Discount (Rs)": r.totalDiscount.toFixed(2),
+      "Total Transaction Fee (Rs)": (r.totalTransactionFee || 0).toFixed(2),
       "Total Orders": r.totalOrders,
     }));
 
@@ -80,175 +64,218 @@ const SalesVsDiscountPage = () => {
 
   return (
     <PageContainer title="Sales vs Discount">
-      <Box sx={{ mb: 2 }}>
-        <Breadcrumbs aria-label="breadcrumb">
-          <MUILink color="inherit" href="/dashboard/reports">
-            Reports
-          </MUILink>
-          <Typography color="inherit">Sales</Typography>
-          <Typography color="text.primary">Sales vs Discount</Typography>
-        </Breadcrumbs>
-      </Box>
+      <div className="w-full space-y-8">
+        {/* Header & Controls */}
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+          <div>
+            <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900">
+              Sales vs Discount
+            </h2>
+            <p className="text-sm text-gray-500 mt-1 font-medium">
+              Compare total sales and discounts over time.
+            </p>
+          </div>
 
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight={600}>
-          Sales vs Discount
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Compare total sales and discounts over time.
-        </Typography>
-      </Box>
-
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          <form onSubmit={fetchReport}
-            style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}
-          >
-            <TextField
-              required
-              type="date"
-              label="From"
-              InputLabelProps={{ shrink: true }}
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              size="small"
-            />
-            <TextField
-              required
-              type="date"
-              label="To"
-              InputLabelProps={{ shrink: true }}
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              size="small"
-            />
-            <TextField
-              required
-              select
-              label="Group By"
-              value={groupBy}
-              onChange={(e) => setGroupBy(e.target.value as "day" | "month")}
-              SelectProps={{ native: true }}
-              size="small"
-              sx={{ width: 120 }}
+          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4 w-full xl:w-auto">
+            <form
+              onSubmit={fetchReport}
+              className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
             >
-              <option value="day">Day</option>
-              <option value="month">Month</option>
-            </TextField>
-            <Button
-              startIcon={<IconFilter />}
-              variant="contained"
-              size="small"
-              type="submit"
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <input
+                  type="date"
+                  required
+                  value={from}
+                  onChange={(e) => setFrom(e.target.value)}
+                  className="px-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm font-medium rounded-sm focus:outline-none focus:border-gray-900 w-full sm:w-auto"
+                />
+                <span className="text-gray-400 font-medium">-</span>
+                <input
+                  type="date"
+                  required
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                  className="px-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm font-medium rounded-sm focus:outline-none focus:border-gray-900 w-full sm:w-auto"
+                />
+              </div>
+              <select
+                value={groupBy}
+                onChange={(e) => setGroupBy(e.target.value as "day" | "month")}
+                className="px-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm font-medium rounded-sm focus:outline-none focus:border-gray-900"
+              >
+                <option value="day">Day</option>
+                <option value="month">Month</option>
+              </select>
+              <button
+                type="submit"
+                className="px-6 py-2 bg-gray-900 text-white text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-black transition-colors min-w-[100px] flex items-center justify-center gap-2 w-full sm:w-auto"
+              >
+                <IconFilter size={16} />
+                Filter
+              </button>
+            </form>
+
+            <button
+              onClick={exportExcel}
+              disabled={!report.length}
+              className="px-6 py-2 bg-white border border-gray-300 text-gray-900 text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
             >
-              Apply
-            </Button>
-          </form>
-          <Box flexGrow={1} />
-          <Button
-            variant="contained"
-            sx={{
-              backgroundColor: "#4CAF50",
-              "&:hover": { backgroundColor: "#45a049" },
-            }}
-            onClick={exportExcel}
-            size="small"
-          >
-            Export Excel
-          </Button>
-        </Stack>
-      </Paper>
-      {report.length > 0 && (
-        <Paper sx={{ p: 2, mb: 3 }}>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Sales vs Discount Chart
-          </Typography>
+              <IconDownload size={16} />
+              Export
+            </button>
+          </div>
+        </div>
 
-          <Box sx={{ width: "100%", height: 350 }}>
-            <ResponsiveContainer>
-              <LineChart data={report}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="period" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Legend />
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center py-20">
+            <ComponentsLoader />
+          </div>
+        )}
 
-                <Line
-                  type="monotone"
-                  dataKey="totalSales"
-                  name="Total Sales"
-                  stroke="#1976d2"
-                  strokeWidth={2}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="totalNetSales"
-                  name="Total Net Sale"
-                  stroke="#4CAF50"
-                  strokeWidth={2}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="totalDiscount"
-                  name="Total Discount"
-                  stroke="#f44336"
-                  strokeWidth={2}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="totalTransactionFee"
-                  name="Transaction Fee"
-                  stroke="#ff9800"
-                  strokeWidth={2}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </Box>
-        </Paper>
-      )}
+        {/* Content */}
+        {!loading && report.length > 0 && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Chart */}
+            <div className="bg-white border border-gray-200 p-6 rounded-sm shadow-sm">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-900 mb-6 border-b border-gray-100 pb-2">
+                Sales vs Discount Chart
+              </h3>
+              <div className="h-[350px] w-full text-xs font-semibold">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={report}>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="#E5E7EB"
+                    />
+                    <XAxis
+                      dataKey="period"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#6B7280", fontSize: 10 }}
+                      tickMargin={10}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#6B7280", fontSize: 10 }}
+                      width={60}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#111827",
+                        border: "none",
+                        borderRadius: "4px",
+                        color: "#F9FAFB",
+                        fontSize: "12px",
+                        fontWeight: "bold",
+                      }}
+                      itemStyle={{ color: "#F9FAFB" }}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="totalSales"
+                      name="Total Sales"
+                      stroke="#111827"
+                      strokeWidth={2}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="totalNetSales"
+                      name="Net Sale"
+                      stroke="#22C55E"
+                      strokeWidth={2}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="totalDiscount"
+                      name="Discount"
+                      stroke="#EF4444"
+                      strokeWidth={2}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="totalTransactionFee"
+                      name="Transaction Fee"
+                      stroke="#F59E0B"
+                      strokeWidth={2}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
 
-      <Paper>
-        <TableContainer sx={{ maxHeight: 600 }}>
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell>Period</TableCell>
-                <TableCell>Total Sales (Rs)</TableCell>
-                <TableCell>Total Net Sale</TableCell>
-                <TableCell>Total Discount (Rs)</TableCell>
-                <TableCell>Total Transaction Fee(Rs)</TableCell>
-                <TableCell>Total Orders</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={4} align="center">
-                    <CircularProgress size={24} />
-                  </TableCell>
-                </TableRow>
-              ) : report.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} align="center">
-                    No data
-                  </TableCell>
-                </TableRow>
-              ) : (
-                report.map((r, idx) => (
-                  <TableRow key={idx} hover>
-                    <TableCell>{r.period}</TableCell>
-                    <TableCell>Rs {r.totalSales.toFixed(2)}</TableCell>
-                    <TableCell>Rs {r.totalNetSales.toFixed(2)}</TableCell>
-                    <TableCell>Rs {r.totalDiscount.toFixed(2)}</TableCell>
-                    <TableCell>{r.totalTransactionFee.toFixed(2)}</TableCell>
-                    <TableCell>{r.totalOrders}</TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+            {/* Table */}
+            <div className="bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-6 py-3 font-bold tracking-wider">
+                        Period
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider text-right">
+                        Sales
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider text-right">
+                        Net Sale
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider text-right">
+                        Discount
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider text-right">
+                        Trans. Fee
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider text-right">
+                        Orders
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {report.map((r, idx) => (
+                      <tr
+                        key={idx}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="px-6 py-4 font-medium text-gray-900">
+                          {r.period}
+                        </td>
+                        <td className="px-6 py-4 text-right font-medium text-gray-900">
+                          Rs {r.totalSales.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 text-right text-green-600">
+                          Rs {r.totalNetSales.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 text-right text-red-600">
+                          Rs {r.totalDiscount.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 text-right text-orange-600">
+                          Rs {(r.totalTransactionFee || 0).toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 text-right text-gray-600">
+                          {r.totalOrders}
+                        </td>
+                      </tr>
+                    ))}
+                    {report.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="px-6 py-12 text-center text-gray-400 text-sm italic"
+                        >
+                          No data available
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </PageContainer>
   );
 };

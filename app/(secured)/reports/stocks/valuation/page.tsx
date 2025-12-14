@@ -2,32 +2,15 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  Box,
-  Paper,
-  Stack,
-  Button,
-  Typography,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  TableContainer,
-  CircularProgress,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-  Breadcrumbs,
-  Link as MUILink,
-  Card,
-  CardContent,
-  Grid,
-  TablePagination,
-} from "@mui/material";
+  IconFilter,
+  IconDownload,
+  IconChevronLeft,
+  IconChevronRight,
+} from "@tabler/icons-react";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import PageContainer from "@/app/(secured)/components/container/PageContainer";
+import ComponentsLoader from "@/app/components/ComponentsLoader";
 import { getToken } from "@/firebase/firebaseClient";
 import { useAppSelector } from "@/lib/hooks";
 
@@ -46,6 +29,8 @@ const StockValuationPage = () => {
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const totalPages = Math.ceil(stockList.length / rowsPerPage);
 
   // Fetch stock options for dropdown
   const fetchStocksDropdown = async () => {
@@ -71,7 +56,11 @@ const StockValuationPage = () => {
 
       setStockList(res.data.stock || []);
       setSummary(
-        res.data.summary || { totalProducts: 0, totalQuantity: 0, totalValuation: 0 }
+        res.data.summary || {
+          totalProducts: 0,
+          totalQuantity: 0,
+          totalValuation: 0,
+        }
       );
     } catch (err) {
       console.error(err);
@@ -83,23 +72,8 @@ const StockValuationPage = () => {
     if (currentUser) fetchStocksDropdown();
   }, [currentUser]);
 
-  const handleStockChange = (event: any) => {
-    const stockId = event.target.value;
-    setSelectedStock(stockId);
-    setPage(0);
-  };
-
   const handleApply = () => {
     fetchStockValuation(selectedStock);
-    setPage(0);
-  };
-
-  const handleChangePage = (_: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
 
@@ -125,163 +99,242 @@ const StockValuationPage = () => {
   };
 
   // Calculate visible rows for frontend pagination
-  const visibleRows = stockList.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const visibleRows = stockList.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
+
+  const SummaryCard = ({
+    title,
+    value,
+  }: {
+    title: string;
+    value: string | number;
+  }) => (
+    <div className="bg-white border border-gray-200 p-6 rounded-sm shadow-sm flex flex-col justify-center">
+      <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+        {title}
+      </p>
+      <p className="text-xl font-black text-gray-900 tracking-tight">{value}</p>
+    </div>
+  );
 
   return (
     <PageContainer title="Stock Valuation">
-      <Box mb={2}>
-        <Breadcrumbs aria-label="breadcrumb">
-          <MUILink color="inherit" href="/dashboard/reports">
-            Reports
-          </MUILink>
-          <Typography>Stocks</Typography>
-          <Typography color="text.primary">Stock Valuation</Typography>
-        </Breadcrumbs>
-      </Box>
+      <div className="w-full space-y-8">
+        {/* Header & Controls */}
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+          <div>
+            <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900">
+              Stock Valuation
+            </h2>
+            <p className="text-sm text-gray-500 mt-1 font-medium">
+              Shows the current stock value per product/variant based on buying
+              price.
+            </p>
+          </div>
 
-      <Box mb={3}>
-        <Typography variant="h5" fontWeight={600}>
-          Stock Valuation
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Shows the current stock value per product/variant based on buying price.
-        </Typography>
-      </Box>
+          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4 w-full xl:w-auto">
+            <div className="flex items-center gap-4 w-full sm:w-auto">
+              <select
+                value={selectedStock}
+                onChange={(e) => setSelectedStock(e.target.value)}
+                className="px-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm font-medium rounded-sm focus:outline-none focus:border-gray-900 min-w-[200px]"
+              >
+                <option value="all">All Stocks</option>
+                {stocksDropdown.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
 
-      <Box mb={3}>
-        <Stack direction="row" spacing={2} alignItems="center">
-          <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel id="stock-select-label">Select Stock</InputLabel>
-            <Select
-              labelId="stock-select-label"
-              value={selectedStock}
-              label="Select Stock"
-              onChange={handleStockChange}
+              <button
+                onClick={handleApply}
+                className="px-6 py-2 bg-gray-900 text-white text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-black transition-colors min-w-[100px] flex items-center justify-center gap-2"
+              >
+                <IconFilter size={16} />
+                Apply
+              </button>
+            </div>
+
+            <button
+              onClick={exportExcel}
+              disabled={!stockList.length}
+              className="px-6 py-2 bg-white border border-gray-300 text-gray-900 text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
             >
-              <MenuItem value="all">All Stocks</MenuItem>
-              {stocksDropdown.map((s) => (
-                <MenuItem key={s.id} value={s.id}>
-                  {s.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Button
-            variant="contained"
-            sx={{ backgroundColor: "#2196F3" }}
-            onClick={handleApply}
-          >
-            Apply
-          </Button>
-          <Box flexGrow={1} />
-          <Button
-            variant="contained"
-            sx={{ backgroundColor: "#4CAF50" }}
-            onClick={exportExcel}
-          >
-            Export Excel
-          </Button>
-        </Stack>
-      </Box>
+              <IconDownload size={16} />
+              Export
+            </button>
+          </div>
+        </div>
 
-      {/* Summary Cards */}
-      <Box mb={3}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={4}>
-            <Card>
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Total Products
-                </Typography>
-                <Typography variant="h6">{summary.totalProducts}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Card>
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Total Quantity
-                </Typography>
-                <Typography variant="h6">{summary.totalQuantity}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Card>
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Total Valuation (Rs)
-                </Typography>
-                <Typography variant="h6">
-                  Rs {summary.totalValuation.toFixed(2)}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      </Box>
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center py-20">
+            <ComponentsLoader />
+          </div>
+        )}
 
-      <Paper>
-        <TableContainer sx={{ maxHeight: 600 }}>
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell>Product ID</TableCell>
-                <TableCell>Product Name</TableCell>
-                <TableCell>Variant ID</TableCell>
-                <TableCell>Variant Name</TableCell>
-                <TableCell>Size</TableCell>
-                <TableCell>Stock ID</TableCell>
-                <TableCell>Stock Name</TableCell>
-                <TableCell>Quantity</TableCell>
-                <TableCell>Buying Price (Rs)</TableCell>
-                <TableCell>Valuation (Rs)</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={10} align="center">
-                    <CircularProgress size={24} />
-                  </TableCell>
-                </TableRow>
-              ) : visibleRows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={10} align="center">
-                    No data available
-                  </TableCell>
-                </TableRow>
-              ) : (
-                visibleRows.map((s, idx) => (
-                  <TableRow key={idx} hover>
-                    <TableCell>{s.productId}</TableCell>
-                    <TableCell>{s.productName}</TableCell>
-                    <TableCell>{s.variantId}</TableCell>
-                    <TableCell>{s.variantName}</TableCell>
-                    <TableCell>{s.size}</TableCell>
-                    <TableCell>{s.stockId}</TableCell>
-                    <TableCell>{s.stockName}</TableCell>
-                    <TableCell>{s.quantity}</TableCell>
-                    <TableCell>Rs {s.buyingPrice.toFixed(2)}</TableCell>
-                    <TableCell>Rs {s.valuation.toFixed(2)}</TableCell>
-                  </TableRow>
-                ))
+        {/* Content */}
+        {!loading && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <SummaryCard
+                title="Total Products"
+                value={summary.totalProducts}
+              />
+              <SummaryCard
+                title="Total Quantity"
+                value={summary.totalQuantity}
+              />
+              <SummaryCard
+                title="Total Valuation"
+                value={`Rs ${summary.totalValuation.toFixed(2)}`}
+              />
+            </div>
+
+            {/* Table */}
+            <div className="bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-6 py-3 font-bold tracking-wider">
+                        Product ID
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider">
+                        Product Name
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider">
+                        Variant ID
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider">
+                        Variant Name
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider">
+                        Size
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider">
+                        Stock ID
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider">
+                        Stock Name
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider text-right">
+                        Quantity
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider text-right">
+                        Buying Price
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider text-right">
+                        Valuation
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {visibleRows.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={10}
+                          className="px-6 py-12 text-center text-gray-400 text-sm italic"
+                        >
+                          No data available
+                        </td>
+                      </tr>
+                    ) : (
+                      visibleRows.map((s, idx) => (
+                        <tr
+                          key={idx}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
+                          <td className="px-6 py-4 font-medium text-gray-400">
+                            {s.productId}
+                          </td>
+                          <td className="px-6 py-4 font-medium text-gray-900">
+                            {s.productName}
+                          </td>
+                          <td className="px-6 py-4 text-gray-400">
+                            {s.variantId}
+                          </td>
+                          <td className="px-6 py-4 text-gray-600">
+                            {s.variantName}
+                          </td>
+                          <td className="px-6 py-4 text-gray-600">{s.size}</td>
+                          <td className="px-6 py-4 text-gray-400">
+                            {s.stockId}
+                          </td>
+                          <td className="px-6 py-4 text-gray-600">
+                            {s.stockName}
+                          </td>
+                          <td className="px-6 py-4 text-right font-medium text-gray-900">
+                            {s.quantity}
+                          </td>
+                          <td className="px-6 py-4 text-right text-gray-600">
+                            Rs {s.buyingPrice.toFixed(2)}
+                          </td>
+                          <td className="px-6 py-4 text-right font-medium text-green-600">
+                            Rs {s.valuation.toFixed(2)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination Controls */}
+              {stockList.length > 0 && (
+                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
+                  <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
+                    <span>Rows per page:</span>
+                    <select
+                      value={rowsPerPage}
+                      onChange={(e) => {
+                        setRowsPerPage(Number(e.target.value));
+                        setPage(0);
+                      }}
+                      className="bg-white border border-gray-300 rounded-sm px-2 py-1 focus:outline-none focus:border-gray-900"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <span className="text-xs text-gray-500 font-medium">
+                      {page * rowsPerPage + 1}-
+                      {Math.min((page + 1) * rowsPerPage, stockList.length)} of{" "}
+                      {stockList.length}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setPage(Math.max(0, page - 1))}
+                        disabled={page === 0}
+                        className="p-1 rounded-sm hover:bg-gray-200 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                      >
+                        <IconChevronLeft size={16} />
+                      </button>
+                      <button
+                        onClick={() =>
+                          setPage(Math.min(totalPages - 1, page + 1))
+                        }
+                        disabled={page >= totalPages - 1}
+                        className="p-1 rounded-sm hover:bg-gray-200 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                      >
+                        <IconChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        <TablePagination
-          component="div"
-          count={stockList.length}
-          page={page}
-          rowsPerPage={rowsPerPage}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          rowsPerPageOptions={[5, 10, 20, 50]}
-        />
-      </Paper>
+            </div>
+          </div>
+        )}
+      </div>
     </PageContainer>
   );
 };

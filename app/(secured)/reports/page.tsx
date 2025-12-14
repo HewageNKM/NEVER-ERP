@@ -2,7 +2,7 @@
 import React from "react";
 import Link from "next/link";
 import PageContainer from "../components/container/PageContainer";
-import { Box, Grid, Typography, Link as MUILink, Divider } from "@mui/material";
+import { IconChartBar, IconChevronRight } from "@tabler/icons-react";
 
 const Reports = () => {
   const reportSections = [
@@ -11,50 +11,50 @@ const Reports = () => {
       reports: [
         {
           title: "Daily Summary",
-          link: "/dashboard/reports/sales/daily-summary",
+          link: "/reports/sales/daily-summary",
         },
         {
           title: "Monthly Summary",
-          link: "/dashboard/reports/sales/monthly-summary",
+          link: "/reports/sales/monthly-summary",
         },
         {
           title: "Yearly Summary",
-          link: "/dashboard/reports/sales/yearly-summary",
+          link: "/reports/sales/yearly-summary",
         },
         {
           title: "Top Selling Products",
-          link: "/dashboard/reports/sales/top-products",
+          link: "/reports/sales/top-products",
         },
         {
           title: "Sales by Category",
-          link: "/dashboard/reports/sales/by-category",
+          link: "/reports/sales/by-category",
         },
-        { title: "Sales by Brand", link: "/dashboard/reports/sales/by-brand" },
+        { title: "Sales by Brand", link: "/reports/sales/by-brand" },
         {
           title: "Sales vs Discount",
-          link: "/dashboard/reports/sales/sales-vs-discount",
+          link: "/reports/sales/sales-vs-discount",
         },
         {
           title: "Sales by Payment Method",
-          link: "/dashboard/reports/sales/by-payment-method",
+          link: "/reports/sales/by-payment-method",
         },
         {
           title: "Refunds & Returns",
-          link: "/dashboard/reports/sales/refunds-returns",
+          link: "/reports/sales/refunds-returns",
         },
       ],
     },
     {
       category: "Stock Reports",
       reports: [
-        { title: "Live Stock", link: "/dashboard/reports/stocks/live-stock" },
+        { title: "Live Stock", link: "/reports/stocks/live-stock" },
         {
           title: "Low Stock",
-          link: "/dashboard/reports/stocks/low-stock",
+          link: "/reports/stocks/low-stock",
         },
         {
           title: "Stock Valuation",
-          link: "/dashboard/reports/stocks/valuation",
+          link: "/reports/stocks/valuation",
         },
       ],
     },
@@ -63,15 +63,15 @@ const Reports = () => {
       reports: [
         {
           title: "Daily Revenue",
-          link: "/dashboard/reports/revenues/daily-revenue",
+          link: "/reports/revenues/daily-revenue",
         },
         {
           title: "Monthly Revenue",
-          link: "/dashboard/reports/revenues/monthly-revenue",
+          link: "/reports/revenues/monthly-revenue",
         },
         {
           title: "Yearly Revenue",
-          link: "/dashboard/reports/revenues/yearly-revenue",
+          link: "/reports/revenues/yearly-revenue",
         },
       ],
     },
@@ -80,7 +80,7 @@ const Reports = () => {
       reports: [
         {
           title: "Cashflow",
-          link: "/dashboard/reports/cash/cashflow",
+          link: "/reports/cash/cashflow",
         },
       ],
     },
@@ -88,55 +88,54 @@ const Reports = () => {
 
   return (
     <PageContainer title="Reports">
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {reportSections.map((section, i) => (
-          <Box key={i}>
-            {/* Category Title */}
-            <Typography
-              variant="h5"
-              fontWeight={700}
-              color="text.primary"
-              sx={{ mb: 2 }}
-            >
-              {section.category}
-            </Typography>
-            <Divider sx={{ mb: 3 }} />
+      <div className="w-full">
+        {/* Header */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900 flex items-center gap-2">
+            <IconChartBar className="text-gray-900" size={28} />
+            Reports Center
+          </h2>
+          <p className="text-sm text-gray-500 mt-1 uppercase font-semibold">
+            Analytics and Performance Metrics
+          </p>
+        </div>
 
-            {/* Grid of Links */}
-            <Grid container spacing={2}>
-              {section.reports.map((report, index) => (
-                <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
-                  <MUILink
-                    component={Link}
+        <div className="space-y-10">
+          {reportSections.map((section, i) => (
+            <div
+              key={i}
+              className="animate-in fade-in slide-in-from-bottom-4 duration-500"
+              style={{ animationDelay: `${i * 100}ms` }}
+            >
+              <div className="border-b-2 border-gray-900 mb-6 pb-2">
+                <h3 className="text-lg font-bold uppercase tracking-wide text-gray-900">
+                  {section.category}
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {section.reports.map((report, index) => (
+                  <Link
+                    key={index}
                     href={report.link}
-                    underline="hover"
-                    color="primary"
-                    sx={{
-                      fontSize: 16,
-                      fontWeight: 500,
-                      pl: 2.5,
-                      position: "relative",
-                      display: "inline-block",
-                      "&::before": {
-                        content: '"•"',
-                        position: "absolute",
-                        left: 0,
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        color: "primary.main",
-                        fontSize: 20,
-                        lineHeight: 1,
-                      },
-                    }}
+                    className="group flex items-center p-4 bg-gray-50 border border-gray-200 rounded-sm hover:bg-gray-900 hover:border-gray-900 hover:text-white transition-all duration-200"
                   >
-                    {report.title}
-                  </MUILink>
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-        ))}
-      </Box>
+                    <div className="flex-1">
+                      <span className="text-sm font-bold uppercase tracking-wide group-hover:text-white text-gray-700">
+                        {report.title}
+                      </span>
+                    </div>
+                    <IconChevronRight
+                      size={18}
+                      className="text-gray-400 group-hover:text-white transform group-hover:translate-x-1 transition-transform"
+                    />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </PageContainer>
   );
 };

@@ -10,14 +10,14 @@ import Logo from "@/app/(secured)/components/layout/shared/logo/Logo";
 import { authenticateUserAction } from "@/actions/authActions";
 import { setUser } from "@/lib/authSlice/authSlice";
 import { User } from "@/model";
-import { useSnackbar } from "@/contexts/SnackBarContext";
+import { showNotification } from "@/utils/toast";
 import ComponentsLoader from "@/app/components/ComponentsLoader";
 
 const Login = () => {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
-  const { showNotification } = useSnackbar();
+  
   const [showPassword, setShowPassword] = useState(false);
 
   const onFormSubmit = async (evt: any) => {

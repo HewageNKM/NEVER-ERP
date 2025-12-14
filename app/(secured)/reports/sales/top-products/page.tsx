@@ -1,28 +1,17 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
-  Box,
-  Paper,
-  Stack,
-  TextField,
-  Button,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TableContainer,
-  Typography,
-  CircularProgress,
-  TablePagination,
-  Link as MUILink,
-  Breadcrumbs,
-} from "@mui/material";
+  IconFilter,
+  IconDownload,
+  IconChevronLeft,
+  IconChevronRight,
+} from "@tabler/icons-react";
+import PageContainer from "@/app/(secured)/components/container/PageContainer";
+import ComponentsLoader from "@/app/components/ComponentsLoader";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import { getToken } from "@/firebase/firebaseClient";
-import { IconFilter } from "@tabler/icons-react";
-import PageContainer from "@/app/(secured)/components/container/PageContainer";
+import { showNotification } from "@/utils/toast";
 
 const TopSellingProductsPage = () => {
   const [from, setFrom] = useState("");
@@ -32,6 +21,7 @@ const TopSellingProductsPage = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [threshold, setThreshold] = useState("");
+  
 
   const fetchReport = async (evt: any) => {
     evt.preventDefault();
@@ -49,21 +39,10 @@ const TopSellingProductsPage = () => {
       setPage(0);
     } catch (e) {
       console.error(e);
+      showNotification("Failed to fetch top products", "error");
     } finally {
       setLoading(false);
     }
-  };
-
-  // Frontend pagination handlers
-  const handleChangePage = (_event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
   };
 
   const exportExcel = () => {
@@ -91,7 +70,8 @@ const TopSellingProductsPage = () => {
     );
   };
 
-  // Compute current page data
+  // Pagination Logic
+  const totalPages = Math.ceil(products.length / rowsPerPage);
   const paginatedProducts = products.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
@@ -99,162 +79,217 @@ const TopSellingProductsPage = () => {
 
   return (
     <PageContainer title="Top Selling Products">
-      {/* Breadcrumbs */}
-      <Box sx={{ mb: 2 }}>
-        <Breadcrumbs aria-label="breadcrumb">
-          <MUILink color="inherit" href="/dashboard/reports">
-            Reports
-          </MUILink>
-          <Typography color="inherit">Sales</Typography>
-          <Typography color="text.primary">Top Selling Products</Typography>
-        </Breadcrumbs>
-      </Box>
+      <div className="w-full space-y-8">
+        {/* Header & Controls */}
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+          <div>
+            <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900">
+              Top Selling Products
+            </h2>
+            <p className="text-sm text-gray-500 mt-1 font-medium">
+              View most sold products and export data.
+            </p>
+          </div>
 
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight={600}>
-          Top Selling Products
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          View most sold products and export data.
-        </Typography>
-      </Box>
-
-      {/* Filters */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          <form
-            style={{
-              display: "flex",
-              gap: "10px",
-              flexWrap: "wrap",
-            }}
-            onSubmit={fetchReport}
-          >
-            <TextField
-              type="date"
-              required
-              label="From"
-              InputLabelProps={{ shrink: true }}
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              size="small"
-            />
-            <TextField
-              required
-              type="date"
-              label="To"
-              defaultValue={10}
-              InputLabelProps={{ shrink: true }}
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              size="small"
-            />
-            <TextField
-              type="number"
-              label="Top"
-              value={threshold}
-              onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
-                setThreshold(isNaN(val) ? 0 : val);
-              }}
-              InputProps={{ inputProps: { min: 0 } }}
-              size="small"
-            />
-
-            <Button
-              startIcon={<IconFilter />}
-              variant="contained"
-              type="submit"
-              size="small"
+          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4 w-full xl:w-auto">
+            <form
+              onSubmit={fetchReport}
+              className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
             >
-              Apply
-            </Button>
-          </form>
-          <Box flexGrow={1} />
-          <Button
-            variant="contained"
-            sx={{
-              backgroundColor: "#4CAF50",
-              "&:hover": { backgroundColor: "#45a049" },
-            }}
-            onClick={exportExcel}
-            size="small"
-          >
-            Export Excel
-          </Button>
-        </Stack>
-      </Paper>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <input
+                  type="date"
+                  required
+                  value={from}
+                  onChange={(e) => setFrom(e.target.value)}
+                  className="px-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm font-medium rounded-sm focus:outline-none focus:border-gray-900 w-full sm:w-auto"
+                />
+                <span className="text-gray-400 font-medium">-</span>
+                <input
+                  type="date"
+                  required
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                  className="px-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm font-medium rounded-sm focus:outline-none focus:border-gray-900 w-full sm:w-auto"
+                />
+              </div>
+              <input
+                type="number"
+                placeholder="Limit"
+                value={threshold}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  setThreshold(isNaN(val) ? 0 : val);
+                }}
+                min="0"
+                className="px-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm font-medium rounded-sm focus:outline-none focus:border-gray-900 w-24"
+              />
+              <button
+                type="submit"
+                className="px-6 py-2 bg-gray-900 text-white text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-black transition-colors min-w-[100px] flex items-center justify-center gap-2 w-full sm:w-auto"
+              >
+                <IconFilter size={16} />
+                Filter
+              </button>
+            </form>
 
-      {/* Table */}
-      <Paper>
-        <TableContainer sx={{ maxHeight: 600 }}>
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell>Product ID</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Variant</TableCell>
-                <TableCell>Total Quantity Sold</TableCell>
-                <TableCell>Total Sales (Rs)</TableCell>
-                <TableCell>Total Net Sale (Rs)</TableCell>
-                <TableCell>Total COGS (Rs)</TableCell>
-                <TableCell>Total Profit (Rs)</TableCell>
-                <TableCell>Margin (%)</TableCell>
-                <TableCell>Total Discount (Rs)</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={10} align="center">
-                    <CircularProgress size={24} />
-                  </TableCell>
-                </TableRow>
-              ) : products.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} align="center">
-                    No data
-                  </TableCell>
-                </TableRow>
-              ) : (
-                paginatedProducts.map((p, idx) => (
-                  <TableRow key={idx} hover>
-                    <TableCell>{p.productId.toUpperCase()}</TableCell>
-                    <TableCell>{p.name}</TableCell>
-                    <TableCell>{p.variantName}</TableCell>
-                    <TableCell>{p.totalQuantity}</TableCell>
-                    <TableCell>Rs {(p.totalSales || 0).toFixed(2)}</TableCell>
-                    <TableCell>
-                      Rs {(p.totalNetSales || 0).toFixed(2)}
-                    </TableCell>
-                    <TableCell>Rs {(p.totalCOGS || 0).toFixed(2)}</TableCell>
-                    <TableCell>
-                      Rs {(p.totalGrossProfit || 0).toFixed(2)}
-                    </TableCell>
-                    <TableCell>
-                      {(p.grossProfitMargin || 0).toFixed(2)}%
-                    </TableCell>
-                    <TableCell>
-                      Rs {(p.totalDiscount || 0).toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+            <button
+              onClick={exportExcel}
+              disabled={!products.length}
+              className="px-6 py-2 bg-white border border-gray-300 text-gray-900 text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
+            >
+              <IconDownload size={16} />
+              Export
+            </button>
+          </div>
+        </div>
 
-        {/* Frontend Pagination */}
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 20, 50]}
-          component="div"
-          count={products.length}
-          page={page}
-          onPageChange={handleChangePage}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      </Paper>
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center py-20">
+            <ComponentsLoader />
+          </div>
+        )}
+
+        {/* Content */}
+        {!loading && (
+          <div className="bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 font-bold tracking-wider">
+                      Product ID
+                    </th>
+                    <th className="px-6 py-3 font-bold tracking-wider">Name</th>
+                    <th className="px-6 py-3 font-bold tracking-wider">
+                      Variant
+                    </th>
+                    <th className="px-6 py-3 font-bold tracking-wider text-right">
+                      Qty Sold
+                    </th>
+                    <th className="px-6 py-3 font-bold tracking-wider text-right">
+                      Sales
+                    </th>
+                    <th className="px-6 py-3 font-bold tracking-wider text-right">
+                      Net Sales
+                    </th>
+                    <th className="px-6 py-3 font-bold tracking-wider text-right">
+                      COGS
+                    </th>
+                    <th className="px-6 py-3 font-bold tracking-wider text-right">
+                      Profit
+                    </th>
+                    <th className="px-6 py-3 font-bold tracking-wider text-right">
+                      Margin
+                    </th>
+                    <th className="px-6 py-3 font-bold tracking-wider text-right">
+                      Discount
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {paginatedProducts.map((p, idx) => (
+                    <tr
+                      key={idx}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-6 py-4 font-medium text-gray-400">
+                        {p.productId.toUpperCase()}
+                      </td>
+                      <td className="px-6 py-4 font-medium text-gray-900">
+                        {p.name}
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">
+                        {p.variantName}
+                      </td>
+                      <td className="px-6 py-4 text-right font-medium text-gray-900">
+                        {p.totalQuantity}
+                      </td>
+                      <td className="px-6 py-4 text-right text-gray-600">
+                        Rs {(p.totalSales || 0).toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 text-right text-gray-600">
+                        Rs {(p.totalNetSales || 0).toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 text-right text-gray-600">
+                        Rs {(p.totalCOGS || 0).toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 text-right font-medium text-green-600">
+                        Rs {(p.totalGrossProfit || 0).toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 text-right text-gray-600">
+                        {(p.grossProfitMargin || 0).toFixed(2)}%
+                      </td>
+                      <td className="px-6 py-4 text-right text-gray-600">
+                        Rs {(p.totalDiscount || 0).toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                  {products.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={10}
+                        className="px-6 py-12 text-center text-gray-400 text-sm italic"
+                      >
+                        No data available
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {products.length > 0 && (
+              <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
+                <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
+                  <span>Rows per page:</span>
+                  <select
+                    value={rowsPerPage}
+                    onChange={(e) => {
+                      setRowsPerPage(Number(e.target.value));
+                      setPage(0);
+                    }}
+                    className="bg-white border border-gray-300 rounded-sm px-2 py-1 focus:outline-none focus:border-gray-900"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <span className="text-xs text-gray-500 font-medium">
+                    {page * rowsPerPage + 1}-
+                    {Math.min((page + 1) * rowsPerPage, products.length)} of{" "}
+                    {products.length}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setPage(Math.max(0, page - 1))}
+                      disabled={page === 0}
+                      className="p-1 rounded-sm hover:bg-gray-200 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                    >
+                      <IconChevronLeft size={16} />
+                    </button>
+                    <button
+                      onClick={() =>
+                        setPage(Math.min(totalPages - 1, page + 1))
+                      }
+                      disabled={page >= totalPages - 1}
+                      className="p-1 rounded-sm hover:bg-gray-200 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                    >
+                      <IconChevronRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </PageContainer>
   );
 };

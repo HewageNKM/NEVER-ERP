@@ -27,3 +27,51 @@
     color: var(--color-primary);
   }
 }
+
+@layer utilities {
+  /* Complete hiding of scrollbar */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Custom Hover Scrollbar: Hidden Y, Visible X only on Hover */
+  .hover-scrollbar {
+    overflow-y: hidden; /* Always hide Y */
+    overflow-x: auto;
+  }
+
+  /* Webkit (Chrome, Safari, Edge) */
+  .hover-scrollbar::-webkit-scrollbar {
+    height: 6px; /* Horizontal scrollbar height */
+    width: 0px; /* Vertical scrollbar width (effectively hidden) */
+    background: transparent;
+  }
+
+  .hover-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .hover-scrollbar::-webkit-scrollbar-thumb {
+    background-color: transparent; /* TopNav request: hide by default */
+    border-radius: 9999px;
+    transition: background-color 0.2s;
+  }
+
+  .hover-scrollbar:hover::-webkit-scrollbar-thumb {
+    background-color: #d1d5db; /* gray-300: Show on hover */
+  }
+
+  /* Firefox */
+  .hover-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .hover-scrollbar:hover {
+    scrollbar-color: #d1d5db transparent;
+  }
+}

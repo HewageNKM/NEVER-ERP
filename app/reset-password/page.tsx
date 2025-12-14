@@ -4,13 +4,13 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import PageContainer from "@/app/(secured)/components/container/PageContainer";
 import Logo from "@/app/(secured)/components/layout/shared/logo/Logo";
-import { useSnackbar } from "@/contexts/SnackBarContext";
+import { showNotification } from "@/utils/toast";
 import ComponentsLoader from "@/app/components/ComponentsLoader";
 import { sendPasswordResetLinkAction } from "@/actions/authActions";
 
 const ResetPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const { showNotification } = useSnackbar();
+  
   const [emailSent, setEmailSent] = useState(false);
 
   const onFormSubmit = async (evt: any) => {

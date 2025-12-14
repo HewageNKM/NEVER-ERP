@@ -3,7 +3,7 @@ import DashboardCard from "../shared/DashboardCard";
 import { useEffect, useState } from "react";
 import { useAppSelector } from "@/lib/hooks";
 import { getDailyOverviewAction } from "@/actions/reportsActions";
-import { useSnackbar } from "@/contexts/SnackBarContext";
+import { showNotification } from "@/utils/toast";
 
 const DailyEarnings = () => {
   const [totalEarnings, setTotalEarnings] = useState(0);
@@ -13,7 +13,7 @@ const DailyEarnings = () => {
   const [totalExpense, setTotalExpense] = useState(0);
   const [loading, setLoading] = useState(true);
   const { currentUser } = useAppSelector((state) => state.authSlice);
-  const { showNotification } = useSnackbar();
+  
 
   useEffect(() => {
     if (currentUser) {

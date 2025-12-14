@@ -10,7 +10,7 @@ import {
 } from "@firebase/firestore";
 import { db } from "@/firebase/firebaseClient";
 import { useAppSelector } from "@/lib/hooks";
-import { useSnackbar } from "@/contexts/SnackBarContext";
+import { showNotification } from "@/utils/toast";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
@@ -25,7 +25,7 @@ const SalesOverview = () => {
       new Date(0, i).toLocaleString("default", { month: "short" })
     )
   );
-  const { showNotification } = useSnackbar();
+  
   const { currentUser } = useAppSelector((state) => state.authSlice);
 
   // Nike Chart Colors

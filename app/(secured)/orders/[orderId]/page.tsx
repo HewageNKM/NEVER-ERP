@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Breadcrumbs, Link, Typography, CircularProgress, Box } from "@mui/material";
 import { Order } from "@/model";
 import PageContainer from "../../components/container/PageContainer";
 import DashboardCard from "../../components/shared/DashboardCard";
@@ -10,7 +9,8 @@ import { useAppSelector } from "@/lib/hooks";
 import { getToken } from "@/firebase/firebaseClient";
 import axios from "axios";
 import { OrderEditForm } from "./components/OrderEditForm";
-import { useSnackbar } from "@/contexts/SnackBarContext";
+import { showNotification } from "@/utils/toast";
+import Link from "next/link"; // Use Next.js Link instead of MUI
 
 const OrderEditPage = () => {
   const param = useParams();
@@ -20,7 +20,7 @@ const OrderEditPage = () => {
   const { currentUser, loading: authLoading } = useAppSelector(
     (state) => state.authSlice
   );
-  const { showNotification } = useSnackbar();
+  
 
   useEffect(() => {
     if (param.orderId && !authLoading && currentUser) {
@@ -46,38 +46,24 @@ const OrderEditPage = () => {
 
   // Breadcrumb Component
   const BreadcrumbNav = () => (
-    <Box mb={2}>
-      <Breadcrumbs aria-label="breadcrumb">
-        <Link
-          underline="hover"
-          color="inherit"
-          sx={{ cursor: "pointer" }}
-          onClick={() => router.push("/dashboard")}
-        >
-          Dashboard
-        </Link>
-        <Link
-          underline="hover"
-          color="inherit"
-          sx={{ cursor: "pointer" }}
-          onClick={() => router.push("/dashboard/orders")}
-        >
-          Orders
-        </Link>
-        <Typography color="text.primary">
-          Edit Order #{order?.orderId || param.orderId}
-        </Typography>
-      </Breadcrumbs>
-    </Box>
+    <div className="flex items-center gap-2 text-sm text-gray-500 mb-6 font-medium uppercase tracking-wide">
+      <Link href="/orders" className="hover:text-black transition-colors">
+        Orders
+      </Link>
+      <span>/</span>
+      <span className="text-black font-bold">
+        Edit Order #{order?.orderId || param.orderId}
+      </span>
+    </div>
   );
 
   if (loading) {
     return (
       <PageContainer title="Edit Order">
-        <DashboardCard>
-          <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
-            <CircularProgress />
-          </Box>
+        <DashboardCard title="Loading Order...">
+          <div className="flex justify-center items-center min-h-[50vh]">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-black" />
+          </div>
         </DashboardCard>
       </PageContainer>
     );
@@ -86,10 +72,10 @@ const OrderEditPage = () => {
   if (!order) {
     return (
       <PageContainer title="Edit Order">
-        <DashboardCard>
-          <Box p={4} textAlign="center">
+        <DashboardCard title="Order Not Found">
+          <div className="p-8 text-center text-gray-500">
             <p>Order not found or failed to load.</p>
-          </Box>
+          </div>
         </DashboardCard>
       </PageContainer>
     );
@@ -97,11 +83,18 @@ const OrderEditPage = () => {
 
   return (
     <PageContainer title={`Edit Order #${order.orderId}`}>
-      {/* ✅ Breadcrumbs added here */}
       <BreadcrumbNav />
-      <DashboardCard>
+      {/* 
+         We don't wrapping OrderEditForm in DashboardCard here directly 
+         because OrderEditForm will manage its own sections for cleaner layout, 
+         or we can keep it wrapped if it fits design. 
+         Let's wrap it in a clean container or let it render multiple cards.
+         Original code wrapped it in DashboardCard. Implementation plan suggested removing inner Card usage.
+         I'll stick to a clean background here.
+      */}
+      <div className="max-w-5xl mx-auto">
         <OrderEditForm order={order} onRefresh={fetchOrder} />
-      </DashboardCard>
+      </div>
     </PageContainer>
   );
 };

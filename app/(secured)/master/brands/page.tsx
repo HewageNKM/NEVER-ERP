@@ -17,7 +17,7 @@ import PageContainer from "../../components/container/PageContainer";
 import { getToken } from "@/firebase/firebaseClient";
 import { useAppSelector } from "@/lib/hooks";
 import { Brand } from "@/model/Brand";
-import { useSnackbar } from "@/contexts/SnackBarContext";
+import { showNotification } from "@/utils/toast";
 import { useConfirmationDialog } from "@/contexts/ConfirmationDialogContext";
 
 const BrandPage: React.FC = () => {
@@ -28,7 +28,7 @@ const BrandPage: React.FC = () => {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
   const [pagination, setPagination] = useState({ page: 1, size: 10, total: 0 });
-  const { showNotification } = useSnackbar();
+  
   const { showConfirmation } = useConfirmationDialog();
 
   const { currentUser, loading: authLoading } = useAppSelector(

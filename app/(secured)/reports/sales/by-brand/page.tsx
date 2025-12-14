@@ -1,30 +1,17 @@
 "use client";
-import React, { useEffect, useState } from "react";
+
+import React, { useState } from "react";
 import {
-  Box,
-  Paper,
-  Stack,
-  TextField,
-  Button,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TableContainer,
-  Typography,
-  CircularProgress,
-  TablePagination,
-  Breadcrumbs,
-  Link as MUILink,
-} from "@mui/material";
-import { IconFilter } from "@tabler/icons-react";
+  IconFilter,
+  IconDownload,
+  IconChevronLeft,
+  IconChevronRight,
+} from "@tabler/icons-react";
 import * as XLSX from "xlsx";
 import axios from "axios";
 import PageContainer from "@/app/(secured)/components/container/PageContainer";
+import ComponentsLoader from "@/app/components/ComponentsLoader";
 import { getToken } from "@/firebase/firebaseClient";
-
-// 📊 Recharts
 import {
   BarChart,
   Bar,
@@ -36,10 +23,10 @@ import {
   Cell,
   ResponsiveContainer,
   Legend,
+  CartesianGrid,
 } from "recharts";
-import { useSnackbar } from "@/contexts/SnackBarContext";
 
-const COLORS = ["#1976d2", "#2e7d32", "#ed6c02", "#d32f2f"];
+const COLORS = ["#111827", "#374151", "#6B7280", "#9CA3AF", "#D1D5DB"];
 
 const SalesByBrandPage = () => {
   const [from, setFrom] = useState("");
@@ -50,7 +37,9 @@ const SalesByBrandPage = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalBrands, setTotalBrands] = useState(0);
 
-  const fetchReport = async (evt: any) => {
+  const totalPages = Math.ceil(brands.length / rowsPerPage);
+
+  const fetchReport = async (evt: React.FormEvent) => {
     evt.preventDefault();
     setLoading(true);
     try {
@@ -62,19 +51,12 @@ const SalesByBrandPage = () => {
 
       setBrands(res.data.brands || []);
       setTotalBrands(res.data.total || 0);
+      setPage(0);
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleChangePage = (_event: unknown, newPage: number) =>
-    setPage(newPage);
-
-  const handleChangeRowsPerPage = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(e.target.value, 10));
-    setPage(0);
   };
 
   const exportExcel = async () => {
@@ -88,7 +70,7 @@ const SalesByBrandPage = () => {
       const allBrands = res.data.brands || [];
       if (!allBrands.length) return;
 
-      const exportData = allBrands.map((b) => ({
+      const exportData = allBrands.map((b: any) => ({
         Brand: b.brand,
         "Total Quantity Sold": b.totalQuantity,
         "Total Sales (Rs)": b.totalSales.toFixed(2),
@@ -109,195 +91,312 @@ const SalesByBrandPage = () => {
     }
   };
 
+  const visibleRows = brands.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
+
   return (
     <PageContainer title="Sales by Brand">
-      {/* Breadcrumb */}
-      <Box sx={{ mb: 2 }}>
-        <Breadcrumbs aria-label="breadcrumb">
-          <MUILink color="inherit" href="/dashboard/reports">
-            Reports
-          </MUILink>
-          <Typography color="inherit">Sales</Typography>
-          <Typography color="text.primary">By Brand</Typography>
-        </Breadcrumbs>
-      </Box>
+      <div className="w-full space-y-8">
+        {/* Header & Controls */}
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+          <div>
+            <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900">
+              Sales by Brand
+            </h2>
+            <p className="text-sm text-gray-500 mt-1 font-medium">
+              View total sales by brand and export data.
+            </p>
+          </div>
 
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight={600}>
-          Sales by Brand
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          View total sales by brand and export data.
-        </Typography>
-      </Box>
-
-      {/* Filters */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          <form
-            onSubmit={fetchReport}
-            style={{
-              display: "flex",
-              gap: "10px",
-              flexWrap: "wrap",
-            }}
-          >
-            <TextField
-              required
-              type="date"
-              label="From"
-              InputLabelProps={{ shrink: true }}
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              size="small"
-            />
-            <TextField
-              required
-              type="date"
-              label="To"
-              InputLabelProps={{ shrink: true }}
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              size="small"
-            />
-            <Button
-              startIcon={<IconFilter />}
-              variant="contained"
-              type="submit"
-              size="small"
+          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4 w-full xl:w-auto">
+            <form
+              onSubmit={fetchReport}
+              className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
             >
-              Apply
-            </Button>
-          </form>
-          <Box flexGrow={1} />
-          <Button
-            variant="contained"
-            sx={{
-              backgroundColor: "#4CAF50",
-              "&:hover": { backgroundColor: "#45a049" },
-            }}
-            onClick={exportExcel}
-            size="small"
-          >
-            Export Excel
-          </Button>
-        </Stack>
-      </Paper>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <input
+                  type="date"
+                  required
+                  value={from}
+                  onChange={(e) => setFrom(e.target.value)}
+                  className="px-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm font-medium rounded-sm focus:outline-none focus:border-gray-900 w-full sm:w-auto"
+                />
+                <span className="text-gray-400 font-medium">-</span>
+                <input
+                  type="date"
+                  required
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                  className="px-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm font-medium rounded-sm focus:outline-none focus:border-gray-900 w-full sm:w-auto"
+                />
+              </div>
+              <button
+                type="submit"
+                className="px-6 py-2 bg-gray-900 text-white text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-black transition-colors min-w-[100px] flex items-center justify-center gap-2 w-full sm:w-auto"
+              >
+                <IconFilter size={16} />
+                Filter
+              </button>
+            </form>
 
-      {/* 📊 CHARTS */}
-      {brands.length > 0 && (
-        <Stack spacing={3} sx={{ mb: 4 }}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
-              Sales Comparison (Bar Chart)
-            </Typography>
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={brands}>
-                <XAxis dataKey="brand" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="totalSales" name="Total Sales" fill="#1976d2" />
-                <Bar dataKey="totalNetSales" name="Net Sale" fill="#2e7d32" />
-                <Bar dataKey="totalDiscount" name="Discount" fill="#d32f2f" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Paper>
+            <button
+              onClick={exportExcel}
+              disabled={!brands.length}
+              className="px-6 py-2 bg-white border border-gray-300 text-gray-900 text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
+            >
+              <IconDownload size={16} />
+              Export
+            </button>
+          </div>
+        </div>
 
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
-              Quantity Distribution (Pie Chart)
-            </Typography>
-            <ResponsiveContainer width="100%" height={350}>
-              <PieChart>
-                <Pie
-                  data={brands}
-                  dataKey="totalQuantity"
-                  nameKey="brand"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={120}
-                  label
-                >
-                  {brands.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Stack>
-      )}
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center py-20">
+            <ComponentsLoader />
+          </div>
+        )}
 
-      {/* TABLE */}
-      <Paper>
-        <TableContainer sx={{ maxHeight: 600 }}>
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell>Brand</TableCell>
-                <TableCell>Total Quantity Sold</TableCell>
-                <TableCell>Total Sales (Rs)</TableCell>
-                <TableCell>Total Net Sale(Rs)</TableCell>
-                <TableCell>Total COGS (Rs)</TableCell>
-                <TableCell>Total Profit (Rs)</TableCell>
-                <TableCell>Margin (%)</TableCell>
-                <TableCell>Total Discount (Rs)</TableCell>
-                <TableCell>Total Orders</TableCell>
-              </TableRow>
-            </TableHead>
+        {/* Content */}
+        {!loading && brands.length > 0 && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white border border-gray-200 p-6 rounded-sm shadow-sm">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-gray-900 mb-6 border-b border-gray-100 pb-2">
+                  Sales Comparison
+                </h3>
+                <div className="h-[350px] w-full text-xs font-semibold">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={brands}>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        vertical={false}
+                        stroke="#E5E7EB"
+                      />
+                      <XAxis
+                        dataKey="brand"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: "#6B7280", fontSize: 10 }}
+                        tickMargin={10}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: "#6B7280", fontSize: 10 }}
+                        width={60}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#111827",
+                          border: "none",
+                          borderRadius: "4px",
+                          color: "#F9FAFB",
+                          fontSize: "12px",
+                          fontWeight: "bold",
+                        }}
+                        itemStyle={{ color: "#F9FAFB" }}
+                        cursor={{ fill: "#F3F4F6", opacity: 0.5 }}
+                      />
+                      <Legend />
+                      <Bar
+                        dataKey="totalSales"
+                        name="Total Sales"
+                        fill="#111827"
+                        radius={[2, 2, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="totalNetSales"
+                        name="Net Sale"
+                        fill="#22C55E"
+                        radius={[2, 2, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="totalDiscount"
+                        name="Discount"
+                        fill="#EF4444"
+                        radius={[2, 2, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
 
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={8} align="center">
-                    <CircularProgress size={24} />
-                  </TableCell>
-                </TableRow>
-              ) : brands.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} align="center">
-                    No data
-                  </TableCell>
-                </TableRow>
-              ) : (
-                brands.map((b, idx) => (
-                  <TableRow key={idx} hover>
-                    <TableCell>{b.brand}</TableCell>
-                    <TableCell>{b.totalQuantity}</TableCell>
-                    <TableCell>Rs {(b.totalSales || 0).toFixed(2)}</TableCell>
-                    <TableCell>
-                      Rs {(b.totalNetSales || 0).toFixed(2)}
-                    </TableCell>
-                    <TableCell>Rs {(b.totalCOGS || 0).toFixed(2)}</TableCell>
-                    <TableCell>
-                      Rs {(b.totalGrossProfit || 0).toFixed(2)}
-                    </TableCell>
-                    <TableCell>
-                      {(b.grossProfitMargin || 0).toFixed(2)}%
-                    </TableCell>
-                    <TableCell>
-                      Rs {(b.totalDiscount || 0).toFixed(2)}
-                    </TableCell>
-                    <TableCell>{b.totalOrders}</TableCell>
-                  </TableRow>
-                ))
+              <div className="bg-white border border-gray-200 p-6 rounded-sm shadow-sm">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-gray-900 mb-6 border-b border-gray-100 pb-2">
+                  Quantity Distribution
+                </h3>
+                <div className="h-[350px] w-full text-xs font-semibold">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={brands}
+                        dataKey="totalQuantity"
+                        nameKey="brand"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={120}
+                        label
+                      >
+                        {brands.map((_, i) => (
+                          <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "#111827",
+                          border: "none",
+                          borderRadius: "4px",
+                          color: "#F9FAFB",
+                          fontSize: "12px",
+                          fontWeight: "bold",
+                        }}
+                        itemStyle={{ color: "#F9FAFB" }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-6 py-3 font-bold tracking-wider">
+                        Brand
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider text-right">
+                        Qty Sold
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider text-right">
+                        Sales
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider text-right">
+                        Net Sale
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider text-right">
+                        COGS
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider text-right">
+                        Profit
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider text-right">
+                        Margin
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider text-right">
+                        Discount
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider text-right">
+                        Orders
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {visibleRows.map((b, idx) => (
+                      <tr
+                        key={idx}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="px-6 py-4 font-medium text-gray-900">
+                          {b.brand}
+                        </td>
+                        <td className="px-6 py-4 text-right text-gray-600">
+                          {b.totalQuantity}
+                        </td>
+                        <td className="px-6 py-4 text-right font-medium text-gray-900">
+                          Rs {(b.totalSales || 0).toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 text-right text-gray-600">
+                          Rs {(b.totalNetSales || 0).toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 text-right text-gray-600">
+                          Rs {(b.totalCOGS || 0).toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 text-right font-medium text-green-600">
+                          Rs {(b.totalGrossProfit || 0).toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 text-right text-gray-600">
+                          {(b.grossProfitMargin || 0).toFixed(2)}%
+                        </td>
+                        <td className="px-6 py-4 text-right text-red-600">
+                          Rs {(b.totalDiscount || 0).toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 text-right text-gray-600">
+                          {b.totalOrders}
+                        </td>
+                      </tr>
+                    ))}
+                    {brands.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={9}
+                          className="px-6 py-12 text-center text-gray-400 text-sm italic"
+                        >
+                          No data available
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination Controls */}
+              {brands.length > 0 && (
+                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
+                  <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
+                    <span>Rows per page:</span>
+                    <select
+                      value={rowsPerPage}
+                      onChange={(e) => {
+                        setRowsPerPage(Number(e.target.value));
+                        setPage(0);
+                      }}
+                      className="bg-white border border-gray-300 rounded-sm px-2 py-1 focus:outline-none focus:border-gray-900"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <span className="text-xs text-gray-500 font-medium">
+                      {page * rowsPerPage + 1}-
+                      {Math.min((page + 1) * rowsPerPage, brands.length)} of{" "}
+                      {brands.length}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setPage(Math.max(0, page - 1))}
+                        disabled={page === 0}
+                        className="p-1 rounded-sm hover:bg-gray-200 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                      >
+                        <IconChevronLeft size={16} />
+                      </button>
+                      <button
+                        onClick={() =>
+                          setPage(Math.min(totalPages - 1, page + 1))
+                        }
+                        disabled={page >= totalPages - 1}
+                        className="p-1 rounded-sm hover:bg-gray-200 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                      >
+                        <IconChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 20, 50]}
-          component="div"
-          count={totalBrands}
-          page={page}
-          onPageChange={handleChangePage}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      </Paper>
+            </div>
+          </div>
+        )}
+      </div>
     </PageContainer>
   );
 };

@@ -1,31 +1,24 @@
 "use client";
-
 import React, { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Grid,
-  Button,
-  CircularProgress,
-  Switch,
-  FormControlLabel,
-} from "@mui/material";
-import { StockLocation } from "@/model/StockLocation"; // Adjust path
+import { StockLocation } from "@/model/StockLocation";
+import { IconLoader, IconX } from "@tabler/icons-react";
 
 interface LocationFormModalProps {
   open: boolean;
   onClose: () => void;
-  onSave: (locationData: Omit<StockLocation, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>; // Make async for loading state
-  location: StockLocation | null; // Null for create, object for edit
+  onSave: (
+    locationData: Omit<StockLocation, "id" | "createdAt" | "updatedAt">
+  ) => Promise<void>;
+  location: StockLocation | null;
 }
 
-const emptyLocation: Omit<StockLocation, 'id' | 'createdAt' | 'updatedAt' | 'isDeleted'> = {
+const emptyLocation: Omit<
+  StockLocation,
+  "id" | "createdAt" | "updatedAt" | "isDeleted"
+> = {
   name: "",
   address: "",
-  status: true, // Default to active
+  status: true,
 };
 
 const StockFormModal: React.FC<LocationFormModalProps> = ({
@@ -36,6 +29,7 @@ const StockFormModal: React.FC<LocationFormModalProps> = ({
 }) => {
   const [formData, setFormData] = useState(emptyLocation);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const isEditing = !!location;
 
   useEffect(() => {
@@ -50,86 +44,139 @@ const StockFormModal: React.FC<LocationFormModalProps> = ({
         setFormData(emptyLocation);
       }
       setSaving(false);
+      setError(null);
     }
   }, [location, open]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' || type === 'switch' ? checked : value,
+      [name]: value,
     }));
+  };
+
+  const handleToggle = () => {
+    setFormData((prev) => ({ ...prev, status: !prev.status }));
   };
 
   const handleSubmit = async () => {
     if (!formData.name.trim()) {
-      // Add more specific validation/feedback if needed
-      alert("Location name is required.");
+      setError("Location name is required.");
       return;
     }
     setSaving(true);
+    setError(null);
     try {
-      await onSave(formData); // Await the save operation
-      // Success is handled by the parent (closing modal, showing notification)
+      await onSave(formData);
+      // Parent handles closing
     } catch (error) {
-      // Error is handled by the parent (showing notification)
       console.error("Save failed in modal");
+      setError("Failed to save location.");
     } finally {
       setSaving(false);
-      // Don't close modal here, let parent handle it on success
     }
   };
 
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>{isEditing ? "Edit Stock Location" : "Add Stock Location"}</DialogTitle>
-      <DialogContent>
-        <Grid container spacing={2} sx={{ mt: 1 }}>
-          <Grid item xs={12}>
-            <TextField
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-md rounded-sm shadow-2xl flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex justify-between items-center p-6 border-b border-gray-100">
+          <h2 className="text-xl font-bold uppercase tracking-tight text-gray-900">
+            {isEditing ? "Edit Stock Location" : "Add Stock Location"}
+          </h2>
+          <button
+            onClick={saving ? undefined : onClose}
+            disabled={saving}
+            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+          >
+            <IconX size={24} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-5">
+          {error && (
+            <div className="bg-red-50 text-red-600 text-xs font-bold uppercase p-3 rounded-sm border border-red-100">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+              Location Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
               name="name"
-              label="Location Name"
               value={formData.name}
               onChange={handleChange}
-              fullWidth
-              required
               disabled={saving}
+              className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900 transition-colors disabled:bg-gray-50"
+              placeholder="E.g. Main Warehouse"
             />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+              Address (Optional)
+            </label>
+            <textarea
               name="address"
-              label="Address (Optional)"
               value={formData.address}
               onChange={handleChange}
-              fullWidth
-              multiline
-              rows={3}
               disabled={saving}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900 transition-colors disabled:bg-gray-50 resize-none"
+              placeholder="Enter full address..."
             />
-          </Grid>
-          <Grid item xs={12}>
-            <FormControlLabel
-              control={
-                <Switch
-                  name="status"
-                  checked={formData.status}
-                  onChange={handleChange}
-                  disabled={saving}
-                />
-              }
-              label="Active Status"
-            />
-          </Grid>
-        </Grid>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} color="inherit" disabled={saving}>Cancel</Button>
-        <Button onClick={handleSubmit} variant="contained" disabled={saving}>
-          {saving ? <CircularProgress size={24} color="inherit" /> : "Save Location"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+          </div>
+
+          <div className="flex items-center justify-between border-t border-gray-50 pt-4">
+            <label className="text-sm font-bold text-gray-900 uppercase">
+              Active Status
+            </label>
+            <button
+              onClick={handleToggle}
+              disabled={saving}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 ${
+                formData.status ? "bg-gray-900" : "bg-gray-200"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  formData.status ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            disabled={saving}
+            className="px-5 py-2 text-sm font-bold text-gray-600 uppercase hover:text-gray-800 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            className="flex items-center px-6 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors shadow-sm disabled:opacity-50"
+          >
+            {saving && <IconLoader size={16} className="animate-spin mr-2" />}
+            {saving ? "Saving..." : "Save Location"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

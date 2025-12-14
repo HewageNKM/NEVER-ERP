@@ -2,57 +2,38 @@
 
 import React, { useState } from "react";
 import { Order, Customer } from "@/model";
-import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardActions,
-  CircularProgress,
-  FormControl,
-  Grid,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-  Typography,
-  Box,
-  Chip,
-  Stack,
-  SelectChangeEvent,
-} from "@mui/material";
 import { IoCheckmark, IoClose } from "react-icons/io5";
-import { useSnackbar } from "@/contexts/SnackBarContext";
+import { showNotification } from "@/utils/toast";
 import axios from "axios";
 import { getToken } from "@/firebase/firebaseClient";
 import { useConfirmationDialog } from "@/contexts/ConfirmationDialogContext";
 
 interface OrderEditFormProps {
   order: Order;
-  onRefresh?: () => void; // optional callback to refresh parent data
+  onRefresh?: () => void;
 }
 
 export const OrderEditForm: React.FC<OrderEditFormProps> = ({
   order,
   onRefresh,
 }) => {
-  const { showNotification } = useSnackbar();
+  
 
   const [formData, setFormData] = useState<Order>(order);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showConfirmation } = useConfirmationDialog();
 
-  const handleStatusChange = (event: SelectChangeEvent<string>) => {
+  const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setFormData((prev) => ({
       ...prev,
-      paymentStatus: event.target.value,
+      paymentStatus: e.target.value,
     }));
   };
 
-  const handleOrderStatusChange = (event: SelectChangeEvent<string>) => {
+  const handleOrderStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setFormData((prev) => ({
       ...prev,
-      status: event.target.value,
+      status: e.target.value,
     }));
   };
 
@@ -79,7 +60,7 @@ export const OrderEditForm: React.FC<OrderEditFormProps> = ({
       title: "Update Order",
       message:
         order?.integrity === false
-          ? "⚠️ This order has been tampered with. Are you absolutely sure you want to proceed with the update?"
+          ? "⚠️ This order has been tampered with. Are you absolutely sure you want to update it?"
           : "Are you sure you want to update this order?",
       onSuccess: async () => {
         try {
@@ -112,301 +93,326 @@ export const OrderEditForm: React.FC<OrderEditFormProps> = ({
     if (!timestamp) return "—";
     if (typeof timestamp === "string")
       return new Date(timestamp).toLocaleString();
-    if (timestamp.toDate) return timestamp.toDate().toLocaleString();
+    if (timestamp?.toDate) return timestamp.toDate().toLocaleString();
     return new Date(timestamp).toLocaleString();
   };
 
+  // Helper for Status Chips
+  const getStatusColor = (
+    status: string | undefined,
+    type: "payment" | "order"
+  ) => {
+    const s = status?.toLowerCase();
+    if (type === "payment") {
+      if (s === "paid") return "bg-green-100 text-green-700";
+      if (s === "pending") return "bg-yellow-100 text-yellow-700";
+      if (s === "failed") return "bg-red-100 text-red-700";
+      if (s === "refunded") return "bg-blue-100 text-blue-700";
+      return "bg-gray-100 text-gray-700";
+    } else {
+      if (s === "processing") return "bg-yellow-100 text-yellow-700";
+      if (s === "completed") return "bg-green-100 text-green-700";
+      return "bg-gray-100 text-gray-700";
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit}>
-      <Stack gap={5}>
-        {/* ⚠️ Tampered Order Warning */}
-        {order && order.integrity === false && (
-          <Box
-            sx={{
-              backgroundColor: "#fee2e2",
-              border: "1px solid #fca5a5",
-              borderRadius: "8px",
-              padding: "12px 16px",
-              display: "flex",
-              alignItems: "center",
-              gap: 1.5,
-            }}
-          >
-            <Typography
-              variant="body1"
-              sx={{ color: "#b91c1c", fontWeight: 500 }}
-            >
-              This order has been <b>tampered with</b>. Please review carefully
-              before making any changes.
-            </Typography>
-          </Box>
-        )}
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      {/* ⚠️ Tampered Order Warning */}
+      {order && order.integrity === false && (
+        <div className="bg-red-50 border border-red-200 rounded-sm p-4 flex items-center gap-3 text-red-700 animate-pulse">
+          <span className="text-xl">⚠️</span>
+          <p className="text-sm font-medium">
+            This order has been <b>tampered with</b>. Please review carefully
+            before making any changes.
+          </p>
+        </div>
+      )}
 
-        {/* 🧾 Order Summary */}
-        <Card variant="outlined" className="shadow-sm border border-gray-100">
-          <CardHeader
-            title={`Order Summary #${order?.orderId}`}
-            subheader="Overview of payment, customer, and order details."
-          />
-          <CardContent>
-            <Grid container spacing={3}>
-              {/* Left */}
-              <Grid item xs={12} md={6}>
-                <Typography>
-                  <span className="font-semibold">Payment Method:</span>{" "}
-                  {order?.paymentMethod || "—"}{" "}
-                  {order?.paymentMethodId &&
-                    `(${order.paymentMethodId.toUpperCase()})`}
-                </Typography>
+      {/* 🧾 Order Summary Card */}
+      <div className="bg-white border border-gray-200 rounded-sm p-6 shadow-sm">
+        <div className="mb-6 border-b border-gray-100 pb-4">
+          <h2 className="text-lg font-bold uppercase tracking-wide">
+            Order Summary #{order?.orderId}
+          </h2>
+          <p className="text-sm text-gray-400">
+            Overview of payment, costs, and current status.
+          </p>
+        </div>
 
-                <Typography>
-                  <span className="font-semibold">Payment ID:</span>{" "}
-                  {order?.paymentId || "—"}
-                </Typography>
-
-                <Typography>
-                  <span className="font-semibold">Payment Status:</span>{" "}
-                  <Chip
-                    size="small"
-                    label={order?.paymentStatus?.toUpperCase() || "UNKNOWN"}
-                    color={
-                      order?.paymentStatus?.toLowerCase() === "paid"
-                        ? "success"
-                        : order?.paymentStatus?.toLowerCase() === "pending"
-                        ? "warning"
-                        : order?.paymentStatus?.toLowerCase() === "failed"
-                        ? "error"
-                        : order?.paymentStatus?.toLowerCase() === "refunded"
-                        ? "info"
-                        : "default"
-                    }
-                  />
-                </Typography>
-
-                <Typography>
-                  <span className="font-semibold">Status:</span>{" "}
-                  <Chip
-                    size="small"
-                    label={order?.status?.toUpperCase() || "UNKNOWN"}
-                    color={
-                      order?.status?.toLowerCase() === "processing"
-                        ? "warning"
-                        : order?.status?.toLowerCase() === "completed"
-                        ? "success"
-                        : "default"
-                    }
-                  />
-                </Typography>
-
-                <Typography>
-                  <span className="font-semibold">From:</span>{" "}
-                  {order?.from || "—"}
-                </Typography>
-
-                <Typography
-                  sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                >
-                  <span className="font-semibold">Integrity:</span>
-                  {order?.integrity ? (
-                    <IoCheckmark color="green" size={20} />
-                  ) : (
-                    <IoClose color="red" size={20} />
-                  )}
-                </Typography>
-              </Grid>
-
-              {/* Right */}
-              <Grid item xs={12} md={6}>
-                <Typography>
-                  <span className="font-semibold">Order Total:</span>{" "}
-                  {(order?.total ?? 0).toFixed(2)} LKR
-                </Typography>
-
-                <Typography>
-                  <span className="font-semibold">Discount:</span>{" "}
-                  {(order?.discount ?? 0).toFixed(2)} LKR
-                </Typography>
-
-                <Typography>
-                  <span className="font-semibold">Shipping Fee:</span>{" "}
-                  {(order?.shippingFee ?? 0).toFixed(2)} LKR
-                </Typography>
-
-                <Typography>
-                  <span className="font-semibold">Transaction Fee:</span>{" "}
-                  {(order?.transactionFeeCharge ?? 0).toFixed(2)} LKR
-                </Typography>
-
-                <Typography>
-                  <span className="font-semibold">Created:</span>{" "}
-                  {formatDate(order?.createdAt)}
-                </Typography>
-
-                <Typography>
-                  <span className="font-semibold">Updated:</span>{" "}
-                  {formatDate(order?.updatedAt)}
-                </Typography>
-              </Grid>
-            </Grid>
-
-            {/* Customer Summary */}
-            {order?.customer && (
-              <Box mt={4}>
-                <Typography variant="h6" gutterBottom>
-                  Customer Summary
-                </Typography>
-                <Typography>{order.customer.name}</Typography>
-                <Typography>{order.customer.phone}</Typography>
-                <Typography>{order.customer.email}</Typography>
-                <Typography>
-                  {order.customer.address}, {order.customer.city}{" "}
-                  {order.customer.zip}
-                </Typography>
-              </Box>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* ✏️ Edit Form */}
-        <Card variant="outlined">
-          <CardHeader
-            title="Edit Order"
-            subheader="Only customer details and payment status can be modified."
-          />
-          <CardContent>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              {/* Payment Status */}
-              <FormControl fullWidth margin="normal">
-                <InputLabel id="paymentStatus-label">Payment Status</InputLabel>
-                <Select
-                  fullWidth
-                  labelId="paymentStatus-label"
-                  id="paymentStatus"
-                  name="paymentStatus"
-                  value={formData?.paymentStatus}
-                  label="Payment Status"
-                  onChange={handleStatusChange}
-                >
-                  <MenuItem value="Pending">Pending</MenuItem>
-                  <MenuItem value="Paid">Paid</MenuItem>
-                  <MenuItem value="Failed">Failed</MenuItem>
-                  <MenuItem value="Refunded">Refunded</MenuItem>
-                </Select>
-              </FormControl>
-
-              {/* Order Status */}
-              <FormControl fullWidth margin="normal">
-                <InputLabel id="orderStatus-label">Order Status</InputLabel>
-                <Select
-                  fullWidth
-                  labelId="orderStatus-label"
-                  id="orderStatus"
-                  name="status"
-                  value={formData?.status || ""}
-                  label="Order Status"
-                  onChange={handleOrderStatusChange}
-                >
-                  <MenuItem value="Processing">Processing</MenuItem>
-                  <MenuItem value="Completed">Completed</MenuItem>
-                </Select>
-              </FormControl>
-
-              {/* Customer Details */}
-              {formData?.customer && (
-                <>
-                  {/* Billing */}
-                  <div>
-                    <Typography variant="h6" gutterBottom>
-                      Billing Details
-                    </Typography>
-                    <Grid container spacing={3}>
-                      {[
-                        ["name", "Name"],
-                        ["phone", "Phone"],
-                        ["email", "Email"],
-                        ["address", "Address"],
-                        ["city", "City"],
-                        ["zip", "ZIP Code"],
-                      ].map(([field, label]) => (
-                        <Grid
-                          item
-                          xs={12}
-                          md={["address", "email"].includes(field) ? 12 : 6}
-                          key={field}
-                        >
-                          <TextField
-                            id={field}
-                            name={field}
-                            label={label}
-                            value={(formData.customer as any)?.[field] || ""}
-                            onChange={handleCustomerChange}
-                            fullWidth
-                            type={field === "email" ? "email" : "text"}
-                          />
-                        </Grid>
-                      ))}
-                    </Grid>
-                  </div>
-
-                  {/* Shipping */}
-                  <div>
-                    <Typography variant="h6" gutterBottom>
-                      Shipping Details
-                    </Typography>
-                    <Grid container spacing={3}>
-                      {[
-                        ["shippingName", "Name"],
-                        ["shippingPhone", "Phone"],
-                        ["shippingAddress", "Address"],
-                        ["shippingCity", "City"],
-                        ["shippingZip", "ZIP Code"],
-                      ].map(([field, label]) => (
-                        <Grid
-                          item
-                          xs={12}
-                          md={["shippingAddress"].includes(field) ? 12 : 6}
-                          key={field}
-                        >
-                          <TextField
-                            id={field}
-                            name={field}
-                            label={label}
-                            value={(formData.customer as any)?.[field] || ""}
-                            onChange={handleCustomerChange}
-                            fullWidth
-                          />
-                        </Grid>
-                      ))}
-                    </Grid>
-                  </div>
-                </>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
+          {/* Left Column */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center py-1 border-b border-gray-50">
+              <span className="font-semibold text-gray-500">
+                Payment Method
+              </span>
+              <span className="font-medium">
+                {order?.paymentMethod || "—"}{" "}
+                <span className="text-xs text-gray-400">
+                  ({order?.paymentMethodId?.toUpperCase()})
+                </span>
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-gray-50">
+              <span className="font-semibold text-gray-500">Payment ID</span>
+              <span className="font-mono text-gray-700">
+                {order?.paymentId || "—"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-gray-50">
+              <span className="font-semibold text-gray-500">
+                Payment Status
+              </span>
+              <span
+                className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${getStatusColor(
+                  order?.paymentStatus,
+                  "payment"
+                )}`}
+              >
+                {order?.paymentStatus || "UNKNOWN"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-gray-50">
+              <span className="font-semibold text-gray-500">Order Status</span>
+              <span
+                className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${getStatusColor(
+                  order?.status,
+                  "order"
+                )}`}
+              >
+                {order?.status || "UNKNOWN"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-gray-50">
+              <span className="font-semibold text-gray-500">From</span>
+              <span className="font-medium">{order?.from || "—"}</span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-gray-50">
+              <span className="font-semibold text-gray-500">
+                Integrity Check
+              </span>
+              {order?.integrity ? (
+                <span className="flex items-center gap-1 text-green-600 font-bold text-xs uppercase">
+                  <IoCheckmark size={16} /> Passed
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-red-600 font-bold text-xs uppercase">
+                  <IoClose size={16} /> Failed
+                </span>
               )}
-            </Box>
-          </CardContent>
+            </div>
+          </div>
 
-          <CardActions sx={{ p: 2, gap: 2 }}>
-            <Button
+          {/* Right Column (Financials) */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center py-1 border-b border-gray-50">
+              <span className="font-semibold text-gray-500">Order Total</span>
+              <span className="font-bold text-lg">
+                {(order?.total ?? 0).toFixed(2)}{" "}
+                <span className="text-xs font-normal text-gray-400">LKR</span>
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-gray-50 text-gray-600">
+              <span className="font-medium">Discount</span>
+              <span>{(order?.discount ?? 0).toFixed(2)} LKR</span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-gray-50 text-gray-600">
+              <span className="font-medium">Shipping Fee</span>
+              <span>{(order?.shippingFee ?? 0).toFixed(2)} LKR</span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-gray-50 text-gray-600">
+              <span className="font-medium">Transaction Fee</span>
+              <span>{(order?.transactionFeeCharge ?? 0).toFixed(2)} LKR</span>
+            </div>
+            <div className="mt-4 pt-4 text-xs text-gray-400 flex flex-col items-end gap-1">
+              <p>Created: {formatDate(order?.createdAt)}</p>
+              <p>Updated: {formatDate(order?.updatedAt)}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Customer View */}
+        {order?.customer && (
+          <div className="mt-8 p-4 bg-gray-50 rounded-sm border border-gray-100">
+            <h3 className="text-sm font-bold uppercase text-gray-500 mb-3">
+              Customer Snapshot
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="font-bold text-gray-900">{order.customer.name}</p>
+                <p className="text-gray-600">{order.customer.email}</p>
+                <p className="text-gray-600">{order.customer.phone}</p>
+              </div>
+              <div>
+                <p className="text-gray-800">{order.customer.address}</p>
+                <p className="text-gray-800">
+                  {order.customer.city}, {order.customer.zip}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ✏️ Edit Form Card */}
+      <div className="bg-white border border-gray-200 rounded-sm p-6 shadow-sm">
+        <div className="mb-6 border-b border-gray-100 pb-4">
+          <h2 className="text-lg font-bold uppercase tracking-wide">
+            Edit Details
+          </h2>
+          <p className="text-sm text-gray-400">
+            Modify customer info and update order status.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-6">
+          {/* Statuses */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex flex-col gap-2">
+              <label
+                htmlFor="paymentStatus"
+                className="text-xs font-bold uppercase text-gray-500"
+              >
+                Payment Status
+              </label>
+              <select
+                id="paymentStatus"
+                name="paymentStatus"
+                value={formData?.paymentStatus}
+                onChange={handleStatusChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-all"
+              >
+                <option value="Pending">Pending</option>
+                <option value="Paid">Paid</option>
+                <option value="Failed">Failed</option>
+                <option value="Refunded">Refunded</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label
+                htmlFor="orderStatus"
+                className="text-xs font-bold uppercase text-gray-500"
+              >
+                Order Status
+              </label>
+              <select
+                id="orderStatus"
+                name="status"
+                value={formData?.status || ""}
+                onChange={handleOrderStatusChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-all"
+              >
+                <option value="Cancelled">Cancelled</option>
+                <option value="Processing">Processing</option>
+                <option value="Shipped">Shipped</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Customer Edit Fields */}
+          {formData?.customer && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-4">
+              {/* Billing */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold uppercase border-b border-gray-100 pb-2">
+                  Billing Details
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    { id: "name", label: "Name", span: 1 },
+                    { id: "phone", label: "Phone", span: 1 },
+                    { id: "email", label: "Email", col: 2 },
+                    { id: "address", label: "Address", col: 2 },
+                    { id: "city", label: "City", span: 1 },
+                    { id: "zip", label: "ZIP Code", span: 1 },
+                  ].map((field: any) => (
+                    <div
+                      key={field.id}
+                      className={`${field.col === 2 ? "sm:col-span-2" : ""}`}
+                    >
+                      <label
+                        htmlFor={field.id}
+                        className="block text-xs font-bold uppercase text-gray-500 mb-1"
+                      >
+                        {field.label}
+                      </label>
+                      <input
+                        type={field.id === "email" ? "email" : "text"}
+                        id={field.id}
+                        name={field.id}
+                        value={(formData.customer as any)?.[field.id] || ""}
+                        onChange={handleCustomerChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Shipping */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold uppercase border-b border-gray-100 pb-2">
+                  Shipping Details
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    { id: "shippingName", label: "Name", span: 1 },
+                    { id: "shippingPhone", label: "Phone", span: 1 },
+                    { id: "shippingAddress", label: "Address", col: 2 },
+                    { id: "shippingCity", label: "City", span: 1 },
+                    { id: "shippingZip", label: "ZIP Code", span: 1 },
+                  ].map((field: any) => (
+                    <div
+                      key={field.id}
+                      className={`${field.col === 2 ? "sm:col-span-2" : ""}`}
+                    >
+                      <label
+                        htmlFor={field.id}
+                        className="block text-xs font-bold uppercase text-gray-500 mb-1"
+                      >
+                        {field.label}
+                      </label>
+                      <input
+                        type="text"
+                        id={field.id}
+                        name={field.id}
+                        value={(formData.customer as any)?.[field.id] || ""}
+                        onChange={handleCustomerChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex items-center gap-4 mt-8 pt-6 border-t border-gray-100">
+            <button
               type="submit"
-              variant="contained"
-              color="primary"
               disabled={isSubmitting}
+              className="px-6 py-2.5 bg-black text-white text-sm font-bold uppercase tracking-wide rounded-sm hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
             >
               {isSubmitting && (
-                <CircularProgress size={22} sx={{ color: "white", mr: 1 }} />
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               )}
               Save Changes
-            </Button>
-            <Button
-              variant="outlined"
-              color="secondary"
+            </button>
+            <button
+              type="button"
               disabled={isSubmitting}
               onClick={handleReset}
+              className="px-6 py-2.5 bg-white text-gray-700 border border-gray-300 text-sm font-bold uppercase tracking-wide rounded-sm hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 transition-colors"
             >
               Undo Changes
-            </Button>
-          </CardActions>
-        </Card>
-      </Stack>
+            </button>
+          </div>
+        </div>
+      </div>
     </form>
   );
 };

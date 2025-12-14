@@ -2,8 +2,6 @@
 
 import React from "react";
 import PageContainer from "../../../components/container/PageContainer";
-import DashboardCard from "../../../components/shared/DashboardCard";
-import { Stack } from "@mui/material";
 import { useParams } from "next/navigation";
 import OrderView from "./components/OrderView";
 
@@ -13,20 +11,13 @@ const OrderPage = () => {
 
   return (
     <PageContainer title={`Order View - ${orderId}`} description="Order View">
-      <DashboardCard title="Order Details">
-        <Stack
-          sx={{
-            position: "relative",
-            padding: 2,
-            display: "flex",
-            flexDirection: "column",
-            gap: 3,
-          }}
-        >
-          {/* You can pass orderId to a client component */}
-          <OrderView orderId={orderId} />
-        </Stack>
-      </DashboardCard>
+      {/* 
+          Removing DashboardCard wrapper here to allow OrderView to control its own layout cards
+          similar to how we did in Edit page for a cleaner, less nested look.
+       */}
+      <div className="max-w-5xl mx-auto">
+        <OrderView orderId={orderId} />
+      </div>
     </PageContainer>
   );
 };

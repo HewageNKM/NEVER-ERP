@@ -1,25 +1,7 @@
 "use client";
-import { Box, Container, styled } from "@mui/material";
 import React from "react";
 import GlobalProvider from "@/components/GlobalProvider";
 import TopNav from "./components/layout/header/TopNav";
-
-// Main wrapper now just handles the background and basic flex direction
-const MainWrapper = styled("div")(() => ({
-  display: "flex",
-  minHeight: "100vh",
-  width: "100%",
-  flexDirection: "column", // Stack TopNav and Content vertically
-  backgroundColor: "#ffffff", // Ensure white background
-}));
-
-const PageWrapper = styled("div")(() => ({
-  display: "flex",
-  flexGrow: 1,
-  flexDirection: "column",
-  zIndex: 1,
-  backgroundColor: "transparent",
-}));
 
 export default function RootLayout({
   children,
@@ -28,20 +10,14 @@ export default function RootLayout({
 }) {
   return (
     <GlobalProvider>
-      <MainWrapper className="mainwrapper">
+      <div className="flex flex-col min-h-screen w-full bg-gray-50 text-gray-900 font-sans">
         <TopNav />
-        <PageWrapper className="page-wrapper">
-          <Container
-            maxWidth={false} // Full width for ERP
-            sx={{
-              paddingTop: "30px",
-              maxWidth: "1600px", // Widescreen typical for ERP
-            }}
-          >
-            <Box sx={{ minHeight: "calc(100vh - 170px)" }}>{children}</Box>
-          </Container>
-        </PageWrapper>
-      </MainWrapper>
+        <div className="flex-grow flex flex-col z-0">
+          <div className="w-full max-w-[1600px] mx-auto pt-[30px] px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-170px)]">
+            {children}
+          </div>
+        </div>
+      </div>
     </GlobalProvider>
   );
 }

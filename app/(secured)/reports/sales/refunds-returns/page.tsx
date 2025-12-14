@@ -1,27 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  Box,
-  Paper,
-  Stack,
-  TextField,
-  Button,
-  Breadcrumbs,
-  Typography,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  TableContainer,
-  CircularProgress,
-  Link as MUILink,
-} from "@mui/material";
+import React, { useState } from "react";
+import { IconFilter, IconDownload } from "@tabler/icons-react";
 import axios from "axios";
 import { getToken } from "@/firebase/firebaseClient";
 import * as XLSX from "xlsx";
 import PageContainer from "@/app/(secured)/components/container/PageContainer";
+import ComponentsLoader from "@/app/components/ComponentsLoader";
 
 const RefundsReturnsReport = () => {
   const [from, setFrom] = useState("");
@@ -29,7 +14,8 @@ const RefundsReturnsReport = () => {
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<any>(null);
 
-  const fetchReport = async () => {
+  const fetchReport = async (evt: React.FormEvent) => {
+    evt.preventDefault();
     setLoading(true);
     try {
       const token = await getToken();
@@ -62,141 +48,181 @@ const RefundsReturnsReport = () => {
     XLSX.writeFile(wb, "refunds_returns.xlsx");
   };
 
+  const SummaryCard = ({
+    title,
+    value,
+  }: {
+    title: string;
+    value: string | number;
+  }) => (
+    <div className="bg-white border border-gray-200 p-6 rounded-sm shadow-sm flex flex-col justify-center">
+      <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+        {title}
+      </p>
+      <p className="text-xl font-black text-gray-900 tracking-tight">{value}</p>
+    </div>
+  );
+
   return (
     <PageContainer title="Refunds & Returns">
-      {/* Breadcrumb */}
-      <Box mb={2}>
-        <Breadcrumbs>
-          <MUILink href="/dashboard/reports">Reports</MUILink>
-          <Typography>Sales</Typography>
-          <Typography color="text.primary">Refunds & Returns</Typography>
-        </Breadcrumbs>
-      </Box>
+      <div className="w-full space-y-8">
+        {/* Header & Controls */}
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+          <div>
+            <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900">
+              Refunds & Returns
+            </h2>
+            <p className="text-sm text-gray-500 mt-1 font-medium">
+              Summary of refunded and returned orders.
+            </p>
+          </div>
 
-      {/* Header */}
-      <Box mb={3}>
-        <Typography variant="h5" fontWeight={600}>
-          Refunds & Returns
-        </Typography>
-        <Typography variant="body2">
-          Summary of refunded and returned orders.
-        </Typography>
-      </Box>
+          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4 w-full xl:w-auto">
+            <form
+              onSubmit={fetchReport}
+              className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
+            >
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <input
+                  type="date"
+                  value={from}
+                  onChange={(e) => setFrom(e.target.value)}
+                  className="px-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm font-medium rounded-sm focus:outline-none focus:border-gray-900 w-full sm:w-auto"
+                />
+                <span className="text-gray-400 font-medium">-</span>
+                <input
+                  type="date"
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                  className="px-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm font-medium rounded-sm focus:outline-none focus:border-gray-900 w-full sm:w-auto"
+                />
+              </div>
+              <button
+                type="submit"
+                className="px-6 py-2 bg-gray-900 text-white text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-black transition-colors min-w-[100px] flex items-center justify-center gap-2 w-full sm:w-auto"
+              >
+                <IconFilter size={16} />
+                Apply
+              </button>
+            </form>
 
-      {/* Filters */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Stack direction="row" spacing={2}>
-          <TextField
-            label="From"
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            size="small"
-          />
-          <TextField
-            label="To"
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            size="small"
-          />
+            <button
+              onClick={exportExcel}
+              disabled={!report?.items?.length}
+              className="px-6 py-2 bg-white border border-gray-300 text-gray-900 text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
+            >
+              <IconDownload size={16} />
+              Export
+            </button>
+          </div>
+        </div>
 
-          <Button variant="contained" onClick={fetchReport}>
-            Apply
-          </Button>
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center py-20">
+            <ComponentsLoader />
+          </div>
+        )}
 
-          <Box flexGrow={1} />
+        {/* Content */}
+        {!loading && report && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <SummaryCard
+                title="Total Returned Orders"
+                value={report.totalOrders}
+              />
+              <SummaryCard
+                title="Total Refunded Amount"
+                value={`Rs ${report.totalRefundAmount}`}
+              />
+              <SummaryCard
+                title="Total Restocked Items"
+                value={report.totalRestockedItems}
+              />
+            </div>
 
-          <Button
-            variant="contained"
-            sx={{ background: "#4CAF50" }}
-            onClick={exportExcel}
-          >
-            Export Excel
-          </Button>
-        </Stack>
-      </Paper>
-
-      {/* Summary Boxes */}
-      {report && (
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Stack direction="row" spacing={4}>
-            <Box>
-              <Typography variant="body2" color="text.secondary">
-                Total Returned Orders
-              </Typography>
-              <Typography variant="h6" fontWeight={600}>
-                {report.totalOrders}
-              </Typography>
-            </Box>
-
-            <Box>
-              <Typography variant="body2" color="text.secondary">
-                Total Refunded Amount
-              </Typography>
-              <Typography variant="h6" fontWeight={600}>
-                Rs. {report.totalRefundAmount}
-              </Typography>
-            </Box>
-
-            <Box>
-              <Typography variant="body2" color="text.secondary">
-                Total Restocked Items
-              </Typography>
-              <Typography variant="h6" fontWeight={600}>
-                {report.totalRestockedItems}
-              </Typography>
-            </Box>
-          </Stack>
-        </Paper>
-      )}
-
-      {/* Table */}
-      <Paper>
-        <TableContainer sx={{ maxHeight: 600 }}>
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell>Order ID</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Refund Amount (Rs)</TableCell>
-                <TableCell>Restocked</TableCell>
-                <TableCell>Restocked At</TableCell>
-                <TableCell>Created At</TableCell>
-              </TableRow>
-            </TableHead>
-
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    <CircularProgress size={24} />
-                  </TableCell>
-                </TableRow>
-              ) : !report || report.items.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    No records found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                report.items.map((o: any, i: number) => (
-                  <TableRow key={i} hover>
-                    <TableCell>{o.orderId}</TableCell>
-                    <TableCell>{o.status}</TableCell>
-                    <TableCell>Rs {o.refundAmount}</TableCell>
-                    <TableCell>{o.restocked ? "Yes" : "No"}</TableCell>
-                    <TableCell>{o.restockedAt || "-"}</TableCell>
-                    <TableCell>{o.createdAt}</TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+            {/* Table */}
+            <div className="bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-6 py-3 font-bold tracking-wider">
+                        Order ID
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider text-right">
+                        Refund Amount
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider">
+                        Restocked
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider">
+                        Restocked At
+                      </th>
+                      <th className="px-6 py-3 font-bold tracking-wider">
+                        Created At
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {report.items?.length > 0 ? (
+                      report.items.map((o: any, i: number) => (
+                        <tr
+                          key={i}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
+                          <td className="px-6 py-4 font-medium text-gray-900">
+                            {o.orderId}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span
+                              className={`px-2 py-1 text-xs font-bold uppercase rounded-sm ${
+                                o.status === "Refunded"
+                                  ? "bg-red-50 text-red-700"
+                                  : o.status === "Returned"
+                                  ? "bg-orange-50 text-orange-700"
+                                  : "bg-gray-100 text-gray-700"
+                              }`}
+                            >
+                              {o.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right font-medium text-red-600">
+                            Rs {o.refundAmount}
+                          </td>
+                          <td className="px-6 py-4 text-gray-600">
+                            {o.restocked ? "Yes" : "No"}
+                          </td>
+                          <td className="px-6 py-4 text-gray-600">
+                            {o.restockedAt || "-"}
+                          </td>
+                          <td className="px-6 py-4 text-gray-600">
+                            {o.createdAt}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="px-6 py-12 text-center text-gray-400 text-sm italic"
+                        >
+                          No records found
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </PageContainer>
   );
 };

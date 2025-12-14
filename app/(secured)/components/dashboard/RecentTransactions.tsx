@@ -11,12 +11,12 @@ import {
 } from "@firebase/firestore";
 import { db } from "@/firebase/firebaseClient";
 import { Order } from "@/model";
-import { useSnackbar } from "@/contexts/SnackBarContext";
+import { showNotification } from "@/utils/toast";
 
 const RecentTransactions = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const { showNotification } = useSnackbar();
+  
 
   useEffect(() => {
     try {

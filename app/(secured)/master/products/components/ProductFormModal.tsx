@@ -6,7 +6,7 @@ import { ProductVariant } from "@/model/ProductVariant";
 import VariantList from "./VariantList";
 import VariantFormModal from "./VariantFormModal";
 import Image from "next/image";
-import { useSnackbar } from "@/contexts/SnackBarContext";
+import { showNotification } from "@/utils/toast";
 import { IconX, IconUpload, IconLoader } from "@tabler/icons-react";
 
 const emptyProduct: Omit<Product, "itemId"> & { itemId: string | null } = {
@@ -62,7 +62,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [editingVariantIndex, setEditingVariantIndex] = useState<number | null>(
     null
   );
-  const { showNotification } = useSnackbar();
+  
   const [errors, setErrors] = useState<ProductErrors>({});
   const isEditing = !!product;
 

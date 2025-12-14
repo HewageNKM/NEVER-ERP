@@ -3,11 +3,11 @@ import {
   IconShoppingCart,
   IconReportMoney,
   IconUsersGroup,
-  IconUser,
   IconLayoutDashboard,
   IconList,
   IconFileInvoice,
   IconSettings,
+  IconWorld,
 } from "@tabler/icons-react";
 import { uniqueId } from "lodash";
 
@@ -72,6 +72,16 @@ const Menuitems = [
     href: "/petty-cash",
   },
   {
+    subHeader: "Website",
+    navLabel: true,
+  },
+  {
+    id: uniqueId(),
+    title: "Website Manager",
+    icon: IconWorld,
+    href: "/website",
+  },
+  {
     subHeader: "Reports",
     navLabel: true,
   },
@@ -82,12 +92,12 @@ const Menuitems = [
     href: "/reports",
   },
   {
-    subHeader: "Seetings",
+    subHeader: "Settings",
     navLabel: true,
   },
   {
     id: uniqueId(),
-    title: "Setting",
+    title: "Settings",
     icon: IconSettings,
     href: "/settings",
   },

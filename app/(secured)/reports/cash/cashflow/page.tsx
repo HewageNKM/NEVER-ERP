@@ -1,27 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import * as XLSX from "xlsx";
 import {
-  Box,
-  Paper,
-  Stack,
-  TextField,
-  Button,
-  Typography,
-  CircularProgress,
-  Breadcrumbs,
-  Link as MUILink,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-} from "@mui/material";
-import { IconFilter } from "@tabler/icons-react";
+  IconFilter,
+  IconDownload,
+  IconChevronLeft,
+  IconChevronRight,
+} from "@tabler/icons-react";
+import * as XLSX from "xlsx";
 import PageContainer from "@/app/(secured)/components/container/PageContainer";
+import ComponentsLoader from "@/app/components/ComponentsLoader";
 import {
   LineChart,
   Line,
@@ -36,7 +24,7 @@ import {
 } from "recharts";
 import axios from "axios";
 import { getToken } from "@/firebase/firebaseClient";
-import { useSnackbar } from "@/contexts/SnackBarContext";
+import { showNotification } from "@/utils/toast";
 
 interface DailyCashFlow {
   date: string;
@@ -45,7 +33,6 @@ interface DailyCashFlow {
   transactionFees: number;
   expenses: number;
   netCashFlow: number;
-  daily: DailyCashFlow[];
 }
 
 interface CashFlowSummary {
@@ -57,9 +44,6 @@ interface CashFlowSummary {
   daily: DailyCashFlow[];
 }
 
-interface CashFlowReport {
-  summary: CashFlowSummary;
-}
 const MAX_RANGE_DAYS = 31;
 
 const CashFlowPage = () => {
@@ -67,26 +51,15 @@ const CashFlowPage = () => {
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<DailyCashFlow[]>([]);
-  const [summary, setSummary] = useState<CashFlowReport["summary"] | null>(
-    null
-  );
-  const { showNotification } = useSnackbar();
+  const [summary, setSummary] = useState<CashFlowSummary | null>(null);
+  
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  const handleChangePage = (_event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
+  const totalPages = Math.ceil(report.length / rowsPerPage);
 
-  const handleChangeRowsPerPage = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  const fetchReport = async (evt: any) => {
+  const fetchReport = async (evt: React.FormEvent) => {
     evt.preventDefault();
 
     const fromDate = new Date(from);
@@ -105,16 +78,14 @@ const CashFlowPage = () => {
     setLoading(true);
     try {
       const token = await getToken();
-      const res = await axios.get<CashFlowReport>(
-        "/api/v2/reports/cash/cashflow",
-        {
-          params: { from, to },
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const res = await axios.get("/api/v2/reports/cash/cashflow", {
+        params: { from, to },
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      setReport(res.data.summary.daily || []);
+      setReport(res.data.summary?.daily || []);
       setSummary(res.data.summary || null);
+      setPage(0);
     } catch (error) {
       console.error(error);
       showNotification("Failed to fetch report", "error");
@@ -141,214 +112,343 @@ const CashFlowPage = () => {
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Cash Flow");
-
     XLSX.writeFile(wb, `cashflow_${from}_${to}.xlsx`);
-
     showNotification("Excel exported successfully", "success");
   };
 
+  const SummaryCard = ({
+    title,
+    value,
+  }: {
+    title: string;
+    value: string | number;
+  }) => (
+    <div className="bg-white border border-gray-200 p-6 rounded-sm shadow-sm flex flex-col justify-center">
+      <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+        {title}
+      </p>
+      <p className="text-xl font-black text-gray-900 tracking-tight">{value}</p>
+    </div>
+  );
+
   return (
     <PageContainer title="Cashflow Report">
-      {/* Breadcrumbs */}
-      <Box sx={{ mb: 2 }}>
-        <Breadcrumbs aria-label="breadcrumb">
-          <MUILink color="inherit" href="/dashboard/reports">
-            Reports
-          </MUILink>
-          <Typography color="inherit">Cash</Typography>
-          <Typography color="text.primary">Cashflow</Typography>
-        </Breadcrumbs>
-      </Box>
+      <div className="w-full space-y-8">
+        {/* Header & Controls */}
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+          <div>
+            <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900">
+              Cashflow Report
+            </h2>
+            <p className="text-sm text-gray-500 mt-1 font-medium">
+              View cash in, transaction fees, and net cash flow within a date
+              range (Max {MAX_RANGE_DAYS} days).
+            </p>
+          </div>
 
-      {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight={600}>
-          Cashflow Report
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          View cash in, transaction fees, and net cash flow within a date range.
-        </Typography>
-      </Box>
-
-      {/* Filters */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          <form
-            style={{
-              display: "flex",
-              gap: "10px",
-              flexWrap: "wrap",
-            }}
-            onSubmit={fetchReport}
-          >
-            <TextField
-              required
-              type="date"
-              label="From"
-              InputLabelProps={{ shrink: true }}
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              size="small"
-            />
-            <TextField
-              required
-              type="date"
-              label="To"
-              InputLabelProps={{ shrink: true }}
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              size="small"
-            />
-            <Button
-              startIcon={<IconFilter />}
-              variant="contained"
-              size="small"
-              type="submit"
+          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4 w-full xl:w-auto">
+            <form
+              onSubmit={fetchReport}
+              className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
             >
-              Apply
-            </Button>
-          </form>
-          <Box flexGrow={1} />
-          <Button
-            variant="contained"
-            color="success"
-            size="small"
-            sx={{ ml: 2 }}
-            onClick={handleExportExcel}
-          >
-            Export Excel
-          </Button>
-        </Stack>
-      </Paper>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <input
+                  type="date"
+                  required
+                  value={from}
+                  onChange={(e) => setFrom(e.target.value)}
+                  className="px-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm font-medium rounded-sm focus:outline-none focus:border-gray-900 w-full sm:w-auto"
+                />
+                <span className="text-gray-400 font-medium">-</span>
+                <input
+                  type="date"
+                  required
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                  className="px-4 py-2 bg-white border border-gray-300 text-gray-900 text-sm font-medium rounded-sm focus:outline-none focus:border-gray-900 w-full sm:w-auto"
+                />
+              </div>
+              <button
+                type="submit"
+                className="px-6 py-2 bg-gray-900 text-white text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-black transition-colors min-w-[100px] flex items-center justify-center gap-2 w-full sm:w-auto"
+              >
+                <IconFilter size={16} />
+                Filter
+              </button>
+            </form>
 
-      {/* Loading */}
-      {loading && (
-        <Box display="flex" justifyContent="center" my={4}>
-          <CircularProgress />
-        </Box>
-      )}
-
-      {/* Summary Cards */}
-      {!loading && summary && (
-        <Box sx={{ mb: 3, display: "flex", flexWrap: "wrap", gap: 2 }}>
-          {[
-            { label: "Total Orders", value: summary.totalOrders },
-            { label: "Total Cash In", value: summary.totalCashIn },
-            {
-              label: "Total Transaction Fees",
-              value: summary.totalTransactionFees,
-            },
-            { label: "Total Expenses", value: summary.totalExpenses },
-            { label: "Net Cash Flow", value: summary.totalNetCashFlow },
-          ].map((card) => (
-            <Paper
-              key={card.label}
-              sx={{ flex: "1 1 200px", p: 2, borderRadius: 2 }}
+            <button
+              onClick={handleExportExcel}
+              disabled={!report.length}
+              className="px-6 py-2 bg-white border border-gray-300 text-gray-900 text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
             >
-              <Typography variant="subtitle2" color="text.secondary">
-                {card.label}
-              </Typography>
-              <Typography variant="h6" fontWeight={600}>
-                {card.label === "Total Orders"
-                  ? card.value
-                  : `Rs ${(card.value || 0).toFixed(2)}`}
-              </Typography>
-            </Paper>
-          ))}
-        </Box>
-      )}
+              <IconDownload size={16} />
+              Export
+            </button>
+          </div>
+        </div>
 
-      {/* Charts */}
-      {!loading && report.length > 0 && (
-        <>
-          <Box sx={{ width: "100%", height: 400, mb: 3 }}>
-            <ResponsiveContainer>
-              <LineChart data={report}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="cashIn"
-                  name="Cash In"
-                  stroke="#1976d2"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="netCashFlow"
-                  name="Net Cash Flow"
-                  stroke="#82ca9d"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </Box>
-          <Box sx={{ width: "100%", height: 400, mb: 3 }}>
-            <ResponsiveContainer>
-              <BarChart data={report}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center py-20">
+            <ComponentsLoader />
+          </div>
+        )}
 
-                <Bar
-                  dataKey="transactionFees"
-                  name="Transaction Fees"
-                  fill="#FF7043"
-                />
-                <Bar dataKey="expenses" name="Expenses" fill="#FFCA28" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Box>
-        </>
-      )}
+        {/* Content */}
+        {!loading && summary && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <SummaryCard title="Total Orders" value={summary.totalOrders} />
+              <SummaryCard
+                title="Total Cash In"
+                value={`Rs ${(summary.totalCashIn || 0).toFixed(2)}`}
+              />
+              <SummaryCard
+                title="Transaction Fees"
+                value={`Rs ${(summary.totalTransactionFees || 0).toFixed(2)}`}
+              />
+              <SummaryCard
+                title="Total Expenses"
+                value={`Rs ${(summary.totalExpenses || 0).toFixed(2)}`}
+              />
+              <SummaryCard
+                title="Net Cash Flow"
+                value={`Rs ${(summary.totalNetCashFlow || 0).toFixed(2)}`}
+              />
+            </div>
 
-      {/* Table with Frontend Pagination */}
-      {!loading && report.length > 0 && (
-        <Paper sx={{ p: 2 }}>
-          <TableContainer>
-            <Table stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Total Orders</TableCell>
-                  <TableCell>Cash In (Rs)</TableCell>
-                  <TableCell>Transaction Fees (Rs)</TableCell>
-                  <TableCell>Expenses (Rs)</TableCell>
-                  <TableCell>Net Cash Flow (Rs)</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {report
-                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                  .map((day) => (
-                    <TableRow key={day.date} hover>
-                      <TableCell>{day.date}</TableCell>
-                      <TableCell>{day.orders}</TableCell>
-                      <TableCell>{day.cashIn.toFixed(2)}</TableCell>
-                      <TableCell>{day.transactionFees.toFixed(2)}</TableCell>
-                      <TableCell>{day.expenses.toFixed(2)}</TableCell>
-                      <TableCell>{day.netCashFlow.toFixed(2)}</TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+            {/* Charts */}
+            {report.length > 0 && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white border border-gray-200 p-6 rounded-sm shadow-sm">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-gray-900 mb-6 border-b border-gray-100 pb-2">
+                    Cash Flow Trend
+                  </h3>
+                  <div className="h-[350px] w-full text-xs font-semibold">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={report}>
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          vertical={false}
+                          stroke="#E5E7EB"
+                        />
+                        <XAxis
+                          dataKey="date"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: "#6B7280", fontSize: 10 }}
+                          tickMargin={10}
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: "#6B7280", fontSize: 10 }}
+                          width={60}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "#111827",
+                            border: "none",
+                            borderRadius: "4px",
+                            color: "#F9FAFB",
+                            fontSize: "12px",
+                            fontWeight: "bold",
+                          }}
+                          itemStyle={{ color: "#F9FAFB" }}
+                        />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="cashIn"
+                          name="Cash In"
+                          stroke="#111827"
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="netCashFlow"
+                          name="Net Cash Flow"
+                          stroke="#22C55E"
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
 
-          {/* Pagination */}
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 20, 50]}
-            component="div"
-            count={report.length}
-            page={page}
-            onPageChange={handleChangePage}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-          />
-        </Paper>
-      )}
+                <div className="bg-white border border-gray-200 p-6 rounded-sm shadow-sm">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-gray-900 mb-6 border-b border-gray-100 pb-2">
+                    Fees & Expenses Breakdown
+                  </h3>
+                  <div className="h-[350px] w-full text-xs font-semibold">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={report}>
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          vertical={false}
+                          stroke="#E5E7EB"
+                        />
+                        <XAxis
+                          dataKey="date"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: "#6B7280", fontSize: 10 }}
+                          tickMargin={10}
+                        />
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fill: "#6B7280", fontSize: 10 }}
+                          width={60}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "#111827",
+                            border: "none",
+                            borderRadius: "4px",
+                            color: "#F9FAFB",
+                            fontSize: "12px",
+                            fontWeight: "bold",
+                          }}
+                          itemStyle={{ color: "#F9FAFB" }}
+                          cursor={{ fill: "#F3F4F6", opacity: 0.5 }}
+                        />
+                        <Legend />
+                        <Bar
+                          dataKey="transactionFees"
+                          name="Transaction Fees"
+                          fill="#EF4444"
+                          radius={[2, 2, 0, 0]}
+                        />
+                        <Bar
+                          dataKey="expenses"
+                          name="Expenses"
+                          fill="#F59E0B"
+                          radius={[2, 2, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Table */}
+            {report.length > 0 && (
+              <div className="bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-6 py-3 font-bold tracking-wider">
+                          Date
+                        </th>
+                        <th className="px-6 py-3 font-bold tracking-wider text-right">
+                          Orders
+                        </th>
+                        <th className="px-6 py-3 font-bold tracking-wider text-right">
+                          Cash In
+                        </th>
+                        <th className="px-6 py-3 font-bold tracking-wider text-right">
+                          Trans. Fee
+                        </th>
+                        <th className="px-6 py-3 font-bold tracking-wider text-right">
+                          Expenses
+                        </th>
+                        <th className="px-6 py-3 font-bold tracking-wider text-right">
+                          Net Cash Flow
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {report
+                        .slice(
+                          page * rowsPerPage,
+                          page * rowsPerPage + rowsPerPage
+                        )
+                        .map((day) => (
+                          <tr
+                            key={day.date}
+                            className="hover:bg-gray-50 transition-colors"
+                          >
+                            <td className="px-6 py-4 font-medium text-gray-900">
+                              {day.date}
+                            </td>
+                            <td className="px-6 py-4 text-right text-gray-600">
+                              {day.orders}
+                            </td>
+                            <td className="px-6 py-4 text-right font-medium text-gray-900">
+                              Rs {day.cashIn.toFixed(2)}
+                            </td>
+                            <td className="px-6 py-4 text-right text-red-600">
+                              Rs {day.transactionFees.toFixed(2)}
+                            </td>
+                            <td className="px-6 py-4 text-right text-orange-600">
+                              Rs {day.expenses.toFixed(2)}
+                            </td>
+                            <td className="px-6 py-4 text-right font-medium text-green-600">
+                              Rs {day.netCashFlow.toFixed(2)}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
+                  <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
+                    <span>Rows per page:</span>
+                    <select
+                      value={rowsPerPage}
+                      onChange={(e) => {
+                        setRowsPerPage(Number(e.target.value));
+                        setPage(0);
+                      }}
+                      className="bg-white border border-gray-300 rounded-sm px-2 py-1 focus:outline-none focus:border-gray-900"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <span className="text-xs text-gray-500 font-medium">
+                      {page * rowsPerPage + 1}-
+                      {Math.min((page + 1) * rowsPerPage, report.length)} of{" "}
+                      {report.length}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setPage(Math.max(0, page - 1))}
+                        disabled={page === 0}
+                        className="p-1 rounded-sm hover:bg-gray-200 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                      >
+                        <IconChevronLeft size={16} />
+                      </button>
+                      <button
+                        onClick={() =>
+                          setPage(Math.min(totalPages - 1, page + 1))
+                        }
+                        disabled={page >= totalPages - 1}
+                        className="p-1 rounded-sm hover:bg-gray-200 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                      >
+                        <IconChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </PageContainer>
   );
 };

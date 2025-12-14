@@ -2,43 +2,47 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  Button,
-  Box,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  CircularProgress,
-  Pagination,
-} from "@mui/material";
-import { IconPlus, IconSearch, IconX } from "@tabler/icons-react";
-import { getToken } from "@/firebase/firebaseClient"; // Adjust path
-import { useAppSelector } from "@/lib/hooks"; // Adjust path
+  IconPlus,
+  IconSearch,
+  IconX,
+  IconEdit,
+  IconTrash,
+  IconLoader,
+  IconChevronLeft,
+  IconChevronRight,
+} from "@tabler/icons-react";
+import { getToken } from "@/firebase/firebaseClient";
+import { useAppSelector } from "@/lib/hooks";
 import axios from "axios";
-import { useSnackbar } from "@/contexts/SnackBarContext"; // Adjust path
+import { showNotification } from "@/utils/toast";
 import { Stock } from "@/model/Stock";
-import StockListTable from "./components/StockListTable";
 import PageContainer from "../../components/container/PageContainer";
-import DashboardCard from "../../components/shared/DashboardCard";
-import StockFormModal from "./components/StockForm";
 import { useConfirmationDialog } from "@/contexts/ConfirmationDialogContext";
 
-// --- MAIN PAGE COMPONENT ---
 const StockPage: React.FC = () => {
   const [locations, setLocations] = useState<Stock[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
   const [pagination, setPagination] = useState({ page: 1, size: 10, total: 0 });
+
   const { currentUser, loading: authLoading } = useAppSelector(
     (state) => state.authSlice
   );
-  const { showNotification } = useSnackbar();
+
+  
   const { showConfirmation } = useConfirmationDialog();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Stock | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // Form State (Inlined)
+  const [form, setForm] = useState({
+    name: "",
+    address: "",
+    status: true,
+  });
 
   // --- Data Fetching ---
   const fetchLocations = async () => {
@@ -47,9 +51,8 @@ const StockPage: React.FC = () => {
       const token = await getToken();
       const params: any = { page: pagination.page, size: pagination.size };
       if (search) params.search = search;
-      if (status !== "all") params.status = status === "active"; // Convert to boolean for API
+      if (status !== "all") params.status = status === "active";
 
-      // **ASSUMED API ENDPOINT**
       const response = await axios.get("/api/v2/master/stocks", {
         headers: { Authorization: `Bearer ${token}` },
         params: params,
@@ -72,11 +75,11 @@ const StockPage: React.FC = () => {
     if (currentUser && !authLoading) {
       fetchLocations();
     }
-  }, [pagination.page, currentUser, authLoading]); // Fetch on page change or auth load
+  }, [pagination.page, currentUser, authLoading]);
 
   // --- Handlers ---
   const handleFilter = () => {
-    setPagination((prev) => ({ ...prev, page: 1 })); // Reset page on filter
+    setPagination((prev) => ({ ...prev, page: 1 }));
     fetchLocations();
   };
 
@@ -84,19 +87,22 @@ const StockPage: React.FC = () => {
     setSearch("");
     setStatus("all");
     setPagination((prev) => ({ ...prev, page: 1 }));
-    // We need fetchLocations to be called after state updates,
-    // so we call it in a useEffect or directly after resetting state
-    // For simplicity, let's call it directly (though useEffect might be cleaner)
-    fetchLocations(); // Re-fetch with cleared filters
+    setTimeout(fetchLocations, 0);
   };
 
   const handleOpenCreateModal = () => {
     setEditingLocation(null);
+    setForm({ name: "", address: "", status: true });
     setIsModalOpen(true);
   };
 
   const handleOpenEditModal = (location: Stock) => {
     setEditingLocation(location);
+    setForm({
+      name: location.name,
+      address: location.address || "",
+      status: location.status,
+    });
     setIsModalOpen(true);
   };
 
@@ -105,11 +111,15 @@ const StockPage: React.FC = () => {
     setEditingLocation(null);
   };
 
-  const handleSaveLocation = async (
-    locationData: Omit<Stock, "id" | "createdAt" | "updatedAt">
-  ) => {
+  const handleSaveLocation = async () => {
+    if (!form.name.trim()) {
+      showNotification("Location name is required", "warning");
+      return;
+    }
+
+    setSaving(true);
+    const locationData = form;
     const isEditing = !!editingLocation;
-    // **ASSUMED API ENDPOINTS**
     const url = isEditing
       ? `/api/v2/master/stocks/${editingLocation!.id}`
       : "/api/v2/master/stocks";
@@ -128,13 +138,14 @@ const StockPage: React.FC = () => {
         "success"
       );
       handleCloseModal();
-      fetchLocations(); // Refetch data
+      fetchLocations();
     } catch (error: any) {
       console.error("Error saving location:", error);
       const message =
         error.response?.data?.message || "Failed to save location";
       showNotification(message, "error");
-      // Keep modal open on error?
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -145,12 +156,11 @@ const StockPage: React.FC = () => {
       onSuccess: async () => {
         try {
           const token = await getToken();
-          // **ASSUMED API ENDPOINT**
           await axios.delete(`/api/v2/master/stocks/${id}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           showNotification("Location deleted successfully!", "success");
-          fetchLocations(); // Refetch data
+          fetchLocations();
         } catch (error: any) {
           console.error("Error deleting location:", error);
           const message =
@@ -161,94 +171,300 @@ const StockPage: React.FC = () => {
     });
   };
 
+  const handleFilterSearch = () => {
+    setPagination((prev) => ({ ...prev, page: 1 }));
+    fetchLocations();
+  };
+
   return (
     <PageContainer
       title="Stock Locations"
       description="Manage Warehouses and Stores"
     >
-      <DashboardCard
-        title="Manage Stock Locations"
-        action={
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<IconPlus />}
+      <div className="w-full">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+          <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900">
+            Stock Location Management
+          </h2>
+          <button
             onClick={handleOpenCreateModal}
+            disabled={saving}
+            className="flex items-center px-5 py-2.5 bg-gray-900 text-white text-sm font-bold uppercase tracking-wide rounded-sm hover:bg-gray-800 transition-all shadow-sm disabled:opacity-50"
           >
+            <IconPlus size={18} className="mr-2" />
             Add Location
-          </Button>
-        }
-      >
-        {/* --- FILTER BAR --- */}
-        <Box display="flex" flexWrap="wrap" gap={2} alignItems="center" mb={2}>
-          <TextField
-            size="small"
-            name="search"
-            label="Search Name/Address..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel>Status</InputLabel>
-            <Select
-              name="status"
-              value={status}
-              label="Status"
-              onChange={(e) => setStatus(e.target.value as any)}
-            >
-              <MenuItem value="all">All</MenuItem>
-              <MenuItem value="active">Active</MenuItem>
-              <MenuItem value="inactive">Inactive</MenuItem>
-            </Select>
-          </FormControl>
-          <Button
-            variant="contained"
-            startIcon={
-              loading ? <CircularProgress size={16} /> : <IconSearch />
-            }
-            onClick={handleFilter}
-            disabled={loading}
-          >
-            {loading ? "Filtering..." : "Filter"}
-          </Button>
-          <Button
-            variant="outlined"
-            color="secondary"
-            startIcon={<IconX />}
-            onClick={handleClearFilters}
-            disabled={loading}
-          >
-            Clear
-          </Button>
-        </Box>
+          </button>
+        </div>
 
-        {/* --- TABLE & PAGINATION --- */}
-        <StockListTable
-          locations={locations}
-          loading={loading}
-          onEdit={handleOpenEditModal}
-          onDelete={handleDeleteLocation}
-        />
-        <Box display="flex" justifyContent="center" mt={2}>
-          <Pagination
-            count={Math.ceil(pagination.total / pagination.size)}
-            page={pagination.page}
-            onChange={(_, value) =>
-              setPagination((prev) => ({ ...prev, page: value }))
-            }
-            color="primary"
-            disabled={loading}
-          />
-        </Box>
-      </DashboardCard>
+        {/* Filters */}
+        <div className="bg-white border border-gray-200 rounded-sm shadow-sm p-6 mb-6">
+          <div className="flex flex-wrap gap-4 items-end mb-6">
+            <div className="w-full md:w-auto flex-1 min-w-[200px]">
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                Search
+              </label>
+              <input
+                type="text"
+                placeholder="Search Name/Address..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+              />
+            </div>
 
-      {/* --- MODAL --- */}
-      <StockFormModal
-        open={isModalOpen}
-        onClose={handleCloseModal}
-        onSave={handleSaveLocation}
-        location={editingLocation}
-      />
+            <div className="w-full md:w-auto min-w-[150px]">
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                Status
+              </label>
+              <select
+                value={status}
+                onChange={(e) =>
+                  setStatus(e.target.value as "all" | "active" | "inactive")
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+              >
+                <option value="all">All</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleFilterSearch}
+                disabled={loading}
+                className="flex items-center justify-center px-4 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50"
+              >
+                {loading ? (
+                  <IconLoader className="animate-spin" size={16} />
+                ) : (
+                  <>
+                    <IconSearch size={16} className="mr-2" />
+                    Filter
+                  </>
+                )}
+              </button>
+              <button
+                onClick={handleClearFilters}
+                disabled={loading}
+                className="flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 text-sm font-bold uppercase rounded-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                <IconX size={16} className="mr-2" />
+                Clear
+              </button>
+            </div>
+          </div>
+
+          {/* Table */}
+          {loading ? (
+            <div className="text-center py-12">
+              <IconLoader
+                className="animate-spin mx-auto text-gray-400"
+                size={32}
+              />
+              <p className="mt-2 text-gray-500 text-sm font-bold uppercase">
+                Loading Locations...
+              </p>
+            </div>
+          ) : locations.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <p className="text-sm font-bold uppercase">No locations found.</p>
+            </div>
+          ) : (
+            <>
+              <div className="w-full overflow-x-auto bg-white border border-gray-200 rounded-sm">
+                <table className="w-full text-left text-sm border-collapse">
+                  <thead className="bg-gray-100 text-gray-900 border-b border-gray-200 uppercase text-xs tracking-wider font-bold">
+                    <tr>
+                      <th className="p-4">Stock ID</th>
+                      <th className="p-4">Name</th>
+                      <th className="p-4">Address</th>
+                      <th className="p-4">Status</th>
+                      <th className="p-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {locations.map((loc) => (
+                      <tr
+                        key={loc.id}
+                        className="hover:bg-gray-50 transition-colors duration-200"
+                      >
+                        <td className="p-4 font-mono text-xs text-gray-500">
+                          {loc.id.toUpperCase()}
+                        </td>
+                        <td className="p-4 font-bold text-gray-900 uppercase">
+                          {loc.name}
+                        </td>
+                        <td className="p-4 text-gray-600">
+                          {loc.address || "-"}
+                        </td>
+                        <td className="p-4">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-sm text-xs font-bold uppercase ${
+                              loc.status
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {loc.status ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+                        <td className="p-4 text-right space-x-2">
+                          <button
+                            onClick={() => handleOpenEditModal(loc)}
+                            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                            title="Edit"
+                          >
+                            <IconEdit size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteLocation(loc.id!)}
+                            className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                            title="Delete"
+                          >
+                            <IconTrash size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              <div className="flex justify-center mt-6">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() =>
+                      setPagination((prev) => ({
+                        ...prev,
+                        page: Math.max(1, prev.page - 1),
+                      }))
+                    }
+                    disabled={pagination.page === 1}
+                    className="p-2 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
+                  >
+                    <IconChevronLeft size={18} />
+                  </button>
+                  <span className="text-sm font-bold text-gray-700 px-4">
+                    Page {pagination.page} of{" "}
+                    {Math.ceil(pagination.total / pagination.size) || 1}
+                  </span>
+                  <button
+                    onClick={() =>
+                      setPagination((prev) => ({
+                        ...prev,
+                        page: Math.min(
+                          Math.ceil(pagination.total / pagination.size),
+                          prev.page + 1
+                        ),
+                      }))
+                    }
+                    disabled={
+                      pagination.page >=
+                      Math.ceil(pagination.total / pagination.size)
+                    }
+                    className="p-2 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
+                  >
+                    <IconChevronRight size={18} />
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white w-full max-w-md rounded-sm shadow-xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <h2 className="text-xl font-bold uppercase tracking-wide text-gray-900">
+                {editingLocation ? "Edit Location" : "Add Location"}
+              </h2>
+              <button
+                onClick={saving ? undefined : handleCloseModal}
+                disabled={saving}
+                className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+              >
+                <IconX size={24} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
+                  Location Name
+                </label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  disabled={saving}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 uppercase mb-1">
+                  Address
+                </label>
+                <textarea
+                  value={form.address}
+                  onChange={(e) =>
+                    setForm({ ...form, address: e.target.value })
+                  }
+                  disabled={saving}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors min-h-[80px]"
+                />
+              </div>
+
+              <div>
+                <label className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.status}
+                    onChange={(e) =>
+                      setForm({ ...form, status: e.target.checked })
+                    }
+                    disabled={saving}
+                    className="w-5 h-5 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
+                  />
+                  <span className="text-sm font-bold text-gray-700 uppercase">
+                    Active Status
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+              <button
+                onClick={handleCloseModal}
+                disabled={saving}
+                className="px-6 py-2 text-sm font-bold text-gray-600 uppercase hover:bg-gray-200 rounded-sm transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveLocation}
+                disabled={saving}
+                className="px-6 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center"
+              >
+                {saving ? (
+                  <>
+                    <IconLoader size={18} className="animate-spin mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Location"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 };

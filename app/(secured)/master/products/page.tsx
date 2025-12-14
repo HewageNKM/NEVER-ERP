@@ -16,7 +16,7 @@ import ProductFormModal from "./components/ProductFormModal";
 import { getToken } from "@/firebase/firebaseClient";
 import { useAppSelector } from "@/lib/hooks";
 import axios from "axios";
-import { useSnackbar } from "@/contexts/SnackBarContext";
+import { showNotification } from "@/utils/toast";
 import { useConfirmationDialog } from "@/contexts/ConfirmationDialogContext";
 
 export interface DropdownOption {
@@ -41,7 +41,7 @@ const ProductPage = () => {
   const { currentUser, loading: authLoading } = useAppSelector(
     (state) => state.authSlice
   );
-  const { showNotification } = useSnackbar();
+  
 
   // Maps for faster lookups in the table
   const [brandMap, setBrandMap] = useState(new Map<string, string>());

@@ -1,27 +1,16 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Typography,
-  Chip,
-  IconButton,
-  Pagination,
-  Grid,
-  TextField,
-  MenuItem,
-  Breadcrumbs,
-  CircularProgress,
-} from "@mui/material";
-import { IconEye, IconPlus, IconTrash } from "@tabler/icons-react";
+  IconEye,
+  IconPlus,
+  IconTrash,
+  IconSearch,
+  IconX,
+  IconFilter,
+  IconChevronLeft,
+  IconChevronRight,
+  IconLoader,
+} from "@tabler/icons-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PettyCash } from "@/model/PettyCash";
@@ -107,7 +96,11 @@ export default function PettyCashList() {
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this entry?")) {
       try {
-        await fetch(`/api/v2/petty-cash/${id}`, { method: "DELETE" });
+        const token = await getToken(); // Need token for delete usually
+        await fetch(`/api/v2/petty-cash/${id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
         fetchPettyCash();
       } catch (error) {
         console.error("Failed to delete entry", error);
@@ -115,229 +108,245 @@ export default function PettyCashList() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "APPROVED":
-        return "success";
-      case "PENDING":
-        return "warning";
-      case "REJECTED":
-        return "error";
-      default:
-        return "default";
-    }
-  };
-
   return (
-    <Box>
-      {/* Breadcrumb + Header */}
-      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-        <Typography color="text.primary">
-          <Link href="/dashboard">Dashboard</Link>
-        </Typography>
-        <Typography color="text.primary">Petty Cash</Typography>
-      </Breadcrumbs>
+    <div className="w-full">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <div>
+          <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900">
+            Petty Cash
+          </h2>
+          <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
+            <Link
+              href="/dashboard"
+              className="hover:text-gray-900 transition-colors"
+            >
+              Dashboard
+            </Link>
+            <span>/</span>
+            <span className="font-bold">Petty Cash</span>
+          </div>
+        </div>
 
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={3}
-      >
-        <Typography variant="h3">Petty Cash</Typography>
-
-        <Button
-          component={Link}
+        <Link
           href="/dashboard/petty-cash/create"
-          variant="contained"
-          color="primary"
-          startIcon={<IconPlus />}
+          className="flex items-center px-5 py-2.5 bg-gray-900 text-white text-sm font-bold uppercase tracking-wide rounded-sm hover:bg-gray-800 transition-all shadow-sm"
         >
+          <IconPlus size={18} className="mr-2" />
           Create New
-        </Button>
-      </Box>
+        </Link>
+      </div>
 
       {/* Filters */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={3}>
-              <TextField
-                fullWidth
-                label="Search by Note"
-                size="small"
-                value={filters.search}
-                onChange={(e) =>
-                  setFilters({ ...filters, search: e.target.value })
-                }
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleFilter();
-                }}
-              />
-            </Grid>
+      <div className="bg-white border border-gray-200 rounded-sm shadow-sm p-6 mb-6">
+        <div className="flex flex-wrap gap-4 items-end mb-6">
+          <div className="w-full md:w-auto flex-1 min-w-[200px]">
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+              Search
+            </label>
+            <input
+              type="text"
+              placeholder="Search by Note..."
+              value={filters.search}
+              onChange={(e) =>
+                setFilters({ ...filters, search: e.target.value })
+              }
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleFilter();
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+            />
+          </div>
 
-            <Grid item xs={6} md={3}>
-              <TextField
-                select
-                fullWidth
-                label="Status"
-                size="small"
-                value={filters.status}
-                onChange={(e) =>
-                  setFilters({ ...filters, status: e.target.value })
-                }
-              >
-                <MenuItem value="ALL">All Statuses</MenuItem>
-                <MenuItem value="PENDING">Pending</MenuItem>
-                <MenuItem value="APPROVED">Approved</MenuItem>
-                <MenuItem value="REJECTED">Rejected</MenuItem>
-              </TextField>
-            </Grid>
+          <div className="w-full md:w-auto min-w-[150px]">
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+              Status
+            </label>
+            <select
+              value={filters.status}
+              onChange={(e) =>
+                setFilters({ ...filters, status: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="PENDING">Pending</option>
+              <option value="APPROVED">Approved</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+          </div>
 
-            <Grid item xs={6} md={3}>
-              <TextField
-                select
-                fullWidth
-                label="Type"
-                size="small"
-                value={filters.type}
-                onChange={(e) =>
-                  setFilters({ ...filters, type: e.target.value })
-                }
-              >
-                <MenuItem value="ALL">All Types</MenuItem>
-                <MenuItem value="expense">Expense</MenuItem>
-                <MenuItem value="income">Income</MenuItem>
-              </TextField>
-            </Grid>
+          <div className="w-full md:w-auto min-w-[150px]">
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+              Type
+            </label>
+            <select
+              value={filters.type}
+              onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+            >
+              <option value="ALL">All Types</option>
+              <option value="expense">Expense</option>
+              <option value="income">Income</option>
+            </select>
+          </div>
 
-            <Grid item xs={12} md={3}>
-              <TextField
-                select
-                fullWidth
-                label="Category"
-                size="small"
-                value={filters.category}
-                onChange={(e) =>
-                  setFilters({ ...filters, category: e.target.value })
-                }
-              >
-                <MenuItem value="ALL">All Categories</MenuItem>
-                {EXPENSE_CATEGORIES.map((cat) => (
-                  <MenuItem key={cat.name} value={cat.name}>
-                    {cat.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid item xs={12} display="flex" justifyContent="flex-end" gap={2}>
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={handleClear}
-              >
-                Clear
-              </Button>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleFilter}
-              >
-                Filter
-              </Button>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
+          <div className="w-full md:w-auto min-w-[150px]">
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+              Category
+            </label>
+            <select
+              value={filters.category}
+              onChange={(e) =>
+                setFilters({ ...filters, category: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+            >
+              <option value="ALL">All Categories</option>
+              {EXPENSE_CATEGORIES.map((cat) => (
+                <option key={cat.name} value={cat.name}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={handleFilter}
+              disabled={loading}
+              className="flex items-center justify-center px-4 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50"
+            >
+              <IconFilter size={16} className="mr-2" />
+              Filter
+            </button>
+            <button
+              onClick={handleClear}
+              disabled={loading}
+              className="flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 text-sm font-bold uppercase rounded-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              <IconX size={16} className="mr-2" />
+              Clear
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Table */}
-      <Card>
-        <CardContent>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Amount</TableCell>
-                  <TableCell>Category</TableCell>
-                  <TableCell>Type</TableCell>
-                  <TableCell>Note</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
+      {loading ? (
+        <div className="text-center py-12">
+          <IconLoader
+            className="animate-spin mx-auto text-gray-400"
+            size={32}
+          />
+          <p className="mt-2 text-gray-500 text-sm font-bold uppercase">
+            Loading entries...
+          </p>
+        </div>
+      ) : pettyCashList.length === 0 ? (
+        <div className="text-center py-12 text-gray-500 bg-white border border-gray-200 rounded-sm">
+          <p className="text-sm font-bold uppercase">No entries found.</p>
+        </div>
+      ) : (
+        <>
+          <div className="w-full overflow-x-auto bg-white border border-gray-200 rounded-sm shadow-sm">
+            <table className="w-full text-left text-sm border-collapse">
+              <thead className="bg-gray-100 text-gray-900 border-b border-gray-200 uppercase text-xs tracking-wider font-bold">
+                <tr>
+                  <th className="p-4">Amount</th>
+                  <th className="p-4">Category</th>
+                  <th className="p-4">Type</th>
+                  <th className="p-4">Note</th>
+                  <th className="p-4">Status</th>
+                  <th className="p-4">Date</th>
+                  <th className="p-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {pettyCashList.map((entry) => (
+                  <tr
+                    key={entry.id}
+                    className="hover:bg-gray-50 transition-colors duration-200"
+                  >
+                    <td className="p-4 font-mono font-bold text-gray-900">
+                      {entry.amount}
+                    </td>
+                    <td className="p-4 text-gray-700">{entry.category}</td>
+                    <td className="p-4">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-bold uppercase ${
+                          entry.type === "income"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {entry.type === "income" ? "Income" : "Expense"}
+                      </span>
+                    </td>
+                    <td className="p-4 text-gray-600 max-w-xs truncate">
+                      {entry.note}
+                    </td>
+                    <td className="p-4">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-bold uppercase ${
+                          entry.status === "APPROVED"
+                            ? "bg-green-100 text-green-800"
+                            : entry.status === "PENDING"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {entry.status}
+                      </span>
+                    </td>
+                    <td className="p-4 text-xs text-gray-500">
+                      {new Date(entry.createdAt as string).toLocaleString()}
+                    </td>
+                    <td className="p-4 text-right space-x-2">
+                      <Link
+                        href={`/petty-cash/${entry.id}`}
+                        className="inline-block p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-sm transition-colors"
+                      >
+                        <IconEye size={18} />
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(entry.id!)}
+                        disabled={entry.status === "APPROVED"}
+                        className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <IconTrash size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
-                      <CircularProgress />
-                    </TableCell>
-                  </TableRow>
-                ) : pettyCashList?.length > 0 ? (
-                  pettyCashList.map((entry) => (
-                    <TableRow key={entry.id}>
-                      <TableCell>{entry.amount}</TableCell>
-                      <TableCell>{entry.category}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={entry.type === "income" ? "Income" : "Expense"}
-                          color={entry.type === "income" ? "success" : "error"}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{entry.note}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={entry.status}
-                          color={getStatusColor(entry.status) as any}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {new Date(entry.createdAt as string).toLocaleString()}
-                      </TableCell>
-
-                      <TableCell align="right">
-                        <IconButton
-                          component={Link}
-                          href={`/dashboard/petty-cash/${entry.id}`}
-                          color="primary"
-                        >
-                          <IconEye size={20} />
-                        </IconButton>
-
-                        <IconButton
-                          disabled={entry.status === "APPROVED"}
-                          color="error"
-                          onClick={() => handleDelete(entry.id)}
-                        >
-                          <IconTrash size={20} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center">
-                      No entries found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <Box mt={2} display="flex" justifyContent="center">
-            <Pagination
-              count={totalPages}
-              page={page}
-              onChange={(e, v) => setPage(v)}
-              color="primary"
-            />
-          </Box>
-        </CardContent>
-      </Card>
-    </Box>
+          {/* Pagination */}
+          <div className="flex justify-center mt-6">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page === 1}
+                className="p-2 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
+              >
+                <IconChevronLeft size={18} />
+              </button>
+              <span className="text-sm font-bold text-gray-700 px-4">
+                Page {page} of {totalPages || 1}
+              </span>
+              <button
+                onClick={() => setPage(Math.min(totalPages, page + 1))}
+                disabled={page >= totalPages}
+                className="p-2 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
+              >
+                <IconChevronRight size={18} />
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
   );
 }

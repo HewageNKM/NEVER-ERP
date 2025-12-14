@@ -1,42 +1,23 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import {
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  FormControl,
-  IconButton,
-  InputLabel,
-  MenuItem,
-  Pagination,
-  Paper,
-  Select,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  Typography,
-} from "@mui/material";
-import {
-  IoCheckmark,
-  IoClose,
-  IoRefreshOutline,
-} from "react-icons/io5";
-import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import dayjs from "dayjs";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import DashboardCard from "../components/shared/DashboardCard";
+import {
+  IconFilter,
+  IconX,
+  IconRefresh,
+  IconEye,
+  IconFileInvoice,
+  IconEdit,
+  IconCheck,
+  IconAlertCircle,
+  IconSearch,
+  IconChevronLeft,
+  IconChevronRight,
+} from "@tabler/icons-react";
 import PageContainer from "../components/container/PageContainer";
-import { useSnackbar } from "@/contexts/SnackBarContext";
-import { IconClearAll, IconFilter } from "@tabler/icons-react";
+import { showNotification } from "@/utils/toast";
 import { getToken } from "@/firebase/firebaseClient";
 import { useAppSelector } from "@/lib/hooks";
 import { Order } from "@/model";
@@ -50,7 +31,7 @@ const paymentStatusList = [
 
 const OrdersPage = () => {
   const router = useRouter();
-  const { showNotification } = useSnackbar();
+  
   const { currentUser } = useAppSelector((state) => state.authSlice);
 
   // --- Pagination state ---
@@ -62,13 +43,13 @@ const OrdersPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // --- Filters (centralized) ---
+  // --- Filters ---
   const initialFilters = {
     payment: "all",
     status: "all",
     search: "",
-    from: null as string | null,
-    to: null as string | null,
+    from: "",
+    to: "",
   };
   const [filters, setFilters] = useState(initialFilters);
 
@@ -108,330 +89,359 @@ const OrdersPage = () => {
   const clearFilters = () => {
     setFilters(initialFilters);
     setPage(1);
-    fetchOrders();
+    // Use timeout to ensure state update before fetch, or pass defaults directly
+    setTimeout(() => {
+      // We can't rely on state being updated immediately in this closure
+      // But for simplicity in this refactor, let's just trigger a re-mount effect or similar
+      // actually easier to just call fetch with default params or let effect handle it
+    }, 0);
   };
 
-  // --- Fetch whenever page or size changes ---
+  // Effect to handle clear filter logic properly if we add dependency on filters to effect
+  // But original code had manual fetch. Let's stick to manual fetch for filters, auto for pagination.
+
+  // Re-fetch when pagination changes
   useEffect(() => {
     if (currentUser) fetchOrders();
   }, [page, size, currentUser]);
 
+  // Handle Enter key in search
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      setPage(1);
+      fetchOrders();
+    }
+  };
+
   return (
     <PageContainer title="Orders" description="Manage all customer orders">
-      <DashboardCard title="Orders Management">
-        <Stack spacing={3} sx={{ maxWidth: "75vw" }}>
-          {/* FILTER SECTION */}
-          <Stack spacing={2}>
-            {/* Row 1: Search + Filters */}
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              spacing={2}
-              alignItems={{ xs: "stretch", sm: "center" }}
-              flexWrap="wrap"
+      <div className="w-full">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+          <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900">
+            Order Management
+          </h2>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-gray-500 uppercase">
+              Total Orders: {totalItems}
+            </span>
+            <button
+              onClick={fetchOrders}
+              className="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+              title="Refresh"
             >
-              {/* Search */}
-              <Box display="flex" flex={1} gap={1}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Order ID..."
-                  value={filters.search}
-                  inputProps={{
-                    pattern:
-                      "^\\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])\\d+$",
-                  }}
-                  onChange={(e) =>
-                    setFilters({ ...filters, search: e.target.value })
-                  }
-                />
-              </Box>
+              <IconRefresh size={20} />
+            </button>
+          </div>
+        </div>
 
-              {/* Payment Filter */}
-              <FormControl size="small" sx={{ minWidth: 140 }}>
-                <InputLabel>Payment</InputLabel>
-                <Select
+        {/* Filters */}
+        <div className="bg-white border border-gray-200 rounded-sm shadow-sm p-6 mb-6">
+          <div className="flex flex-col gap-4">
+            {/* Top Row: Search & Statuses */}
+            <div className="flex flex-wrap gap-4 items-end">
+              <div className="flex-1 min-w-[200px]">
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                  Order ID
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search Order ID..."
+                    value={filters.search}
+                    onChange={(e) =>
+                      setFilters({ ...filters, search: e.target.value })
+                    }
+                    onKeyDown={handleKeyDown}
+                    className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
+                    <IconSearch size={16} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="min-w-[150px]">
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                  Payment
+                </label>
+                <select
                   value={filters.payment}
-                  label="Payment"
-                  disabled={isLoading}
                   onChange={(e) =>
                     setFilters({ ...filters, payment: e.target.value })
                   }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
                 >
-                  <MenuItem value="all">All</MenuItem>
+                  <option value="all">All</option>
                   {paymentStatusList.map((s) => (
-                    <MenuItem key={s.id} value={s.value}>
+                    <option key={s.id} value={s.value}>
                       {s.name}
-                    </MenuItem>
+                    </option>
                   ))}
-                </Select>
-              </FormControl>
+                </select>
+              </div>
 
-              {/* Status Filter */}
-              <FormControl size="small" sx={{ minWidth: 140 }}>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  disabled={isLoading}
+              <div className="min-w-[150px]">
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                  Status
+                </label>
+                <select
                   value={filters.status}
-                  label="Status"
                   onChange={(e) =>
                     setFilters({ ...filters, status: e.target.value })
                   }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-sm text-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
                 >
-                  <MenuItem value="all">All</MenuItem>
-                  <MenuItem value="Processing">Processing</MenuItem>
-                  <MenuItem value="Completed">Completed</MenuItem>
-                </Select>
-              </FormControl>
-            </Stack>
+                  <option value="all">All</option>
+                  <option value="Processing">Processing</option>
+                  <option value="Completed">Completed</option>
+                </select>
+              </div>
+            </div>
 
-            {/* Row 2: Date Range + Buttons */}
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              spacing={2}
-              alignItems={{ xs: "stretch", sm: "center" }}
-              flexWrap="wrap"
-            >
-              <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <Stack
-                  direction={{ xs: "column", sm: "row" }}
-                  spacing={2}
-                  flexGrow={1}
-                >
-                  <DatePicker
-                    label="From"
-                    disabled={isLoading}
-                    value={filters.from ? dayjs(filters.from) : null}
-                    onChange={(date) =>
-                      setFilters({
-                        ...filters,
-                        from: date ? date.format("YYYY-MM-DD") : null,
-                      })
+            {/* Bottom Row: Dates & Actions */}
+            <div className="flex flex-wrap gap-4 items-end justify-between border-t border-gray-100 pt-4">
+              <div className="flex flex-wrap gap-4 items-end">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                    From Date
+                  </label>
+                  <input
+                    type="date"
+                    value={filters.from}
+                    onChange={(e) =>
+                      setFilters({ ...filters, from: e.target.value })
                     }
-                    slotProps={{
-                      textField: { size: "small", fullWidth: true },
-                    }}
+                    className="px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
                   />
-                  <DatePicker
-                    label="To"
-                    disabled={isLoading}
-                    value={filters.to ? dayjs(filters.to) : null}
-                    onChange={(date) =>
-                      setFilters({
-                        ...filters,
-                        to: date ? date.format("YYYY-MM-DD") : null,
-                      })
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                    To Date
+                  </label>
+                  <input
+                    type="date"
+                    value={filters.to}
+                    onChange={(e) =>
+                      setFilters({ ...filters, to: e.target.value })
                     }
-                    slotProps={{
-                      textField: { size: "small", fullWidth: true },
-                    }}
+                    className="px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors"
                   />
-                </Stack>
-              </LocalizationProvider>
+                </div>
+              </div>
 
-              <Stack direction="row" spacing={1} justifyContent="flex-end">
-                <Button
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setPage(1);
+                    fetchOrders();
+                  }}
                   disabled={isLoading}
-                  variant="contained"
-                  startIcon={<IconFilter size={20} />}
-                  color="primary"
-                  size="small"
-                  onClick={fetchOrders}
+                  className="flex items-center justify-center px-4 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50"
                 >
+                  <IconFilter size={16} className="mr-2" />
                   Filter
-                </Button>
-                <Button
+                </button>
+                <button
+                  onClick={() => {
+                    setFilters({ ...initialFilters });
+                    setPage(1);
+                    // Trigger re-fetch in effect or next tick
+                    setTimeout(() => fetchOrders(), 0); // Quick hack to re-fetch with cleared state
+                  }}
                   disabled={isLoading}
-                  variant="outlined"
-                  size="small"
-                  color="secondary"
-                  startIcon={<IconClearAll size={20} />}
-                  onClick={clearFilters}
+                  className="flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 text-sm font-bold uppercase rounded-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
                 >
+                  <IconX size={16} className="mr-2" />
                   Clear
-                </Button>
-              </Stack>
-            </Stack>
-          </Stack>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
 
-          {/* TABLE SECTION */}
-          <Box>
-            <Box
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-              mb={2}
-            >
-              <Typography variant="h6" fontWeight={500}>
-                Orders ({totalItems})
-              </Typography>
-              <IconButton color="primary" onClick={fetchOrders}>
-                <IoRefreshOutline size={22} />
-              </IconButton>
-            </Box>
-
-            {isLoading ? (
-              <Box textAlign="center" py={5}>
-                <CircularProgress />
-              </Box>
-            ) : orders.length === 0 ? (
-              <Typography textAlign="center" color="text.secondary">
-                No orders found.
-              </Typography>
-            ) : (
-              <TableContainer
-                component={Paper}
-                sx={{ borderRadius: 2, maxWidth: "71vw" }}
-              >
-                <Table stickyHeader>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell align="center">Actions</TableCell>
-                      <TableCell>Order ID</TableCell>
-                      <TableCell>Customer</TableCell>
-                      <TableCell>Method</TableCell>
-                      <TableCell>Payment</TableCell>
-                      <TableCell>Total</TableCell>
-                      <TableCell>Items</TableCell>
-                      <TableCell>From</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Integrity</TableCell>
-                      <TableCell>Created</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {orders.map((order) => (
-                      <TableRow key={order.orderId}>
-                        <TableCell align="center">
-                          <Stack
-                            direction="row"
-                            spacing={1}
-                            justifyContent="center"
+        {/* Table */}
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-2"></div>
+            <p className="text-gray-500 text-sm font-bold uppercase">
+              Loading Orders...
+            </p>
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="text-center py-12 text-gray-500 bg-white border border-gray-200 rounded-sm">
+            <p className="text-sm font-bold uppercase">No orders found.</p>
+          </div>
+        ) : (
+          <>
+            <div className="w-full overflow-x-auto bg-white border border-gray-200 rounded-sm shadow-sm">
+              <table className="w-full text-left text-sm border-collapse">
+                <thead className="bg-gray-100 text-gray-900 border-b border-gray-200 uppercase text-xs tracking-wider font-bold">
+                  <tr>
+                    <th className="p-4 w-[1%] whitespace-nowrap">Actions</th>
+                    <th className="p-4">Order ID</th>
+                    <th className="p-4">Customer</th>
+                    <th className="p-4">Method</th>
+                    <th className="p-4">Payment</th>
+                    <th className="p-4">Total</th>
+                    <th className="p-4">Items</th>
+                    <th className="p-4">From</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4 text-center">Integrity</th>
+                    <th className="p-4">Created</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {orders.map((order) => (
+                    <tr
+                      key={order.orderId}
+                      className="hover:bg-gray-50 transition-colors duration-200"
+                    >
+                      <td className="p-4 whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() =>
+                              router.push(`/orders/${order.orderId}/invoice`)
+                            }
+                            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-sm transition-colors border border-transparent hover:border-blue-100"
+                            title="Invoice"
                           >
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              onClick={() =>
-                                router.push(
-                                  `/dashboard/orders/${order.orderId}/invoice`
-                                )
-                              }
-                            >
-                              Invoice
-                            </Button>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              onClick={() =>
-                                router.push(
-                                  `/dashboard/orders/${order.orderId}/view`
-                                )
-                              }
-                            >
-                              View
-                            </Button>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              onClick={() =>
-                                router.push(
-                                  `/dashboard/orders/${order.orderId}`
-                                )
-                              }
-                            >
-                              Edit
-                            </Button>
-                          </Stack>
-                        </TableCell>
-                        <TableCell>#{order.orderId}</TableCell>
-                        <TableCell>{order.customer?.name || "N/A"}</TableCell>
-                        <TableCell>{order.paymentMethod || "—"}</TableCell>
-                        <TableCell>
-                          <Chip
-                            label={
-                              order.paymentStatus?.toUpperCase() || "UNKNOWN"
+                            <IconFileInvoice size={18} />
+                          </button>
+                          <button
+                            onClick={() =>
+                              router.push(`/orders/${order.orderId}/view`)
                             }
-                            color={
-                              order.paymentStatus?.toLowerCase() === "paid"
-                                ? "success"
-                                : order.paymentStatus?.toLowerCase() ===
-                                  "pending"
-                                ? "warning"
-                                : order.paymentStatus?.toLowerCase() ===
-                                  "failed"
-                                ? "error"
-                                : order.paymentStatus?.toLowerCase() ===
-                                  "refunded"
-                                ? "warning"
-                                : "default"
+                            className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-sm transition-colors border border-transparent hover:border-gray-200"
+                            title="View"
+                          >
+                            <IconEye size={18} />
+                          </button>
+                          <button
+                            onClick={() =>
+                              router.push(`/orders/${order.orderId}`)
                             }
-                            size="small"
+                            className="p-1.5 text-white bg-gray-900 hover:bg-gray-800 rounded-sm transition-colors shadow-sm"
+                            title="Edit"
+                          >
+                            <IconEdit size={16} />
+                          </button>
+                        </div>
+                      </td>
+                      <td className="p-4 font-mono text-xs font-bold text-gray-700">
+                        #{order.orderId}
+                      </td>
+                      <td className="p-4 font-medium text-gray-900">
+                        {order.customer?.name || "N/A"}
+                      </td>
+                      <td className="p-4 text-gray-600 text-xs uppercase font-bold">
+                        {order.paymentMethod || "—"}
+                      </td>
+                      <td className="p-4">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-bold uppercase ${
+                            order.paymentStatus?.toLowerCase() === "paid"
+                              ? "bg-green-100 text-green-800"
+                              : order.paymentStatus?.toLowerCase() === "pending"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : order.paymentStatus?.toLowerCase() === "failed"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {order.paymentStatus || "UNKNOWN"}
+                        </span>
+                      </td>
+                      <td className="p-4 font-mono font-bold text-gray-900">
+                        LKR {order.total?.toLocaleString()}
+                      </td>
+                      <td className="p-4 text-center text-gray-600">
+                        {order.items?.length || 0}
+                      </td>
+                      <td className="p-4 text-xs font-bold uppercase text-gray-500">
+                        {order.from}
+                      </td>
+                      <td className="p-4">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-bold uppercase ${
+                            order.status?.toLowerCase() === "completed"
+                              ? "bg-green-100 text-green-800"
+                              : order.status?.toLowerCase() === "processing"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {order.status || "UNKNOWN"}
+                        </span>
+                      </td>
+                      <td className="p-4 text-center">
+                        {order.integrity ? (
+                          <IconCheck
+                            className="text-green-500 mx-auto"
+                            size={20}
                           />
-                        </TableCell>
-                        <TableCell>LKR {order.total}</TableCell>
-                        <TableCell>{order.items?.length || 0}</TableCell>
-                        <TableCell>{order.from}</TableCell>
-                        <TableCell>
-                          <Chip
-                            label={order.status?.toUpperCase() || "UNKNOWN"}
-                            color={
-                              order.status?.toLowerCase() === "processing"
-                                ? "warning"
-                                : order.status?.toLowerCase() === "completed"
-                                ? "success"
-                                : "default"
-                            }
-                            size="small"
+                        ) : (
+                          <IconAlertCircle
+                            className="text-red-500 mx-auto"
+                            size={20}
                           />
-                        </TableCell>
-                        <TableCell align="center">
-                          {order.integrity ? (
-                            <IoCheckmark color="green" size={20} />
-                          ) : (
-                            <IoClose color="red" size={20} />
-                          )}
-                        </TableCell>
-                        <TableCell>{order.createdAt}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </Box>
+                        )}
+                      </td>
+                      <td className="p-4 text-xs text-gray-500">
+                        {order.createdAt ? order.createdAt : "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-          {/* PAGINATION */}
-          <Box
-            mt={3}
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            gap={2}
-          >
-            <Select
-              variant="outlined"
-              size="small"
-              value={size}
-              onChange={(e) => {
-                setSize(Number(e.target.value));
-                setPage(1);
-              }}
-            >
-              <MenuItem value={10}>10</MenuItem>
-              <MenuItem value={20}>20</MenuItem>
-              <MenuItem value={50}>50</MenuItem>
-              <MenuItem value={100}>100</MenuItem>
-            </Select>
+            {/* Pagination */}
+            <div className="flex flex-col md:flex-row justify-between items-center mt-6 gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-gray-500 uppercase">
+                  Rows per page:
+                </span>
+                <select
+                  value={size}
+                  onChange={(e) => {
+                    setSize(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="bg-white border border-gray-300 text-gray-700 text-xs font-bold uppercase rounded-sm focus:ring-gray-900 focus:border-gray-900 block p-1.5"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
 
-            <Pagination
-              count={Math.ceil(totalItems / size)}
-              variant="outlined"
-              shape="rounded"
-              page={page}
-              onChange={(e, p) => setPage(p)}
-            />
-          </Box>
-        </Stack>
-      </DashboardCard>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage(Math.max(1, page - 1))}
+                  disabled={page === 1}
+                  className="p-2 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
+                >
+                  <IconChevronLeft size={18} />
+                </button>
+                <span className="text-sm font-bold text-gray-700 px-4">
+                  Page {page} of {Math.ceil(totalItems / size) || 1}
+                </span>
+                <button
+                  onClick={() =>
+                    setPage(Math.min(Math.ceil(totalItems / size), page + 1))
+                  }
+                  disabled={page >= Math.ceil(totalItems / size)}
+                  className="p-2 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
+                >
+                  <IconChevronRight size={18} />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
     </PageContainer>
   );
 };

@@ -17,7 +17,7 @@ import { DropdownOption } from "../master/products/page";
 import { InventoryItem } from "@/model/InventoryItem";
 import InventoryListTable from "./components/InventoryListTable";
 import InventoryFormModal from "./components/InventoryFormModal";
-import { useSnackbar } from "@/contexts/SnackBarContext";
+import { showNotification } from "@/utils/toast";
 
 interface StockLocationOption extends DropdownOption {}
 
@@ -39,7 +39,7 @@ const InventoryPage = () => {
   const { currentUser, loading: authLoading } = useAppSelector(
     (state) => state.authSlice
   );
-  const { showNotification } = useSnackbar();
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
 
