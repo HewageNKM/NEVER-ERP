@@ -25,7 +25,7 @@ const BannerCard = ({
   banner,
   onDelete,
 }: {
-  banner: { fileName: string; url: string; id: string };
+  banner: { file: string; url: string; id: string };
   onDelete: (id: string) => void;
 }) => {
   const { showConfirmation } = useConfirmationDialog();
@@ -40,7 +40,7 @@ const BannerCard = ({
   };
 
   return (
-    <div className="group relative w-full sm:w-[320px] bg-gray-50 border-2 border-transparent hover:border-black transition-all duration-300">
+    <div className="group relative w-full sm:w-[320px] bg-white border-2 border-transparent hover:border-black transition-all duration-300">
       <div className="relative aspect-[1200/628] w-full overflow-hidden">
         <Image
           src={banner.url}
@@ -64,7 +64,7 @@ const BannerCard = ({
 
       <div className="p-4 border-t-2 border-transparent group-hover:border-black bg-white transition-colors">
         <p className="text-[10px] font-mono text-gray-400 uppercase truncate tracking-widest group-hover:text-black">
-          {banner.fileName || "UNTITLED_ASSET"}
+          {banner.file || "UNTITLED_ASSET"}
         </p>
       </div>
     </div>
@@ -154,8 +154,8 @@ const BannerForm = ({ onSuccess }: { onSuccess: () => void }) => {
         <div
           className={`w-full aspect-[2/1] border-2 border-dashed flex items-center justify-center cursor-pointer relative overflow-hidden transition-all group ${
             selectedFile
-              ? "border-black bg-gray-50"
-              : "border-gray-300 hover:border-black hover:bg-gray-50"
+              ? "border-black bg-white"
+              : "border-gray-300 hover:border-black hover:bg-white"
           }`}
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}

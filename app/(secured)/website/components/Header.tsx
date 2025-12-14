@@ -15,7 +15,7 @@ const Header = ({
   ];
 
   return (
-    <div className="flex justify-start border-b border-gray-200">
+    <div className="flex justify-start border-b border-gray-200 overflow-x-auto w-full">
       {tabs.map((tab) => (
         <button
           key={tab.id}
