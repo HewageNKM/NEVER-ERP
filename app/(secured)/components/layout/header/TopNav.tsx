@@ -148,6 +148,14 @@ const TopNav = () => {
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                   className="absolute top-12 lg:top-14 right-0 w-48 bg-white border-2 border-black p-0 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50"
                 >
+                  <Link
+                    href="/profile"
+                    onClick={() => setIsProfileOpen(false)}
+                    className="w-full flex items-center gap-3 px-5 py-4 text-xs font-black uppercase tracking-widest text-black hover:bg-gray-100 transition-colors border-b border-gray-100"
+                  >
+                    <IconUser size={16} />
+                    My Profile
+                  </Link>
                   <button
                     onClick={handleLogout}
                     className="w-full flex items-center gap-3 px-5 py-4 text-xs font-black uppercase tracking-widest text-black hover:bg-red-600 hover:text-white transition-colors"
@@ -333,10 +341,18 @@ const TopNav = () => {
               </div>
 
               {/* Drawer Footer */}
-              <div className="p-6 border-t-2 border-black bg-gray-50">
+              <div className="p-6 border-t-2 border-black bg-gray-50 space-y-2">
+                <Link
+                  href="/profile"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full flex items-center justify-center gap-2 p-4 bg-white border-2 border-transparent hover:border-black text-xs font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-sm"
+                >
+                  <IconUser size={16} />
+                  My Profile
+                </Link>
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center justify-center gap-2 p-4 bg-white border-2 border-black text-xs font-black uppercase tracking-widest hover:bg-black hover:text-white transition-colors"
+                  className="w-full flex items-center justify-center gap-2 p-4 bg-white border-2 border-black text-xs font-black uppercase tracking-widest hover:bg-red-600 hover:border-red-600 hover:text-white transition-colors shadow-sm"
                 >
                   <IconLogout size={16} />
                   Log Out
