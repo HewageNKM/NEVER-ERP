@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .label {
+    @apply block text-xs font-bold text-gray-700 uppercase mb-1;
+  }
+  .input {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-sm bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 transition-colors disabled:bg-gray-50;
+  }
+  .btn-primary {
+    @apply px-6 py-2 bg-gray-900 text-white text-sm font-bold uppercase rounded-sm hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center justify-center;
+  }
+  .btn-secondary {
+    @apply px-6 py-2 text-sm font-bold text-gray-600 uppercase hover:bg-gray-200 rounded-sm transition-colors disabled:opacity-50;
+  }
+  .section-title {
+    @apply text-sm font-bold text-gray-900 uppercase tracking-wide border-b border-gray-100 pb-2 mb-3;
+  }
+}

@@ -1,6 +1,6 @@
 import { adminFirestore } from "@/firebase/firebaseAdmin";
 import { Promotion, Coupon, CouponUsage } from "@/model";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { nanoid } from "nanoid";
 
 const PROMOTIONS_COLLECTION = "promotions";
@@ -185,31 +185,246 @@ export const getCouponByCode = async (code: string): Promise<Coupon | null> => {
 
 // --- VALIDATION & LOGIC (Advanced Phase) ---
 
-// Placeholder for validating a coupon against a cart context
+interface CartItem {
+  productId: string;
+  variantId?: string;
+  quantity: number;
+  price: number;
+}
+
+/**
+ * Validates a coupon against the current cart and user context.
+ */
 export const validateCoupon = async (
   code: string,
   userId: string | null,
   cartTotal: number,
-  cartItems: any[]
+  cartItems: CartItem[]
 ): Promise<{
   valid: boolean;
-  discount?: number;
+  discount: number;
   message?: string;
   coupon?: Coupon;
 }> => {
   const coupon = await getCouponByCode(code);
 
   if (!coupon) {
-    return { valid: false, message: "Invalid coupon code" };
+    return { valid: false, discount: 0, message: "Invalid coupon code" };
   }
 
+  // 1. Status Check
   if (coupon.status !== "ACTIVE") {
-    return { valid: false, message: "Coupon is not active" };
+    return { valid: false, discount: 0, message: "Coupon is not active" };
   }
 
-  // Date checks (assuming Timestamp - would need conversion logic in real app)
-  // Limits checks
+  // 2. Date Check
+  const now = new Date();
+  const startDate =
+    coupon.startDate instanceof Timestamp
+      ? coupon.startDate.toDate()
+      : new Date(coupon.startDate as string);
+  const endDate = coupon.endDate
+    ? coupon.endDate instanceof Timestamp
+      ? coupon.endDate.toDate()
+      : new Date(coupon.endDate as string)
+    : null;
 
-  // Basic validation passed
-  return { valid: true, discount: coupon.discountValue, coupon };
+  if (now < startDate) {
+    return { valid: false, discount: 0, message: "Coupon has not started yet" };
+  }
+  if (endDate && now > endDate) {
+    return { valid: false, discount: 0, message: "Coupon has expired" };
+  }
+
+  // 3. Usage Limits
+  if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) {
+    return { valid: false, discount: 0, message: "Coupon usage limit reached" };
+  }
+
+  // 4. User Restriction
+  if (coupon.restrictedToUsers && coupon.restrictedToUsers.length > 0) {
+    if (!userId || !coupon.restrictedToUsers.includes(userId)) {
+      return {
+        valid: false,
+        discount: 0,
+        message: "This coupon is not valid for your account",
+      };
+    }
+  }
+
+  // 5. Per User Limit (Requires checking Usage History - skipped for now unless user provides usage history)
+  if (userId && coupon.perUserLimit) {
+    const userUsageCount = await getUserCouponUsageCount(coupon.id, userId);
+    if (userUsageCount >= coupon.perUserLimit) {
+      return {
+        valid: false,
+        discount: 0,
+        message: "You have already used this coupon",
+      };
+    }
+  }
+
+  // 6. Minimum Order Amount
+  if (coupon.minOrderAmount && cartTotal < coupon.minOrderAmount) {
+    return {
+      valid: false,
+      discount: 0,
+      message: `Minimum order amount of ${coupon.minOrderAmount} required`,
+    };
+  }
+
+  // 7. Calculate Discount
+  let discountAmount = 0;
+  if (coupon.discountType === "FIXED") {
+    discountAmount = coupon.discountValue;
+  } else if (coupon.discountType === "PERCENTAGE") {
+    discountAmount = (cartTotal * coupon.discountValue) / 100;
+    if (coupon.maxDiscount && discountAmount > coupon.maxDiscount) {
+      discountAmount = coupon.maxDiscount;
+    }
+  } else if (coupon.discountType === "FREE_SHIPPING") {
+    // Logic for free shipping usually handled separately or returns specific flag
+    // Here we act as if shipping cost is separate, so maybe discount is 0 on cartItems but flag is set
+    // For simplicity, returning 0 discount value but valid coupon
+    discountAmount = 0;
+  }
+
+  return { valid: true, discount: discountAmount, coupon };
+};
+
+/**
+ * Helper to check how many times a user used a coupon.
+ */
+const getUserCouponUsageCount = async (
+  couponId: string,
+  userId: string
+): Promise<number> => {
+  const snapshot = await adminFirestore
+    .collection(COUPON_USAGE_COLLECTION)
+    .where("couponId", "==", couponId)
+    .where("userId", "==", userId)
+    .count()
+    .get();
+  return snapshot.data().count;
+};
+
+/**
+ * Tracks the usage of a coupon after a successful order.
+ */
+export const trackCouponUsage = async (
+  couponId: string,
+  userId: string,
+  orderId: string,
+  discountApplied: number
+) => {
+  const usageRef = adminFirestore.collection(COUPON_USAGE_COLLECTION).doc();
+  await usageRef.set({
+    id: usageRef.id,
+    couponId,
+    userId,
+    orderId,
+    discountApplied,
+    usedAt: FieldValue.serverTimestamp(),
+  });
+
+  // Increment global usage count atomically
+  await adminFirestore
+    .collection(COUPONS_COLLECTION)
+    .doc(couponId)
+    .update({
+      usageCount: FieldValue.increment(1),
+    });
+};
+
+/**
+ * Calculates the best automatic promotion for the cart.
+ */
+export const calculateCartDiscount = async (
+  cartItems: CartItem[],
+  cartTotal: number
+): Promise<{
+  promotion?: Promotion;
+  discount: number;
+}> => {
+  // 1. Fetch active auto-apply promotions (Not type=COUPON ideally, but our type Enum doesn't strictly separate them yet. Assuming all in 'promotions' are auto unless specified)
+  // For this system, let's assume 'promotions' collection implies automatic rules unless defined otherwise.
+
+  // Fetch ACTIVE promotions
+  const promotionsSnap = await adminFirestore
+    .collection(PROMOTIONS_COLLECTION)
+    .where("status", "==", "ACTIVE")
+    .get();
+
+  const promotions = promotionsSnap.docs.map(
+    (d) => ({ id: d.id, ...d.data() } as Promotion)
+  );
+
+  // Sort by priority (high to low)
+  promotions.sort((a, b) => b.priority - a.priority);
+
+  let bestDiscount = 0;
+  let bestPromotion: Promotion | undefined;
+
+  const now = new Date();
+
+  for (const promo of promotions) {
+    // Date Checks
+    const startDate =
+      promo.startDate instanceof Timestamp
+        ? promo.startDate.toDate()
+        : new Date(promo.startDate as string);
+    const endDate =
+      promo.endDate instanceof Timestamp
+        ? promo.endDate.toDate()
+        : new Date(promo.endDate as string);
+    if (now < startDate || now > endDate) continue;
+
+    // Condition Checks
+    let conditionsMet = true;
+    for (const condition of promo.conditions) {
+      if (condition.type === "MIN_AMOUNT") {
+        if (cartTotal < Number(condition.value)) conditionsMet = false;
+      } else if (condition.type === "MIN_QUANTITY") {
+        const totalQty = cartItems.reduce(
+          (sum, item) => sum + item.quantity,
+          0
+        );
+        if (totalQty < Number(condition.value)) conditionsMet = false;
+      }
+      // Add more condition logic here (Specific Product, etc.)
+    }
+
+    if (!conditionsMet) continue;
+
+    // Calculate Potential Discount
+    let currentDiscount = 0;
+    const action = promo.actions[0]; // Assuming single action for now
+
+    if (action.type === "PERCENTAGE_OFF") {
+      currentDiscount = (cartTotal * action.value) / 100;
+      if (action.maxDiscount && currentDiscount > action.maxDiscount) {
+        currentDiscount = action.maxDiscount;
+      }
+    } else if (action.type === "FIXED_OFF") {
+      currentDiscount = action.value;
+    }
+
+    // Identify Best Offer (Simple strategy: Highest Discount takes precedence if not stackable)
+    if (currentDiscount > bestDiscount) {
+      bestDiscount = currentDiscount;
+      bestPromotion = promo;
+    }
+
+    // If we want stacking, logic gets complex. For now, we take the highest priority valid one.
+    // Since we sorted by priority, the first one that matches IS the one we want if we don't scan for "best financial value" but "highest priority rule".
+    // If sorting by financial value, we scan all.
+    // Let's stick to "Highest Priority Wins" for simplicity and predictability.
+    if (conditionsMet && promo.priority > 0) {
+      bestDiscount = currentDiscount;
+      bestPromotion = promo;
+      break; // Stop after finding high priority match
+    }
+  }
+
+  return { promotion: bestPromotion, discount: bestDiscount };
 };

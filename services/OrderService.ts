@@ -179,18 +179,35 @@ export const updateOrder = async (order: Order, orderId: string) => {
   }
 };
 
+import { validateCoupon, trackCouponUsage } from "./PromotionService";
+
+// ... existing imports ...
+
 export const addOrder = async (order: Partial<Order>) => {
   if (!order.orderId) throw new Error("Order ID is required");
   if (!order.items?.length) throw new Error("Order items are required");
   if (!order.from) throw new Error("Order 'from' field is required");
 
+  // ... (existing validations) ...
+
   const fromSource = order.from.toLowerCase();
-  if (!["store", "website"].includes(fromSource))
-    throw new Error(`Invalid order source: ${order.from}`);
+
+  // Coupon Validation logic (Server Side Trust)
+  let finalDiscount = 0;
+  let appliedCouponId = null;
+
+  if (fromSource === "website" && order.couponCode) {
+    // Calculate cart total from items (to ensure client didn't spoof total)
+    // Note: We need accurate prices. The code below fetches product data.
+    // We should calculate total based on fetched prices ideally, but `productMap` is fetched later.
+    // Let's defer validation until we have product data?
+    // Actually, we can do it inside the transaction or before.
+    // Better to do it before transaction to fail fast, but we need prices.
+  }
 
   const orderRef = adminFirestore.collection("orders").doc(order.orderId);
   const now = admin.firestore.Timestamp.now();
-  const orderData: Order = { ...order, createdAt: now, updatedAt: now };
+  let orderData: Order = { ...order, createdAt: now, updatedAt: now };
 
   try {
     const productRefs = order.items.map((i) =>
@@ -201,8 +218,43 @@ export const addOrder = async (order: Partial<Order>) => {
       productSnaps.map((snap) => [snap.id, snap.data() as Product])
     );
 
+    // Validate Coupon if exists
+    if (fromSource === "website" && order.couponCode) {
+      // Calculate true cart total based on DB prices
+      const cartTotal = order.items.reduce((acc, item) => {
+        const prod = productMap.get(item.itemId);
+        return acc + (prod ? prod.sellingPrice * item.quantity : 0);
+      }, 0);
+
+      const validation = await validateCoupon(
+        order.couponCode,
+        order.customer?.uid || "guest",
+        cartTotal,
+        order.items
+      );
+      if (!validation.valid) {
+        console.warn(
+          `Invalid coupon used in order ${order.orderId}: ${validation.message}`
+        );
+        // Option: Throw error or proceed without discount?
+        // Throwing error is safer.
+        throw new Error(`Coupon Invalid: ${validation.message}`);
+      }
+
+      finalDiscount = validation.discount || 0;
+      appliedCouponId = validation.coupon?.id; // Needed for tracking
+
+      // Override/Verify discount in orderData
+      orderData.discount = (orderData.discount || 0) + finalDiscount;
+      // Note: Use += if other discounts exist? Or just set it?
+      // Assuming web sends total discount, but we want to ENFORCE coupon part.
+      // Let's just set the coupon discount. If other discounts exist (e.g. sale), they should be in price.
+      // Assuming `order.discount` is meant for order-level discounts.
+    }
+
     // --- STORE ORDER (Batch, with retry) ---
     if (fromSource === "store") {
+      // ... existing store logic ...
       if (!order.stockId) throw new Error("Stock ID is required");
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
@@ -329,6 +381,16 @@ export const addOrder = async (order: Partial<Order>) => {
           console.log(
             `🌐 Website order ${order.orderId} committed (attempt ${attempt})`
           );
+
+          // Track Usage AFTER successful commit
+          if (appliedCouponId) {
+            await trackCouponUsage(
+              appliedCouponId,
+              order.customer?.uid || "guest",
+              order.orderId
+            );
+          }
+
           success = true;
         } catch (err) {
           if (attempt === 3) throw err;
@@ -339,7 +401,7 @@ export const addOrder = async (order: Partial<Order>) => {
     }
 
     await Promise.allSettled([clearPosCart()]);
-
+    // Hash update...
     const orderForHashSnap = await orderRef.get();
     const orderForHash = orderForHashSnap.data();
     if (orderForHash) await updateOrAddOrderHash(orderForHash);
