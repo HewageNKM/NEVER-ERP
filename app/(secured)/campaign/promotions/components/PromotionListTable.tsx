@@ -1,7 +1,7 @@
 import React from "react";
 import { Promotion } from "@/model/Promotion";
 import { IconEdit, IconTrash, IconLoader, IconTag } from "@tabler/icons-react";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 
 interface Props {
   items: Promotion[];
@@ -43,17 +43,46 @@ const PromotionListTable: React.FC<Props> = ({
   // Date Formatter
   const formatDate = (date: any) => {
     if (!date) return "-";
-    const d = date.seconds ? date.toDate() : new Date(date);
-    return (
-      <div className="flex flex-col">
-        <span className="font-bold text-gray-900 leading-none">
-          {format(d, "dd MMM")}
-        </span>
-        <span className="text-[9px] text-gray-400 uppercase tracking-widest">
-          {format(d, "yyyy")}
-        </span>
-      </div>
-    );
+    let d: Date;
+
+    try {
+      if (date && typeof date.toDate === "function") {
+        d = date.toDate();
+      } else if (date instanceof Date) {
+        d = date;
+      } else if (typeof date === "string") {
+        d = new Date(date);
+        // If standard parsing fails, try specific format from UtilService
+        if (isNaN(d.getTime())) {
+          try {
+            d = parse(date, "dd/MM/yyyy, hh:mm:ss a", new Date());
+          } catch {
+            // ignore
+          }
+        }
+      } else if (date.seconds) {
+        d = new Date(date.seconds * 1000); // Fallback for serialized timestamp
+      } else {
+        d = new Date(date);
+      }
+
+      // Check for Invalid Date
+      if (isNaN(d.getTime())) return "-";
+
+      return (
+        <div className="flex flex-col">
+          <span className="font-bold text-gray-900 leading-none">
+            {format(d, "dd MMM")}
+          </span>
+          <span className="text-[9px] text-gray-400 uppercase tracking-widest">
+            {format(d, "yyyy")}
+          </span>
+        </div>
+      );
+    } catch (e) {
+      console.error("Date parse error", e);
+      return "-";
+    }
   };
 
   // Status Badge Logic - Sharp, Industrial Look

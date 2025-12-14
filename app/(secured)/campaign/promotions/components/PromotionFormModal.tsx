@@ -23,6 +23,7 @@ import { DropdownOption } from "../../../master/products/page";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFnsV3";
+import { parse } from "date-fns";
 
 interface Props {
   open: boolean;
@@ -84,7 +85,15 @@ const PromotionFormModal: React.FC<Props> = ({
         const parseDate = (d: any) => {
           if (!d) return null;
           if (d.toDate) return d.toDate();
-          if (typeof d === "string") return new Date(d);
+          if (typeof d === "string") {
+            const parsed = new Date(d);
+            if (!isNaN(parsed.getTime())) return parsed;
+            try {
+              return parse(d, "dd/MM/yyyy, hh:mm:ss a", new Date());
+            } catch {
+              return null;
+            }
+          }
           if (d.seconds) return new Date(d.seconds * 1000);
           return new Date(d);
         };
@@ -167,13 +176,30 @@ const PromotionFormModal: React.FC<Props> = ({
     if (!formData.name) return showNotification("Name is required", "error");
     if (!startDate) return showNotification("Start date is required", "error");
 
+    // Validations
+    if (endDate && startDate && endDate < startDate) {
+      return showNotification("End date must be after start date", "error");
+    }
+    if (
+      formData.actions?.[0].value === undefined ||
+      formData.actions[0].value <= 0
+    ) {
+      return showNotification("Discount value must be greater than 0", "error");
+    }
+    if ((formData.usageLimit ?? 0) < 0) {
+      return showNotification("Global limit cannot be negative", "error");
+    }
+    if ((formData.perUserLimit ?? 0) < 0) {
+      return showNotification("User limit cannot be negative", "error");
+    }
+
     setSaving(true);
     try {
       const token = await getToken();
       const payload = {
         ...formData,
-        startDate: startDate,
-        endDate: endDate,
+        startDate: startDate ? startDate.toISOString() : null,
+        endDate: endDate ? endDate.toISOString() : null,
         priority: Number(formData.priority),
         usageLimit: Number(formData.usageLimit),
         perUserLimit: Number(formData.perUserLimit),
@@ -183,6 +209,8 @@ const PromotionFormModal: React.FC<Props> = ({
           maxDiscount: a.maxDiscount ? Number(a.maxDiscount) : undefined,
         })),
       };
+
+      console.log("Submitting Payload:", payload); // DEBUG log
 
       if (isEditing && promotion) {
         await axios.put(`/api/v2/promotions/${promotion.id}`, payload, {
@@ -362,6 +390,9 @@ const PromotionFormModal: React.FC<Props> = ({
                             onChange={(date) => setStartDate(date)}
                             className="w-full"
                             slotProps={{
+                              popper: {
+                                sx: { zIndex: 10005 },
+                              },
                               textField: {
                                 fullWidth: true,
                                 size: "small",
@@ -392,6 +423,9 @@ const PromotionFormModal: React.FC<Props> = ({
                             onChange={(date) => setEndDate(date)}
                             className="w-full"
                             slotProps={{
+                              popper: {
+                                sx: { zIndex: 10005 },
+                              },
                               textField: {
                                 fullWidth: true,
                                 size: "small",

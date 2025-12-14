@@ -2,6 +2,7 @@ import { adminFirestore } from "@/firebase/firebaseAdmin";
 import { Promotion, Coupon, CouponUsage } from "@/model";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { nanoid } from "nanoid";
+import { toSafeLocaleString } from "./UtilService";
 
 const PROMOTIONS_COLLECTION = "promotions";
 const COUPONS_COLLECTION = "coupons";
@@ -36,10 +37,17 @@ export const getPromotions = async (
       .get();
     const rowCount = allDocs.size;
 
-    const dataList = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...(doc.data() as Omit<Promotion, "id">),
-    }));
+    const dataList = snapshot.docs.map((doc) => {
+      const data = doc.data() as Omit<Promotion, "id">;
+      return {
+        id: doc.id,
+        ...data,
+        startDate: toSafeLocaleString(data.startDate) || "",
+        endDate: toSafeLocaleString(data.endDate) || "",
+        createdAt: toSafeLocaleString(data.createdAt) || "",
+        updatedAt: toSafeLocaleString(data.updatedAt) || "",
+      };
+    });
 
     return { dataList, rowCount };
   } catch (error) {
@@ -56,6 +64,8 @@ export const createPromotion = async (
 
   const newPromo = {
     ...data,
+    startDate: data.startDate ? new Date(data.startDate as any) : null,
+    endDate: data.endDate ? new Date(data.endDate as any) : null,
     usageCount: 0,
     createdAt: now,
     updatedAt: now,
@@ -73,13 +83,30 @@ export const updatePromotion = async (
   id: string,
   data: Partial<Promotion>
 ): Promise<void> => {
+  // Remove createdAt to prevent overwriting with malformed data
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { createdAt, ...updateData } = data;
+
+  console.log("Updating Promotion ID:", id, "With Data:", updateData); // DEBUG log
+
+  const payload: any = {
+    ...updateData,
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+
+  if (updateData.startDate) {
+    payload.startDate = new Date(updateData.startDate as any);
+    console.log("Converted StartDate:", payload.startDate); // DEBUG
+  }
+  if (updateData.endDate) {
+    payload.endDate = new Date(updateData.endDate as any);
+    console.log("Converted EndDate:", payload.endDate); // DEBUG
+  }
+
   await adminFirestore
     .collection(PROMOTIONS_COLLECTION)
     .doc(id)
-    .update({
-      ...data,
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+    .update(payload);
 };
 
 export const deletePromotion = async (id: string): Promise<void> => {
@@ -94,7 +121,15 @@ export const getPromotionById = async (
     .doc(id)
     .get();
   if (!doc.exists) return null;
-  return { id: doc.id, ...doc.data() } as Promotion;
+  const data = doc.data() as Promotion;
+  return {
+    id: doc.id,
+    ...data,
+    startDate: toSafeLocaleString(data.startDate) || "",
+    endDate: toSafeLocaleString(data.endDate) || "",
+    createdAt: toSafeLocaleString(data.createdAt) || "",
+    updatedAt: toSafeLocaleString(data.updatedAt) || "",
+  } as Promotion; // Cast to Promotion to satisfy strict checks if needed
 };
 
 // --- COUPONS CRUD ---
@@ -118,13 +153,17 @@ export const getCoupons = async (
     .get();
   const rowCount = allDocs.data().count;
 
-  const dataList = snapshot.docs.map(
-    (doc) =>
-      ({
-        id: doc.id,
-        ...doc.data(),
-      } as Coupon)
-  );
+  const dataList = snapshot.docs.map((doc) => {
+    const data = doc.data() as Omit<Coupon, "id">;
+    return {
+      id: doc.id,
+      ...data,
+      startDate: toSafeLocaleString(data.startDate) || "",
+      endDate: toSafeLocaleString(data.endDate) || "",
+      createdAt: toSafeLocaleString(data.createdAt) || "",
+      updatedAt: toSafeLocaleString(data.updatedAt) || "",
+    };
+  });
 
   return { dataList, rowCount };
 };
@@ -146,6 +185,8 @@ export const createCoupon = async (
 
   const newCoupon = {
     ...data,
+    startDate: data.startDate ? new Date(data.startDate as any) : null,
+    endDate: data.endDate ? new Date(data.endDate as any) : null,
     usageCount: 0,
     createdAt: now,
     updatedAt: now,
@@ -159,13 +200,23 @@ export const updateCoupon = async (
   id: string,
   data: Partial<Coupon>
 ): Promise<void> => {
-  await adminFirestore
-    .collection(COUPONS_COLLECTION)
-    .doc(id)
-    .update({
-      ...data,
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+  // Remove createdAt to prevent overwriting with malformed data
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { createdAt, ...updateData } = data;
+
+  const payload: any = {
+    ...updateData,
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+
+  if (updateData.startDate) {
+    payload.startDate = new Date(updateData.startDate as any);
+  }
+  if (updateData.endDate) {
+    payload.endDate = new Date(updateData.endDate as any);
+  }
+
+  await adminFirestore.collection(COUPONS_COLLECTION).doc(id).update(payload);
 };
 
 export const deleteCoupon = async (id: string): Promise<void> => {
@@ -179,8 +230,17 @@ export const getCouponByCode = async (code: string): Promise<Coupon | null> => {
     .limit(1)
     .get();
   if (snapshot.empty) return null;
+  if (snapshot.empty) return null;
   const doc = snapshot.docs[0];
-  return { id: doc.id, ...doc.data() } as Coupon;
+  const data = doc.data() as Coupon;
+  return {
+    id: doc.id,
+    ...data,
+    startDate: toSafeLocaleString(data.startDate) || "",
+    endDate: toSafeLocaleString(data.endDate) || "",
+    createdAt: toSafeLocaleString(data.createdAt) || "",
+    updatedAt: toSafeLocaleString(data.updatedAt) || "",
+  } as Coupon;
 };
 
 // --- VALIDATION & LOGIC (Advanced Phase) ---

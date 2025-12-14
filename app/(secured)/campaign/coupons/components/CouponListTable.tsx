@@ -6,7 +6,7 @@ import {
   IconLoader,
   IconTicket,
 } from "@tabler/icons-react";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 
 interface Props {
   items: Coupon[];
@@ -48,7 +48,36 @@ const CouponListTable: React.FC<Props> = ({
   // Date Formatter - Stacked Industrial Look
   const formatDate = (date: any) => {
     if (!date) return <span className="text-gray-300 font-bold">-</span>;
-    const d = date.seconds ? date.toDate() : new Date(date);
+
+    let d: Date | null = null;
+
+    // Handle Firestore Timestamp
+    if (date.seconds) {
+      d = date.toDate();
+    }
+    // Handle String (ISO or Custom Backend Format)
+    else if (typeof date === "string") {
+      const parsed = new Date(date);
+      if (!isNaN(parsed.getTime())) {
+        d = parsed;
+      } else {
+        try {
+          // Fallback for backend "dd/MM/yyyy, hh:mm:ss a" format
+          d = parse(date, "dd/MM/yyyy, hh:mm:ss a", new Date());
+        } catch {
+          d = null;
+        }
+      }
+    }
+    // Handle Date Object
+    else if (date instanceof Date) {
+      d = date;
+    }
+
+    if (!d || isNaN(d.getTime())) {
+      return <span className="text-gray-300 font-bold">-</span>;
+    }
+
     return (
       <div className="flex flex-col">
         <span className="font-bold text-gray-900 leading-none">

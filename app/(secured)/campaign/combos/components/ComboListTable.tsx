@@ -1,4 +1,5 @@
 import React from "react";
+import { format, parse } from "date-fns";
 import { ComboProduct } from "@/model/ComboProduct";
 import {
   IconEdit,
@@ -33,6 +34,43 @@ const ComboListTable: React.FC<Props> = ({
       </div>
     );
   }
+
+  // Helper function to format dates
+  // Helper function to format dates
+  const formatDate = (date: any) => {
+    if (!date) return "-";
+
+    let d: Date | null = null;
+
+    // Handle Firestore Timestamp
+    if (date.seconds) {
+      d = date.toDate();
+    }
+    // Handle String (ISO or Custom Backend Format)
+    else if (typeof date === "string") {
+      const parsed = new Date(date);
+      if (!isNaN(parsed.getTime())) {
+        d = parsed;
+      } else {
+        try {
+          // Fallback for backend "dd/MM/yyyy, hh:mm:ss a" format
+          d = parse(date, "dd/MM/yyyy, hh:mm:ss a", new Date());
+        } catch {
+          d = null;
+        }
+      }
+    }
+    // Handle Date Object
+    else if (date instanceof Date) {
+      d = date;
+    }
+
+    if (!d || isNaN(d.getTime())) {
+      return "-";
+    }
+
+    return format(d, "MMM dd, yyyy");
+  };
 
   // Empty State - Bold Typography
   if (items.length === 0) {

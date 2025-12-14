@@ -7,9 +7,9 @@ import {
 import { NextRequest, NextResponse } from "next/server";
 
 interface Props {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export const GET = async (req: NextRequest, { params }: Props) => {
@@ -18,7 +18,8 @@ export const GET = async (req: NextRequest, { params }: Props) => {
     if (!user)
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-    const promotion = await getPromotionById(params.id);
+    const { id } = await params;
+    const promotion = await getPromotionById(id);
     if (!promotion) {
       return NextResponse.json(
         { message: "Promotion not found" },
@@ -37,8 +38,9 @@ export const PUT = async (req: NextRequest, { params }: Props) => {
     if (!user)
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
+    const { id } = await params;
     const data = await req.json();
-    await updatePromotion(params.id, data);
+    await updatePromotion(id, data);
 
     return NextResponse.json({ message: "Updated successfully" });
   } catch (error: any) {
@@ -52,7 +54,8 @@ export const DELETE = async (req: NextRequest, { params }: Props) => {
     if (!user)
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-    await deletePromotion(params.id);
+    const { id } = await params;
+    await deletePromotion(id);
     return NextResponse.json({ message: "Deleted successfully" });
   } catch (error: any) {
     return NextResponse.json({ message: error.message }, { status: 500 });

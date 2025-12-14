@@ -16,6 +16,7 @@ import axios from "axios";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFnsV3";
+import { parse } from "date-fns";
 
 interface Props {
   open: boolean;
@@ -70,7 +71,15 @@ const CouponFormModal: React.FC<Props> = ({
         const parseDate = (d: any) => {
           if (!d) return null;
           if (d.toDate) return d.toDate();
-          if (typeof d === "string") return new Date(d);
+          if (typeof d === "string") {
+            const parsed = new Date(d);
+            if (!isNaN(parsed.getTime())) return parsed;
+            try {
+              return parse(d, "dd/MM/yyyy, hh:mm:ss a", new Date());
+            } catch {
+              return null;
+            }
+          }
           if (d.seconds) return new Date(d.seconds * 1000);
           return new Date(d);
         };
@@ -108,13 +117,15 @@ const CouponFormModal: React.FC<Props> = ({
       const payload = {
         ...formData,
         code: formData.code?.toUpperCase(),
-        startDate: startDate,
-        endDate: endDate,
-        discountValue: Number(formData.discountValue),
-        maxDiscount: Number(formData.maxDiscount),
-        minOrderAmount: Number(formData.minOrderAmount),
+        startDate: startDate ? startDate.toISOString() : null,
+        endDate: endDate ? endDate.toISOString() : null,
         usageLimit: Number(formData.usageLimit),
         perUserLimit: Number(formData.perUserLimit),
+        minOrderAmount: Number(formData.minOrderAmount),
+        discountValue: Number(formData.discountValue),
+        maxDiscount: formData.maxDiscount
+          ? Number(formData.maxDiscount)
+          : undefined,
       };
 
       if (isEditing && coupon) {
@@ -259,6 +270,9 @@ const CouponFormModal: React.FC<Props> = ({
                             onChange={(date) => setStartDate(date)}
                             className="w-full"
                             slotProps={{
+                              popper: {
+                                sx: { zIndex: 10005 },
+                              },
                               textField: {
                                 fullWidth: true,
                                 size: "small",
@@ -289,6 +303,9 @@ const CouponFormModal: React.FC<Props> = ({
                             onChange={(date) => setEndDate(date)}
                             className="w-full"
                             slotProps={{
+                              popper: {
+                                sx: { zIndex: 10005 },
+                              },
                               textField: {
                                 fullWidth: true,
                                 size: "small",

@@ -221,9 +221,12 @@ export const addOrder = async (order: Partial<Order>) => {
     // Validate Coupon if exists
     if (fromSource === "website" && order.couponCode) {
       // Calculate true cart total based on DB prices
+      // Calculate true cart total based on DB prices, but respecting item-level discounts (e.g. Comobs)
       const cartTotal = order.items.reduce((acc, item) => {
         const prod = productMap.get(item.itemId);
-        return acc + (prod ? prod.sellingPrice * item.quantity : 0);
+        const price = prod ? prod.sellingPrice : 0;
+        const discount = item.discount || 0;
+        return acc + (price * item.quantity - discount);
       }, 0);
 
       const validation = await validateCoupon(

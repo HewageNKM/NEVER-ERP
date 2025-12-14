@@ -15,19 +15,22 @@ import { Promotion } from "@/model/Promotion";
 import PromotionListTable from "./components/PromotionListTable";
 import PromotionFormModal from "./components/PromotionFormModal"; // Will create next
 import { showNotification } from "@/utils/toast";
+import { useAppSelector } from "@/lib/hooks";
 
 const PromotionsPage = () => {
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, size: 20, total: 0 });
   const [filterStatus, setFilterStatus] = useState<string>("");
+  const { currentUser } = useAppSelector((state) => state.authSlice);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Promotion | null>(null);
 
   useEffect(() => {
+    if (!currentUser) return;
     fetchPromotions();
-  }, [pagination.page, filterStatus]);
+  }, [pagination.page, filterStatus, currentUser]);
 
   const fetchPromotions = async () => {
     setLoading(true);

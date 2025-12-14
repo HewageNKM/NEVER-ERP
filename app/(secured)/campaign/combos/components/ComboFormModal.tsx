@@ -10,7 +10,12 @@ import {
   IconPackage,
   IconCurrencyDollar,
   IconLayersDifference,
+  IconCalendarEvent,
 } from "@tabler/icons-react";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFnsV3";
+import { parse } from "date-fns";
 import { showNotification } from "@/utils/toast";
 import { getToken } from "@/firebase/firebaseClient";
 import axios from "axios";
@@ -50,15 +55,37 @@ const ComboFormModal: React.FC<Props> = ({ open, onClose, onSave, combo }) => {
   const [formData, setFormData] = useState<Partial<ComboProduct>>(emptyCombo);
   const [saving, setSaving] = useState(false);
   const [products, setProducts] = useState<DropdownOption[]>([]);
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
 
   const isEditing = !!combo;
+
+  const parseDate = (d: any) => {
+    if (!d) return null;
+    if (d.toDate) return d.toDate();
+    if (typeof d === "string") {
+      const parsed = new Date(d);
+      if (!isNaN(parsed.getTime())) return parsed;
+      try {
+        return parse(d, "dd/MM/yyyy, hh:mm:ss a", new Date());
+      } catch {
+        return null;
+      }
+    }
+    if (d.seconds) return new Date(d.seconds * 1000);
+    return new Date(d);
+  };
 
   useEffect(() => {
     if (open) {
       if (combo) {
         setFormData({ ...combo });
+        setStartDate(parseDate(combo.startDate));
+        setEndDate(parseDate(combo.endDate));
       } else {
         setFormData({ ...emptyCombo });
+        setStartDate(null);
+        setEndDate(null);
       }
       fetchProducts();
     }
@@ -123,9 +150,26 @@ const ComboFormModal: React.FC<Props> = ({ open, onClose, onSave, combo }) => {
       const token = await getToken();
       const payload = {
         ...formData,
+        startDate: startDate ? startDate.toISOString() : null,
+        endDate: endDate ? endDate.toISOString() : null,
+        items: formData.items.map((i) => ({
+          ...i,
+          quantity: Number(i.quantity),
+          // Clean undefined values
+          variantId: i.variantId || null,
+        })),
         originalPrice: Number(formData.originalPrice),
         comboPrice: Number(formData.comboPrice),
-        savings: Number(formData.originalPrice) - Number(formData.comboPrice),
+        savings: Number(formData.savings),
+        buyQuantity: formData.buyQuantity
+          ? Number(formData.buyQuantity)
+          : undefined,
+        getQuantity: formData.getQuantity
+          ? Number(formData.getQuantity)
+          : undefined,
+        getDiscount: formData.getDiscount
+          ? Number(formData.getDiscount)
+          : undefined,
       };
 
       if (isEditing && combo) {
@@ -251,6 +295,86 @@ const ComboFormModal: React.FC<Props> = ({ open, onClose, onSave, combo }) => {
                           placeholder="BUNDLE DETAILS..."
                         />
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Timeline */}
+                  <div>
+                    <h3 className={styles.sectionTitle}>
+                      <span className="bg-black text-white p-1 mr-2">
+                        <IconCalendarEvent size={14} />
+                      </span>
+                      Validity Period
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <LocalizationProvider dateAdapter={AdapterDateFns}>
+                        <div>
+                          <label className={styles.label}>Start Date</label>
+                          <DatePicker
+                            value={startDate}
+                            onChange={(date) => setStartDate(date)}
+                            className="w-full"
+                            slotProps={{
+                              popper: {
+                                sx: { zIndex: 10005 },
+                              },
+                              textField: {
+                                fullWidth: true,
+                                size: "small",
+                                sx: {
+                                  backgroundColor: "#f5f5f5",
+                                  "& .MuiOutlinedInput-root": {
+                                    borderRadius: "2px",
+                                    "& fieldset": {
+                                      borderColor: "transparent",
+                                      borderWidth: "2px",
+                                    },
+                                    "&:hover fieldset": {
+                                      borderColor: "#e5e5e5",
+                                    },
+                                    "&.Mui-focused fieldset": {
+                                      borderColor: "black",
+                                    },
+                                  },
+                                },
+                              },
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label className={styles.label}>Expiry Date</label>
+                          <DatePicker
+                            value={endDate}
+                            onChange={(date) => setEndDate(date)}
+                            className="w-full"
+                            slotProps={{
+                              popper: {
+                                sx: { zIndex: 10005 },
+                              },
+                              textField: {
+                                fullWidth: true,
+                                size: "small",
+                                sx: {
+                                  backgroundColor: "#f5f5f5",
+                                  "& .MuiOutlinedInput-root": {
+                                    borderRadius: "2px",
+                                    "& fieldset": {
+                                      borderColor: "transparent",
+                                      borderWidth: "2px",
+                                    },
+                                    "&:hover fieldset": {
+                                      borderColor: "#e5e5e5",
+                                    },
+                                    "&.Mui-focused fieldset": {
+                                      borderColor: "black",
+                                    },
+                                  },
+                                },
+                              },
+                            }}
+                          />
+                        </div>
+                      </LocalizationProvider>
                     </div>
                   </div>
 
