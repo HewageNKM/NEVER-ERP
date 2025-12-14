@@ -317,7 +317,7 @@ export async function getInventoryQuantity(
       return {
         id: null,
         quantity: 0,
-      }
+      };
     }
 
     // Return the quantity from the found document
@@ -331,3 +331,79 @@ export async function getInventoryQuantity(
     throw error;
   }
 }
+
+/**
+ * Adds multiple inventory items at once for all sizes of a variant.
+ * This is more efficient than calling addInventory multiple times.
+ */
+export const addBulkInventory = async (
+  productId: string,
+  variantId: string,
+  stockId: string,
+  sizeQuantities: { size: string; quantity: number }[]
+): Promise<{ success: number; failed: number; errors: string[] }> => {
+  const results = { success: 0, failed: 0, errors: [] as string[] };
+
+  // Filter out entries with 0 or negative quantity
+  const validEntries = sizeQuantities.filter((sq) => sq.quantity > 0);
+
+  if (validEntries.length === 0) {
+    return results;
+  }
+
+  // Process each size entry
+  for (const { size, quantity } of validEntries) {
+    try {
+      // Check if item already exists
+      const existingDocId = await findExistingInventoryItem(
+        productId,
+        variantId,
+        size,
+        stockId
+      );
+
+      if (existingDocId) {
+        // Update existing
+        await adminFirestore
+          .collection(INVENTORY_COLLECTION)
+          .doc(existingDocId)
+          .update({
+            quantity: Number(quantity),
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+        console.log(
+          `Updated bulk inventory item ${existingDocId} with quantity ${quantity}`
+        );
+      } else {
+        // Create new
+        const docId = `inv-${nanoid(10)}`;
+        const newItem = {
+          productId,
+          variantId,
+          size,
+          stockId,
+          quantity: Number(quantity),
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        };
+        await adminFirestore
+          .collection(INVENTORY_COLLECTION)
+          .doc(docId)
+          .set(newItem);
+        console.log(`Added bulk inventory item ${docId} for size ${size}`);
+      }
+      results.success++;
+    } catch (error: any) {
+      console.error(`Failed to add inventory for size ${size}:`, error);
+      results.failed++;
+      results.errors.push(`Size ${size}: ${error.message}`);
+    }
+  }
+
+  // Update product stock count once after all entries are processed
+  if (results.success > 0) {
+    await updateProductStockCount(productId);
+  }
+
+  return results;
+};

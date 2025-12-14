@@ -9,6 +9,7 @@ import {
   IconLoader,
   IconChevronLeft,
   IconChevronRight,
+  IconStack2,
 } from "@tabler/icons-react";
 import { getToken } from "@/firebase/firebaseClient";
 import { useAppSelector } from "@/lib/hooks";
@@ -17,6 +18,7 @@ import { DropdownOption } from "../master/products/page";
 import { InventoryItem } from "@/model/InventoryItem";
 import InventoryListTable from "./components/InventoryListTable";
 import InventoryFormModal from "./components/InventoryFormModal";
+import BulkInventoryFormModal from "./components/BulkInventoryFormModal";
 import { showNotification } from "@/utils/toast";
 
 interface StockLocationOption extends DropdownOption {}
@@ -39,8 +41,9 @@ const InventoryPage = () => {
   const { currentUser, loading: authLoading } = useAppSelector(
     (state) => state.authSlice
   );
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
 
   const [loading, setLoading] = useState(false);
@@ -224,13 +227,22 @@ const InventoryPage = () => {
           <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900">
             Stock Management
           </h2>
-          <button
-            onClick={handleOpenCreateModal}
-            className="flex items-center px-5 py-2.5 bg-gray-900 text-white text-sm font-bold uppercase tracking-wide rounded-sm hover:bg-gray-800 transition-all shadow-sm"
-          >
-            <IconPlus size={18} className="mr-2" />
-            Add Stock Entry
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setIsBulkModalOpen(true)}
+              className="flex items-center px-5 py-2.5 bg-gray-700 text-white text-sm font-bold uppercase tracking-wide rounded-sm hover:bg-gray-600 transition-all shadow-sm"
+            >
+              <IconStack2 size={18} className="mr-2" />
+              Bulk Add
+            </button>
+            <button
+              onClick={handleOpenCreateModal}
+              className="flex items-center px-5 py-2.5 bg-gray-900 text-white text-sm font-bold uppercase tracking-wide rounded-sm hover:bg-gray-800 transition-all shadow-sm"
+            >
+              <IconPlus size={18} className="mr-2" />
+              Add Stock Entry
+            </button>
+          </div>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-sm shadow-sm p-6 mb-6">
@@ -404,6 +416,14 @@ const InventoryPage = () => {
         item={editingItem}
         products={products}
         sizes={sizes}
+        stockLocations={stockLocations}
+      />
+
+      <BulkInventoryFormModal
+        open={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
+        onSave={fetchInventory}
+        products={products}
         stockLocations={stockLocations}
       />
     </PageContainer>
