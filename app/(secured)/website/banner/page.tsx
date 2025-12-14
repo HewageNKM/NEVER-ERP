@@ -40,13 +40,14 @@ const BannerCard = ({
   };
 
   return (
-    <div className="group relative w-full sm:w-[320px] bg-white border-2 border-transparent hover:border-black transition-all duration-300">
-      <div className="relative aspect-[1200/628] w-full overflow-hidden">
+    <div className="group relative w-full sm:w-[320px] bg-white border-2 border-transparent hover:border-black transition-all duration-300 shadow-sm hover:shadow-md">
+      <div className="relative aspect-[1200/628] w-full overflow-hidden bg-gray-100">
+        {/* Removed grayscale and group-hover:grayscale-0 */}
         <Image
           src={banner.url}
           alt="Banner Asset"
           fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105 grayscale group-hover:grayscale-0"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
           onError={(e) => console.error("Image failed to load", e)}
         />
 
@@ -54,7 +55,7 @@ const BannerCard = ({
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-start justify-end p-3 opacity-0 group-hover:opacity-100">
           <button
             onClick={handleDelete}
-            className="bg-black text-white w-8 h-8 flex items-center justify-center hover:bg-red-600 transition-colors"
+            className="bg-white text-black w-8 h-8 flex items-center justify-center hover:bg-black hover:text-white transition-colors shadow-sm"
             title="Delete"
           >
             <IconTrash size={16} />
@@ -62,8 +63,8 @@ const BannerCard = ({
         </div>
       </div>
 
-      <div className="p-4 border-t-2 border-transparent group-hover:border-black bg-white transition-colors">
-        <p className="text-[10px] font-mono text-gray-400 uppercase truncate tracking-widest group-hover:text-black">
+      <div className="p-4 border-t border-gray-100 bg-white transition-colors">
+        <p className="text-[10px] font-mono text-gray-500 uppercase truncate tracking-widest group-hover:text-black">
           {banner.file || "UNTITLED_ASSET"}
         </p>
       </div>
@@ -148,11 +149,11 @@ const BannerForm = ({ onSuccess }: { onSuccess: () => void }) => {
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full max-w-2xl bg-white border-2 border-gray-200 p-8"
+      className="w-full max-w-2xl bg-white border-2 border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow"
     >
       <div className="flex flex-col gap-6">
         <div
-          className={`w-full aspect-[2/1] border-2 border-dashed flex items-center justify-center cursor-pointer relative overflow-hidden transition-all group ${
+          className={`w-full aspect-[1200/628] border-2 border-dashed flex items-center justify-center cursor-pointer relative overflow-hidden transition-all group ${
             selectedFile
               ? "border-black bg-white"
               : "border-gray-300 hover:border-black hover:bg-white"
@@ -220,7 +221,7 @@ const BannerForm = ({ onSuccess }: { onSuccess: () => void }) => {
           <button
             type="submit"
             disabled={isLoading || !selectedFile}
-            className="flex items-center justify-center px-8 py-3 bg-black text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+            className="flex items-center justify-center px-8 py-3 bg-black text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
           >
             {isLoading ? (
               <IconLoader className="animate-spin" size={16} />
@@ -274,7 +275,7 @@ const BannerPage = () => {
   };
 
   return (
-    <div className="flex flex-col gap-12 w-full">
+    <div className="flex flex-col gap-12 w-full animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
       <div className="space-y-6">
         <div className="flex items-center justify-between border-b-2 border-black pb-4">
           <h3 className="text-xl font-black uppercase tracking-tighter text-black">
@@ -286,20 +287,21 @@ const BannerPage = () => {
         </div>
 
         {isLoading && (
-          <div className="relative h-64 w-full border-2 border-dashed border-gray-200">
-            <ComponentsLoader title="LOADING ASSETS" position="absolute" />
+          <div className="relative h-64 w-full">
+            <ComponentsLoader title="LOADING ASSETS" />
           </div>
         )}
 
         {!isLoading && banners.length === 0 && (
           <EmptyState
             title="NO ASSETS FOUND"
-            subtitle="Upload a banner to initialize the slider."
+            subtitle="Upload a banner below to initialize the slider."
           />
         )}
 
         {!isLoading && banners.length > 0 && (
-          <div className="flex flex-wrap gap-6">
+          // Changed from Flex wrap to Grid for better layout stability
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {banners.map(
               (banner: { file: string; url: string; id: string }) => (
                 <BannerCard

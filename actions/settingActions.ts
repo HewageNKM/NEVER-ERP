@@ -6,7 +6,7 @@ export const addBannerAction = async (data: FormData) => {
     const token = await getToken();
     const response = await axios({
       method: "POST",
-      url: `/api/v1/setting/banners`,
+      url: `/api/v2/settings/ecom-web/banners`,
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "multipart/form-data",
@@ -25,7 +25,7 @@ export const getBannersAction = async () => {
     const token = await getToken();
     const response = await axios({
       method: "GET",
-      url: `/api/v1/setting/banners`,
+      url: `/api/v2/settings/ecom-web/banners`,
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -42,7 +42,7 @@ export const deleteBannerAction = async (id: string) => {
     const token = await getToken();
     const response = await axios({
       method: "DELETE",
-      url: `/api/v1/setting/banners/${id}`,
+      url: `/api/v2/settings/ecom-web/banners/${id}`,
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -61,7 +61,7 @@ export const addPromotionAction = async (data: FormData) => {
     const token = await getToken();
     const response = await axios({
       method: "POST",
-      url: `/api/v1/setting/promotions`,
+      url: `/api/v2/settings/ecom-web/promotions`,
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "multipart/form-data",
@@ -80,7 +80,7 @@ export const getPromotionsAction = async () => {
     const token = await getToken();
     const response = await axios({
       method: "GET",
-      url: `/api/v1/setting/promotions`,
+      url: `/api/v2/settings/ecom-web/promotions`,
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -97,7 +97,7 @@ export const deletePromotionAction = async (id: string) => {
     const token = await getToken();
     const response = await axios({
       method: "DELETE",
-      url: `/api/v1/setting/promotions/${id}`,
+      url: `/api/v2/settings/ecom-web/promotions/${id}`,
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -116,7 +116,7 @@ export const getNavigationAction = async () => {
     const token = await getToken();
     const response = await axios({
       method: "GET",
-      url: `/api/v1/setting/navigation`,
+      url: `/api/v2/settings/ecom-web/navigation`,
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -133,7 +133,7 @@ export const saveNavigationAction = async (data: any) => {
     const token = await getToken();
     const response = await axios({
       method: "POST",
-      url: `/api/v1/setting/navigation`,
+      url: `/api/v2/settings/ecom-web/navigation`,
       headers: {
         Authorization: `Bearer ${token}`,
       },

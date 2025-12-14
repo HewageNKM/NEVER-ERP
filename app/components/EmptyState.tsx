@@ -17,7 +17,7 @@ const EmptyState = ({
 
       {/* Typography */}
       <div className="max-w-md space-y-2">
-        <h3 className="text-3xl font-black text-black uppercase tracking-tighter italic leading-none">
+        <h3 className="text-3xl font-black text-black uppercase tracking-tighter leading-none">
           {title}
         </h3>
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">
