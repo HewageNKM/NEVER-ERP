@@ -9,6 +9,9 @@ import {
   IconWorld,
   IconCash,
   IconReceipt,
+  IconTag,
+  IconTicket,
+  IconSpeakerphone,
 } from "@tabler/icons-react";
 import { uniqueId } from "lodash";
 
@@ -75,6 +78,32 @@ const Menuitems = [
       // Future submenus:
       // { id: uniqueId(), title: "Expenses", href: "/finance/expenses" },
       // { id: uniqueId(), title: "Invoices", href: "/finance/invoices" },
+    ],
+  },
+  {
+    subHeader: "Marketing",
+    navLabel: true,
+  },
+  {
+    id: uniqueId(),
+    title: "Campaign",
+    icon: IconSpeakerphone,
+    children: [
+      {
+        id: uniqueId(),
+        title: "Promotions",
+        href: "/campaign/promotions",
+      },
+      {
+        id: uniqueId(),
+        title: "Coupons",
+        href: "/campaign/coupons",
+      },
+      {
+        id: uniqueId(),
+        title: "Combos",
+        href: "/campaign/combos",
+      },
     ],
   },
   {

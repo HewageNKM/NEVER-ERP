@@ -1,48 +1,57 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import PageContainer from "@/components/layout/PageContainer";
+import PageContainer from "../../components/container/PageContainer";
 import {
   IconPlus,
+  IconSearch,
+  IconLoader,
   IconChevronLeft,
   IconChevronRight,
 } from "@tabler/icons-react";
 import { getToken } from "@/firebase/firebaseClient";
 import axios from "axios";
-import { ComboProduct } from "@/model/ComboProduct";
-import ComboListTable from "./components/ComboListTable";
-import ComboFormModal from "./components/ComboFormModal"; // Will create next
+import { Promotion } from "@/model/Promotion";
+import PromotionListTable from "./components/PromotionListTable";
+import PromotionFormModal from "./components/PromotionFormModal"; // Will create next
 import { showNotification } from "@/utils/toast";
 
-const CombosPage = () => {
-  const [combos, setCombos] = useState<ComboProduct[]>([]);
+const PromotionsPage = () => {
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, size: 20, total: 0 });
+  const [filterStatus, setFilterStatus] = useState<string>("");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<ComboProduct | null>(null);
+  const [editingItem, setEditingItem] = useState<Promotion | null>(null);
 
   useEffect(() => {
-    fetchCombos();
-  }, [pagination.page]);
+    fetchPromotions();
+  }, [pagination.page, filterStatus]);
 
-  const fetchCombos = async () => {
+  const fetchPromotions = async () => {
     setLoading(true);
     try {
       const token = await getToken();
-      const response = await axios.get("/api/v2/combos", {
+      const params: any = {
+        page: pagination.page,
+        size: pagination.size,
+      };
+      if (filterStatus) params.status = filterStatus;
+
+      const response = await axios.get("/api/v2/promotions", {
         headers: { Authorization: `Bearer ${token}` },
-        params: { page: pagination.page, size: pagination.size },
+        params,
       });
 
-      setCombos(response.data.dataList || []);
+      setPromotions(response.data.dataList || []);
       setPagination((prev) => ({
         ...prev,
         total: response.data.rowCount || 0,
       }));
     } catch (e: any) {
-      console.error("Failed to fetch combos", e);
-      showNotification("Failed to fetch combos", "error");
+      console.error("Failed to fetch promotions", e);
+      showNotification("Failed to fetch promotions", "error");
     } finally {
       setLoading(false);
     }
@@ -53,7 +62,7 @@ const CombosPage = () => {
     setIsModalOpen(true);
   };
 
-  const handleOpenEditModal = (item: ComboProduct) => {
+  const handleOpenEditModal = (item: Promotion) => {
     setEditingItem(item);
     setIsModalOpen(true);
   };
@@ -65,22 +74,20 @@ const CombosPage = () => {
 
   const handleSave = () => {
     handleCloseModal();
-    fetchCombos();
+    fetchPromotions();
   };
 
-  const handleDelete = async (item: ComboProduct) => {
-    if (
-      !window.confirm(`Are you sure you want to delete combo "${item.name}"?`)
-    )
+  const handleDelete = async (item: Promotion) => {
+    if (!window.confirm(`Are you sure you want to delete "${item.name}"?`))
       return;
 
     try {
       const token = await getToken();
-      await axios.delete(`/api/v2/combos/${item.id}`, {
+      await axios.delete(`/api/v2/promotions/${item.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      showNotification("Combo deleted", "success");
-      fetchCombos();
+      showNotification("Promotion deleted", "success");
+      fetchPromotions();
     } catch (e) {
       console.error("Delete failed", e);
       showNotification("Failed to delete", "error");
@@ -89,26 +96,40 @@ const CombosPage = () => {
 
   return (
     <PageContainer
-      title="Combo Products"
-      description="Manage product bundles and deals"
+      title="Promotions"
+      description="Manage promotional campaigns"
     >
       <div className="w-full">
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
           <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900">
-            Combo Products
+            Promotions
           </h2>
           <button
             onClick={handleOpenCreateModal}
             className="flex items-center px-5 py-2.5 bg-gray-900 text-white text-sm font-bold uppercase tracking-wide rounded-sm hover:bg-gray-800 transition-all shadow-sm"
           >
             <IconPlus size={18} className="mr-2" />
-            Create Combo
+            Create Promotion
           </button>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-sm shadow-sm p-6 mb-6">
-          <ComboListTable
-            items={combos}
+          {/* Filters */}
+          <div className="flex gap-4 mb-6">
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gray-900"
+            >
+              <option value="">All Statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+              <option value="SCHEDULED">Scheduled</option>
+            </select>
+          </div>
+
+          <PromotionListTable
+            items={promotions}
             loading={loading}
             onEdit={handleOpenEditModal}
             onDelete={handleDelete}
@@ -139,7 +160,7 @@ const CombosPage = () => {
                     page: prev.page + 1,
                   }))
                 }
-                disabled={loading || combos.length < pagination.size}
+                disabled={loading || promotions.length < pagination.size} // Simple check
                 className="p-2 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
               >
                 <IconChevronRight size={18} />
@@ -149,14 +170,14 @@ const CombosPage = () => {
         </div>
       </div>
 
-      <ComboFormModal
+      <PromotionFormModal
         open={isModalOpen}
         onClose={handleCloseModal}
         onSave={handleSave}
-        combo={editingItem}
+        promotion={editingItem}
       />
     </PageContainer>
   );
 };
 
-export default CombosPage;
+export default PromotionsPage;

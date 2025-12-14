@@ -1,57 +1,48 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import PageContainer from "@/components/layout/PageContainer";
+import PageContainer from "../../components/container/PageContainer";
 import {
   IconPlus,
-  IconSearch,
-  IconLoader,
   IconChevronLeft,
   IconChevronRight,
 } from "@tabler/icons-react";
 import { getToken } from "@/firebase/firebaseClient";
 import axios from "axios";
-import { Promotion } from "@/model/Promotion";
-import PromotionListTable from "./components/PromotionListTable";
-import PromotionFormModal from "./components/PromotionFormModal"; // Will create next
+import { Coupon } from "@/model/Coupon";
+import CouponListTable from "./components/CouponListTable";
+import CouponFormModal from "./components/CouponFormModal"; // Will create next
 import { showNotification } from "@/utils/toast";
 
-const PromotionsPage = () => {
-  const [promotions, setPromotions] = useState<Promotion[]>([]);
+const CouponsPage = () => {
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, size: 20, total: 0 });
-  const [filterStatus, setFilterStatus] = useState<string>("");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<Promotion | null>(null);
+  const [editingItem, setEditingItem] = useState<Coupon | null>(null);
 
   useEffect(() => {
-    fetchPromotions();
-  }, [pagination.page, filterStatus]);
+    fetchCoupons();
+  }, [pagination.page]);
 
-  const fetchPromotions = async () => {
+  const fetchCoupons = async () => {
     setLoading(true);
     try {
       const token = await getToken();
-      const params: any = {
-        page: pagination.page,
-        size: pagination.size,
-      };
-      if (filterStatus) params.status = filterStatus;
-
-      const response = await axios.get("/api/v2/promotions", {
+      const response = await axios.get("/api/v2/coupons", {
         headers: { Authorization: `Bearer ${token}` },
-        params,
+        params: { page: pagination.page, size: pagination.size },
       });
 
-      setPromotions(response.data.dataList || []);
+      setCoupons(response.data.dataList || []);
       setPagination((prev) => ({
         ...prev,
         total: response.data.rowCount || 0,
       }));
     } catch (e: any) {
-      console.error("Failed to fetch promotions", e);
-      showNotification("Failed to fetch promotions", "error");
+      console.error("Failed to fetch coupons", e);
+      showNotification("Failed to fetch coupons", "error");
     } finally {
       setLoading(false);
     }
@@ -62,7 +53,7 @@ const PromotionsPage = () => {
     setIsModalOpen(true);
   };
 
-  const handleOpenEditModal = (item: Promotion) => {
+  const handleOpenEditModal = (item: Coupon) => {
     setEditingItem(item);
     setIsModalOpen(true);
   };
@@ -74,20 +65,22 @@ const PromotionsPage = () => {
 
   const handleSave = () => {
     handleCloseModal();
-    fetchPromotions();
+    fetchCoupons();
   };
 
-  const handleDelete = async (item: Promotion) => {
-    if (!window.confirm(`Are you sure you want to delete "${item.name}"?`))
+  const handleDelete = async (item: Coupon) => {
+    if (
+      !window.confirm(`Are you sure you want to delete coupon "${item.code}"?`)
+    )
       return;
 
     try {
       const token = await getToken();
-      await axios.delete(`/api/v2/promotions/${item.id}`, {
+      await axios.delete(`/api/v2/coupons/${item.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      showNotification("Promotion deleted", "success");
-      fetchPromotions();
+      showNotification("Coupon deleted", "success");
+      fetchCoupons();
     } catch (e) {
       console.error("Delete failed", e);
       showNotification("Failed to delete", "error");
@@ -95,41 +88,24 @@ const PromotionsPage = () => {
   };
 
   return (
-    <PageContainer
-      title="Promotions"
-      description="Manage promotional campaigns"
-    >
+    <PageContainer title="Coupons" description="Manage discount codes">
       <div className="w-full">
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
           <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900">
-            Promotions
+            Coupons
           </h2>
           <button
             onClick={handleOpenCreateModal}
             className="flex items-center px-5 py-2.5 bg-gray-900 text-white text-sm font-bold uppercase tracking-wide rounded-sm hover:bg-gray-800 transition-all shadow-sm"
           >
             <IconPlus size={18} className="mr-2" />
-            Create Promotion
+            Create Coupon
           </button>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-sm shadow-sm p-6 mb-6">
-          {/* Filters */}
-          <div className="flex gap-4 mb-6">
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-sm text-sm focus:outline-none focus:ring-1 focus:ring-gray-900"
-            >
-              <option value="">All Statuses</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="SCHEDULED">Scheduled</option>
-            </select>
-          </div>
-
-          <PromotionListTable
-            items={promotions}
+          <CouponListTable
+            items={coupons}
             loading={loading}
             onEdit={handleOpenEditModal}
             onDelete={handleDelete}
@@ -160,7 +136,7 @@ const PromotionsPage = () => {
                     page: prev.page + 1,
                   }))
                 }
-                disabled={loading || promotions.length < pagination.size} // Simple check
+                disabled={loading || coupons.length < pagination.size}
                 className="p-2 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
               >
                 <IconChevronRight size={18} />
@@ -170,14 +146,14 @@ const PromotionsPage = () => {
         </div>
       </div>
 
-      <PromotionFormModal
+      <CouponFormModal
         open={isModalOpen}
         onClose={handleCloseModal}
         onSave={handleSave}
-        promotion={editingItem}
+        coupon={editingItem}
       />
     </PageContainer>
   );
 };
 
-export default PromotionsPage;
+export default CouponsPage;

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import PageContainer from "@/components/layout/PageContainer";
 import {
   IconPlus,
   IconChevronLeft,
@@ -9,40 +8,41 @@ import {
 } from "@tabler/icons-react";
 import { getToken } from "@/firebase/firebaseClient";
 import axios from "axios";
-import { Coupon } from "@/model/Coupon";
-import CouponListTable from "./components/CouponListTable";
-import CouponFormModal from "./components/CouponFormModal"; // Will create next
+import { ComboProduct } from "@/model/ComboProduct";
+import ComboListTable from "./components/ComboListTable";
+import ComboFormModal from "./components/ComboFormModal"; // Will create next
 import { showNotification } from "@/utils/toast";
+import PageContainer from "../../components/container/PageContainer";
 
-const CouponsPage = () => {
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
+const CombosPage = () => {
+  const [combos, setCombos] = useState<ComboProduct[]>([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, size: 20, total: 0 });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<Coupon | null>(null);
+  const [editingItem, setEditingItem] = useState<ComboProduct | null>(null);
 
   useEffect(() => {
-    fetchCoupons();
+    fetchCombos();
   }, [pagination.page]);
 
-  const fetchCoupons = async () => {
+  const fetchCombos = async () => {
     setLoading(true);
     try {
       const token = await getToken();
-      const response = await axios.get("/api/v2/coupons", {
+      const response = await axios.get("/api/v2/combos", {
         headers: { Authorization: `Bearer ${token}` },
         params: { page: pagination.page, size: pagination.size },
       });
 
-      setCoupons(response.data.dataList || []);
+      setCombos(response.data.dataList || []);
       setPagination((prev) => ({
         ...prev,
         total: response.data.rowCount || 0,
       }));
     } catch (e: any) {
-      console.error("Failed to fetch coupons", e);
-      showNotification("Failed to fetch coupons", "error");
+      console.error("Failed to fetch combos", e);
+      showNotification("Failed to fetch combos", "error");
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ const CouponsPage = () => {
     setIsModalOpen(true);
   };
 
-  const handleOpenEditModal = (item: Coupon) => {
+  const handleOpenEditModal = (item: ComboProduct) => {
     setEditingItem(item);
     setIsModalOpen(true);
   };
@@ -65,22 +65,22 @@ const CouponsPage = () => {
 
   const handleSave = () => {
     handleCloseModal();
-    fetchCoupons();
+    fetchCombos();
   };
 
-  const handleDelete = async (item: Coupon) => {
+  const handleDelete = async (item: ComboProduct) => {
     if (
-      !window.confirm(`Are you sure you want to delete coupon "${item.code}"?`)
+      !window.confirm(`Are you sure you want to delete combo "${item.name}"?`)
     )
       return;
 
     try {
       const token = await getToken();
-      await axios.delete(`/api/v2/coupons/${item.id}`, {
+      await axios.delete(`/api/v2/combos/${item.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      showNotification("Coupon deleted", "success");
-      fetchCoupons();
+      showNotification("Combo deleted", "success");
+      fetchCombos();
     } catch (e) {
       console.error("Delete failed", e);
       showNotification("Failed to delete", "error");
@@ -88,24 +88,27 @@ const CouponsPage = () => {
   };
 
   return (
-    <PageContainer title="Coupons" description="Manage discount codes">
+    <PageContainer
+      title="Combo Products"
+      description="Manage product bundles and deals"
+    >
       <div className="w-full">
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
           <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900">
-            Coupons
+            Combo Products
           </h2>
           <button
             onClick={handleOpenCreateModal}
             className="flex items-center px-5 py-2.5 bg-gray-900 text-white text-sm font-bold uppercase tracking-wide rounded-sm hover:bg-gray-800 transition-all shadow-sm"
           >
             <IconPlus size={18} className="mr-2" />
-            Create Coupon
+            Create Combo
           </button>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-sm shadow-sm p-6 mb-6">
-          <CouponListTable
-            items={coupons}
+          <ComboListTable
+            items={combos}
             loading={loading}
             onEdit={handleOpenEditModal}
             onDelete={handleDelete}
@@ -136,7 +139,7 @@ const CouponsPage = () => {
                     page: prev.page + 1,
                   }))
                 }
-                disabled={loading || coupons.length < pagination.size}
+                disabled={loading || combos.length < pagination.size}
                 className="p-2 border border-gray-200 rounded-sm hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
               >
                 <IconChevronRight size={18} />
@@ -146,14 +149,14 @@ const CouponsPage = () => {
         </div>
       </div>
 
-      <CouponFormModal
+      <ComboFormModal
         open={isModalOpen}
         onClose={handleCloseModal}
         onSave={handleSave}
-        coupon={editingItem}
+        combo={editingItem}
       />
     </PageContainer>
   );
 };
 
-export default CouponsPage;
+export default CombosPage;
