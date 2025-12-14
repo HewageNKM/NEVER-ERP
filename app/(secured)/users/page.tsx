@@ -267,7 +267,7 @@ const SummaryCard = ({
   title,
   value,
   icon: Icon,
-  color, // Unused in strict black/white theme, kept for interface compat or specific highlights
+  color,
 }: {
   title: string;
   value: number;
@@ -446,19 +446,21 @@ const UsersPage = () => {
   return (
     <PageContainer title="Users" description="Users Management">
       <div className="w-full space-y-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b-2 border-black pb-6">
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1 flex items-center gap-2">
+        {/* Header - Fixed Mobile Layout */}
+        <div className="flex flex-row justify-between items-end gap-4 border-b-2 border-black pb-6">
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase flex items-center gap-2">
               <IconUsers size={14} /> System Administration
             </span>
-            <h2 className="text-4xl font-black text-black uppercase tracking-tighter leading-none">
-              User Management
-            </h2>
+            <div className="flex flex-wrap items-baseline gap-2 sm:gap-3">
+              <h2 className="text-3xl sm:text-4xl font-black text-black uppercase tracking-tighter leading-none">
+                User Management
+              </h2>
+            </div>
           </div>
           <button
             onClick={() => fetchUsers()}
-            className="w-10 h-10 flex items-center justify-center bg-white border-2 border-black text-black hover:bg-black hover:text-white transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
+            className="shrink-0 w-10 h-10 flex items-center justify-center bg-white border-2 border-black text-black hover:bg-black hover:text-white transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
             title="Refresh List"
           >
             <IconRefresh size={18} stroke={2.5} />
@@ -513,7 +515,7 @@ const UsersPage = () => {
               </select>
             </div>
 
-            {/* Anonymous Toggle - Custom Switch Style */}
+            {/* Anonymous Toggle */}
             <div className="md:col-span-2 flex items-center justify-between p-3 border-2 border-transparent bg-[#f5f5f5] hover:border-gray-200 transition-colors h-[48px]">
               <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
                 {showAnonymous ? "Anonymous" : "Registered"}
@@ -580,7 +582,8 @@ const UsersPage = () => {
 
         {/* Table */}
         <div className="bg-white border border-gray-200 overflow-hidden">
-          <div className="flex justify-between items-center p-6 border-b border-gray-100">
+          {/* Fixed Directory Header - Mobile Optimized with Icons */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 sm:p-6 border-b border-gray-100">
             <div className="flex items-center gap-4">
               <h3 className="text-lg font-black uppercase tracking-tighter text-black">
                 Directory
@@ -589,13 +592,14 @@ const UsersPage = () => {
                 {displayedUsers.length} / {totalUsers}
               </span>
             </div>
-            <div className="flex items-center gap-2">
+
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-3 w-full sm:w-auto">
               <button
                 onClick={handleExport}
                 disabled={!displayedUsers.length}
-                className={`${styles.secondaryBtn} py-2 px-4 border-gray-200 hover:border-black text-gray-600 hover:text-black disabled:opacity-50`}
+                className={`${styles.secondaryBtn} w-full sm:w-auto px-3 py-3 sm:px-4 sm:py-2 border-gray-200 hover:border-black text-gray-600 hover:text-black disabled:opacity-50 flex items-center justify-center whitespace-nowrap`}
               >
-                <IconDownload size={16} className="mr-2" />
+                <IconDownload size={16} className="mr-2 shrink-0" />
                 Export
               </button>
               <button
@@ -603,9 +607,9 @@ const UsersPage = () => {
                   setSelectedUser(null);
                   setShowUserForm(true);
                 }}
-                className={`${styles.primaryBtn} py-2 px-4 shadow-none hover:shadow-lg`}
+                className={`${styles.primaryBtn} w-full sm:w-auto px-3 py-3 sm:px-4 sm:py-2 shadow-none hover:shadow-lg flex items-center justify-center whitespace-nowrap`}
               >
-                <IconPlus size={16} className="mr-2" />
+                <IconPlus size={16} className="mr-2 shrink-0" />
                 Add User
               </button>
             </div>

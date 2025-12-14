@@ -153,23 +153,24 @@ const OrdersPage = () => {
     <PageContainer title="Orders" description="Manage Customer Orders">
       <div className="w-full space-y-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b-2 border-black pb-6">
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1 flex items-center gap-2">
+        <div className="flex flex-row justify-between items-end gap-4 border-b-2 border-black pb-6">
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase flex items-center gap-2">
               <IconBoxSeam size={14} /> Order Management
             </span>
-            <div className="flex items-baseline gap-3">
-              <h2 className="text-4xl font-black text-black uppercase tracking-tighter leading-none">
+            <div className="flex flex-wrap items-baseline gap-2 sm:gap-3">
+              <h2 className="text-3xl sm:text-4xl font-black text-black uppercase tracking-tighter leading-none">
                 Orders
               </h2>
-              <span className="text-sm font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-sm">
+              <span className="text-xs sm:text-sm font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-sm whitespace-nowrap">
                 {totalItems} Total
               </span>
             </div>
           </div>
+
           <button
             onClick={fetchOrders}
-            className="w-10 h-10 flex items-center justify-center bg-white border-2 border-black text-black hover:bg-black hover:text-white transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
+            className="shrink-0 w-10 h-10 flex items-center justify-center bg-white border-2 border-black text-black hover:bg-black hover:text-white transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
             title="Refresh List"
           >
             <IconRefresh size={18} stroke={2.5} />
