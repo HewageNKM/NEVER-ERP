@@ -190,6 +190,7 @@ interface CartItem {
   variantId?: string;
   quantity: number;
   price: number;
+  discount?: number;
 }
 
 /**

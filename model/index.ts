@@ -231,6 +231,7 @@ export interface OrderItem {
   quantity: number;
   price: number;
   discount: number;
+  itemType?: "PRODUCT" | "COMBO";
 }
 
 export interface Error {
