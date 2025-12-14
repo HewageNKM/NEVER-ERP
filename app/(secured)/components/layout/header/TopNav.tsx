@@ -49,7 +49,7 @@ const TopNav = () => {
   const activeItem = Menuitems.find((item: any) => item.id === activeDropdown);
 
   return (
-    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-light-gray h-16 transition-all duration-300">
+    <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-light-gray h-16 transition-all duration-300">
       <div className="h-full px-4 sm:px-6 flex items-center justify-between max-w-[1920px] mx-auto gap-4 relative">
         {/* Logo */}
         <div className="flex-shrink-0">
@@ -137,11 +137,11 @@ const TopNav = () => {
                 position: "fixed",
                 left: dropdownPos.left,
                 top: dropdownPos.top,
-                zIndex: 1000,
+                zIndex: 30,
               }}
               className="w-56 bg-white border border-gray-200 rounded-sm shadow-2xl p-2 mt-1"
             >
-              {activeItem.children.map((child: any) => (
+              {activeItem.children?.map((child: any) => (
                 <Link
                   key={child.id}
                   href={child.href}

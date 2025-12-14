@@ -226,7 +226,7 @@ const BulkInventoryFormModal: React.FC<BulkInventoryFormModalProps> = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
       <div className="bg-white w-full max-w-2xl rounded-sm shadow-xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
         <div className="flex justify-between items-center p-6 border-b border-gray-100">
           <div className="flex items-center gap-3">

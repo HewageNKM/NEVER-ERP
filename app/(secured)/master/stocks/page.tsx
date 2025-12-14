@@ -30,7 +30,6 @@ const StockPage: React.FC = () => {
     (state) => state.authSlice
   );
 
-  
   const { showConfirmation } = useConfirmationDialog();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -378,7 +377,7 @@ const StockPage: React.FC = () => {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-white w-full max-w-md rounded-sm shadow-xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center p-6 border-b border-gray-100">
               <h2 className="text-xl font-bold uppercase tracking-wide text-gray-900">

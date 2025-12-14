@@ -28,7 +28,7 @@ const BrandPage: React.FC = () => {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
   const [pagination, setPagination] = useState({ page: 1, size: 10, total: 0 });
-  
+
   const { showConfirmation } = useConfirmationDialog();
 
   const { currentUser, loading: authLoading } = useAppSelector(
@@ -412,7 +412,7 @@ const BrandPage: React.FC = () => {
 
       {/* --- ADD/EDIT MODAL --- */}
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-white w-full max-w-md rounded-sm shadow-xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center p-6 border-b border-gray-100">
               <h2 className="text-xl font-bold uppercase tracking-wide text-gray-900">

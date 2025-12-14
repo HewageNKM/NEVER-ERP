@@ -5,9 +5,10 @@ import {
   IconUsersGroup,
   IconLayoutDashboard,
   IconList,
-  IconFileInvoice,
   IconSettings,
   IconWorld,
+  IconCash,
+  IconReceipt,
 } from "@tabler/icons-react";
 import { uniqueId } from "lodash";
 
@@ -67,9 +68,14 @@ const Menuitems = [
   },
   {
     id: uniqueId(),
-    title: "Petty Cash",
-    icon: IconFileInvoice,
-    href: "/petty-cash",
+    title: "Finance",
+    icon: IconCash,
+    children: [
+      { id: uniqueId(), title: "Petty Cash", href: "/petty-cash" },
+      // Future submenus:
+      // { id: uniqueId(), title: "Expenses", href: "/finance/expenses" },
+      // { id: uniqueId(), title: "Invoices", href: "/finance/invoices" },
+    ],
   },
   {
     subHeader: "Website",

@@ -62,7 +62,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [editingVariantIndex, setEditingVariantIndex] = useState<number | null>(
     null
   );
-  
+
   const [errors, setErrors] = useState<ProductErrors>({});
   const isEditing = !!product;
 
@@ -230,7 +230,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
         {/* Modal Container */}
         <div className="bg-white w-full max-w-4xl rounded-sm shadow-xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
           {/* Header */}

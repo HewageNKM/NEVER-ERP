@@ -83,7 +83,7 @@ const StockFormModal: React.FC<LocationFormModalProps> = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-md rounded-sm shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-gray-100">
