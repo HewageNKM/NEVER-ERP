@@ -14,6 +14,7 @@ import ComboFormModal from "./components/ComboFormModal"; // Will create next
 import { showNotification } from "@/utils/toast";
 import PageContainer from "../../components/container/PageContainer";
 import { useAppSelector } from "@/lib/hooks";
+import { useConfirmationDialog } from "@/contexts/ConfirmationDialogContext";
 
 const CombosPage = () => {
   const [combos, setCombos] = useState<ComboProduct[]>([]);
@@ -22,6 +23,7 @@ const CombosPage = () => {
   const { currentUser } = useAppSelector((state) => state.authSlice);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ComboProduct | null>(null);
+  const { showConfirmation } = useConfirmationDialog();
 
   useEffect(() => {
     if (!currentUser) return;
@@ -71,22 +73,25 @@ const CombosPage = () => {
   };
 
   const handleDelete = async (item: ComboProduct) => {
-    if (
-      !window.confirm(`Are you sure you want to delete combo "${item.name}"?`)
-    )
-      return;
-
-    try {
-      const token = await getToken();
-      await axios.delete(`/api/v2/combos/${item.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      showNotification("Combo deleted", "success");
-      fetchCombos();
-    } catch (e) {
-      console.error("Delete failed", e);
-      showNotification("Failed to delete", "error");
-    }
+    showConfirmation({
+      title: "Delete Combo?",
+      message: `Are you sure you want to delete combo "${item.name}"?`,
+      variant: "danger",
+      confirmText: "Delete",
+      onSuccess: async () => {
+        try {
+          const token = await getToken();
+          await axios.delete(`/api/v2/combos/${item.id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          showNotification("Combo deleted", "success");
+          fetchCombos();
+        } catch (e) {
+          console.error("Delete failed", e);
+          showNotification("Failed to delete", "error");
+        }
+      },
+    });
   };
 
   return (

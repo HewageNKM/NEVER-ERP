@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { useConfirmationDialog } from "@/contexts/ConfirmationDialogContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { ComboProduct, ComboItem } from "@/model/ComboProduct";
 import {
@@ -65,6 +66,7 @@ const ComboFormModal: React.FC<Props> = ({ open, onClose, onSave, combo }) => {
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<string>("");
+  const { showConfirmation } = useConfirmationDialog();
 
   const isEditing = !!combo;
 

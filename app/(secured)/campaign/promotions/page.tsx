@@ -14,6 +14,7 @@ import PromotionListTable from "./components/PromotionListTable";
 import PromotionFormModal from "./components/PromotionFormModal"; // Will create next
 import { showNotification } from "@/utils/toast";
 import { useAppSelector } from "@/lib/hooks";
+import { useConfirmationDialog } from "@/contexts/ConfirmationDialogContext";
 
 const PromotionsPage = () => {
   const [promotions, setPromotions] = useState<Promotion[]>([]);
@@ -24,6 +25,7 @@ const PromotionsPage = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Promotion | null>(null);
+  const { showConfirmation } = useConfirmationDialog();
 
   useEffect(() => {
     if (!currentUser) return;
@@ -79,20 +81,25 @@ const PromotionsPage = () => {
   };
 
   const handleDelete = async (item: Promotion) => {
-    if (!window.confirm(`Are you sure you want to delete "${item.name}"?`))
-      return;
-
-    try {
-      const token = await getToken();
-      await axios.delete(`/api/v2/promotions/${item.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      showNotification("Promotion deleted", "success");
-      fetchPromotions();
-    } catch (e) {
-      console.error("Delete failed", e);
-      showNotification("Failed to delete", "error");
-    }
+    showConfirmation({
+      title: "Delete Promotion?",
+      message: `Are you sure you want to delete "${item.name}"?`,
+      variant: "danger",
+      confirmText: "Delete",
+      onSuccess: async () => {
+        try {
+          const token = await getToken();
+          await axios.delete(`/api/v2/promotions/${item.id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          showNotification("Promotion deleted", "success");
+          fetchPromotions();
+        } catch (e) {
+          console.error("Delete failed", e);
+          showNotification("Failed to delete", "error");
+        }
+      },
+    });
   };
 
   return (

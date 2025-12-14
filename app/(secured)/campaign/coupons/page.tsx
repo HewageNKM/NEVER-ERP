@@ -14,6 +14,7 @@ import CouponListTable from "./components/CouponListTable";
 import CouponFormModal from "./components/CouponFormModal"; // Will create next
 import { showNotification } from "@/utils/toast";
 import { useAppSelector } from "@/lib/hooks";
+import { useConfirmationDialog } from "@/contexts/ConfirmationDialogContext";
 
 const CouponsPage = () => {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -22,6 +23,7 @@ const CouponsPage = () => {
   const { currentUser } = useAppSelector((state) => state.authSlice);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Coupon | null>(null);
+  const { showConfirmation } = useConfirmationDialog();
 
   useEffect(() => {
     if (!currentUser) return;
@@ -71,22 +73,25 @@ const CouponsPage = () => {
   };
 
   const handleDelete = async (item: Coupon) => {
-    if (
-      !window.confirm(`Are you sure you want to delete coupon "${item.code}"?`)
-    )
-      return;
-
-    try {
-      const token = await getToken();
-      await axios.delete(`/api/v2/coupons/${item.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      showNotification("Coupon deleted", "success");
-      fetchCoupons();
-    } catch (e) {
-      console.error("Delete failed", e);
-      showNotification("Failed to delete", "error");
-    }
+    showConfirmation({
+      title: "Delete Coupon?",
+      message: `Are you sure you want to delete coupon "${item.code}"?`,
+      variant: "danger",
+      confirmText: "Delete",
+      onSuccess: async () => {
+        try {
+          const token = await getToken();
+          await axios.delete(`/api/v2/coupons/${item.id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          showNotification("Coupon deleted", "success");
+          fetchCoupons();
+        } catch (e) {
+          console.error("Delete failed", e);
+          showNotification("Failed to delete", "error");
+        }
+      },
+    });
   };
 
   return (
