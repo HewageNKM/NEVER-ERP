@@ -246,12 +246,12 @@ const TopNav = () => {
 
               {/* Drawer Content */}
               <div className="flex-1 overflow-y-auto p-6 space-y-2">
-                {Menuitems.map((item: any) => {
+                {Menuitems.map((item: any, index: number) => {
                   // Render Nav Labels (e.g., "Management", "Finance")
                   if (item.navLabel) {
                     return (
                       <div
-                        key={item.id}
+                        key={index}
                         className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-6 mb-2 border-b border-gray-100 pb-1"
                       >
                         {item.subHeader}

@@ -220,7 +220,7 @@ const BrandPage: React.FC = () => {
     <PageContainer title="Brands" description="Brand Management">
       <div className="w-full space-y-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b-2 border-black pb-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b-2 border-black pb-6">
           <div className="flex flex-col">
             <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1 flex items-center gap-2">
               <IconAward size={14} /> Partner Relationships
