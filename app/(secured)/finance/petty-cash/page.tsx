@@ -187,7 +187,7 @@ export default function PettyCashList() {
     <PageContainer title="Petty Cash" description="Manage Expenses">
       <div className="w-full space-y-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-end gap-4 border-b-2 border-black pb-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b-2 border-black pb-6">
           <div className="flex flex-col">
             <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1">
               Financial Records

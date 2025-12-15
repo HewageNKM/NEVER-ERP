@@ -95,7 +95,7 @@ const DailyEarnings = () => {
   return (
     <DashboardCard>
       {/* Header */}
-      <div className="flex justify-between items-center mb-4 min-w-0 gap-2">
+      <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center mb-4 min-w-0 gap-2">
         <div className="flex items-center gap-2 overflow-hidden">
           <h4 className="text-lg font-black uppercase tracking-tighter text-black truncate">
             Daily Snapshot

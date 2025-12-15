@@ -139,7 +139,7 @@ const SettingPage = () => {
     <PageContainer title="Settings" description="Settings Management">
       <div className="w-full max-w-5xl mx-auto space-y-8">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b-2 border-black pb-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b-2 border-black pb-6">
           <div className="flex flex-col">
             <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1 flex items-center gap-2">
               <IconSettings size={14} /> System Configuration
