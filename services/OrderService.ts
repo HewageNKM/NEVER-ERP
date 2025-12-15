@@ -296,6 +296,58 @@ export const addOrder = async (order: Partial<Order>) => {
         0
       );
 
+      // --- COMBO DISCOUNT VALIDATION ---
+      // Validate combo discounts by checking against stored combo prices
+      const comboItems = order.items.filter(
+        (item) => item.itemType === "combo" && item.comboId
+      );
+      if (comboItems.length > 0) {
+        // Group by comboId
+        const comboGroups = new Map<string, typeof comboItems>();
+        for (const item of comboItems) {
+          const group = comboGroups.get(item.comboId!) || [];
+          group.push(item);
+          comboGroups.set(item.comboId!, group);
+        }
+
+        // Validate each combo group
+        for (const [comboId, items] of comboGroups) {
+          const comboDoc = await adminFirestore
+            .collection("combo_products")
+            .doc(comboId)
+            .get();
+
+          if (!comboDoc.exists) {
+            console.warn(`⚠️ Combo ${comboId} not found, skipping validation`);
+            continue;
+          }
+
+          const comboData = comboDoc.data();
+          if (!comboData) continue;
+
+          // Calculate expected discount per item (comboPrice / totalSlots)
+          const comboPrice = comboData.comboPrice || 0;
+          const originalPrice = comboData.originalPrice || 0;
+          const expectedTotalDiscount = originalPrice - comboPrice;
+
+          // Calculate claimed discount from frontend
+          const claimedTotalDiscount = items.reduce(
+            (acc, item) => acc + (item.discount || 0),
+            0
+          );
+
+          // Allow small tolerance for rounding
+          if (Math.abs(claimedTotalDiscount - expectedTotalDiscount) > 2) {
+            console.error(
+              `🚨 Combo discount mismatch! Combo: ${comboId}, Expected: ${expectedTotalDiscount}, Claimed: ${claimedTotalDiscount}`
+            );
+            throw new Error(
+              `Invalid combo discount detected. Please refresh and try again.`
+            );
+          }
+        }
+      }
+
       // Calculate shipping
       const totalItems = order.items.reduce(
         (acc, item) => acc + item.quantity,
