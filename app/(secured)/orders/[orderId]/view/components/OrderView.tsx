@@ -193,34 +193,135 @@ const OrderView = ({ orderId }: { orderId: string }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {order?.items?.map((item, i) => (
-                    <tr
-                      key={i}
-                      className="hover:bg-gray-50 transition-colors group"
-                    >
-                      <td className="px-6 py-4 font-black text-black uppercase">
-                        {item?.name || "—"}
-                      </td>
-                      <td className="px-6 py-4 text-gray-500 font-bold text-xs uppercase">
-                        {item?.variantName || "—"}
-                      </td>
-                      <td className="px-6 py-4 text-center font-mono font-bold text-xs">
-                        {item?.size || "—"}
-                      </td>
-                      <td className="px-6 py-4 text-center font-mono font-bold text-xs">
-                        {item?.quantity || 0}
-                      </td>
-                      <td className="px-6 py-4 text-right font-mono text-xs text-gray-500">
-                        {Number(item?.price || 0).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 text-right font-mono font-bold text-black">
-                        {(
-                          (item?.quantity || 0) *
-                          ((item?.price || 0) - (item?.discount || 0))
-                        ).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
+                  {(() => {
+                    // Group items: combo items by comboId, regular items separate
+                    const comboGroups = new Map<string, typeof order.items>();
+                    const regularItems: typeof order.items = [];
+
+                    order?.items?.forEach((item) => {
+                      if (item.isComboItem && item.comboId) {
+                        if (!comboGroups.has(item.comboId)) {
+                          comboGroups.set(item.comboId, []);
+                        }
+                        comboGroups.get(item.comboId)!.push(item);
+                      } else {
+                        regularItems.push(item);
+                      }
+                    });
+
+                    return (
+                      <>
+                        {/* Regular Items */}
+                        {regularItems.map((item, i) => (
+                          <tr
+                            key={`regular-${i}`}
+                            className="hover:bg-gray-50 transition-colors group"
+                          >
+                            <td className="px-6 py-4 font-black text-black uppercase">
+                              {item?.name || "—"}
+                            </td>
+                            <td className="px-6 py-4 text-gray-500 font-bold text-xs uppercase">
+                              {item?.variantName || "—"}
+                            </td>
+                            <td className="px-6 py-4 text-center font-mono font-bold text-xs">
+                              {item?.size || "—"}
+                            </td>
+                            <td className="px-6 py-4 text-center font-mono font-bold text-xs">
+                              {item?.quantity || 0}
+                            </td>
+                            <td className="px-6 py-4 text-right font-mono text-xs text-gray-500">
+                              {Number(item?.price || 0).toLocaleString()}
+                              {(item?.discount || 0) > 0 && (
+                                <span className="block text-red-500 text-[10px]">
+                                  - {Number(item.discount).toLocaleString()}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 text-right font-mono font-bold text-black">
+                              {(
+                                (item?.quantity || 0) *
+                                ((item?.price || 0) - (item?.discount || 0))
+                              ).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+
+                        {/* Combo Groups */}
+                        {Array.from(comboGroups.entries()).map(
+                          ([comboId, comboItems]) => {
+                            const comboName =
+                              comboItems?.[0]?.comboName || "Combo Bundle";
+                            const comboDiscount =
+                              comboItems?.reduce(
+                                (sum, i) => sum + (Number(i?.discount) || 0),
+                                0
+                              ) || 0;
+
+                            return (
+                              <React.Fragment key={comboId}>
+                                {/* Combo Header Row */}
+                                <tr className="bg-gray-100">
+                                  <td
+                                    colSpan={6}
+                                    className="px-6 py-3 border-y border-gray-200"
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-3">
+                                        <span className="bg-black text-white text-[10px] font-black px-2 py-1 uppercase tracking-wider">
+                                          Combo
+                                        </span>
+                                        <span className="font-black text-black uppercase tracking-tight">
+                                          {comboName}
+                                        </span>
+                                      </div>
+                                      {comboDiscount > 0 && (
+                                        <span className="text-xs font-bold text-red-600">
+                                          - {comboDiscount.toLocaleString()} LKR
+                                          saved
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                                {/* Combo Items */}
+                                {comboItems?.map((item, i) => (
+                                  <tr
+                                    key={`combo-${comboId}-${i}`}
+                                    className="bg-gray-50/50 hover:bg-gray-100/50 transition-colors"
+                                  >
+                                    <td className="px-6 py-3 pl-10 font-medium text-gray-700 uppercase text-xs">
+                                      └ {item?.name || "—"}
+                                    </td>
+                                    <td className="px-6 py-3 text-gray-400 font-medium text-xs uppercase">
+                                      {item?.variantName || "—"}
+                                    </td>
+                                    <td className="px-6 py-3 text-center font-mono text-xs text-gray-500">
+                                      {item?.size || "—"}
+                                    </td>
+                                    <td className="px-6 py-3 text-center font-mono text-xs text-gray-500">
+                                      {item?.quantity || 0}
+                                    </td>
+                                    <td className="px-6 py-3 text-right font-mono text-xs text-gray-400">
+                                      {Number(
+                                        item?.price || 0
+                                      ).toLocaleString()}
+                                    </td>
+                                    <td className="px-6 py-3 text-right font-mono text-xs text-gray-600">
+                                      {(
+                                        (item?.quantity || 0) *
+                                        ((item?.price || 0) -
+                                          (item?.discount || 0))
+                                      ).toLocaleString()}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </React.Fragment>
+                            );
+                          }
+                        )}
+                      </>
+                    );
+                  })()}
                 </tbody>
               </table>
             </div>

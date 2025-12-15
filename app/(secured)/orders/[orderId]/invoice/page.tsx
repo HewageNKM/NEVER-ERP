@@ -193,30 +193,126 @@ const OrderInvoice = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {order.items.map((item, index) => (
-                    <tr key={index}>
-                      <td className="py-4 pr-4">
-                        <p className="font-bold text-black uppercase">
-                          {item.name}
-                        </p>
-                        <p className="text-xs text-gray-500 uppercase mt-0.5">
-                          {item.variantName}
-                        </p>
-                      </td>
-                      <td className="py-4 px-4 text-center font-mono text-xs font-bold text-gray-600">
-                        {item.size}
-                      </td>
-                      <td className="py-4 px-4 text-center font-mono text-xs font-bold text-gray-600">
-                        {Number(item.quantity)}
-                      </td>
-                      <td className="py-4 pl-4 text-right font-mono font-bold text-black">
-                        {(
-                          (Number(item.price) || 0) *
-                          (Number(item.quantity) || 0)
-                        ).toFixed(2)}
-                      </td>
-                    </tr>
-                  ))}
+                  {(() => {
+                    // Group items: combo items by comboId, regular items separate
+                    const comboGroups = new Map<string, typeof order.items>();
+                    const regularItems: typeof order.items = [];
+
+                    order.items.forEach((item) => {
+                      if (item.isComboItem && item.comboId) {
+                        if (!comboGroups.has(item.comboId)) {
+                          comboGroups.set(item.comboId, []);
+                        }
+                        comboGroups.get(item.comboId)!.push(item);
+                      } else {
+                        regularItems.push(item);
+                      }
+                    });
+
+                    return (
+                      <>
+                        {/* Regular Items */}
+                        {regularItems.map((item, index) => (
+                          <tr key={`regular-${index}`}>
+                            <td className="py-4 pr-4">
+                              <p className="font-bold text-black uppercase">
+                                {item.name}
+                              </p>
+                              <p className="text-xs text-gray-500 uppercase mt-0.5">
+                                {item.variantName}
+                              </p>
+                              {item.discount > 0 && (
+                                <p className="text-xs text-red-600 mt-0.5">
+                                  - Rs. {Number(item.discount).toFixed(2)}{" "}
+                                  discount
+                                </p>
+                              )}
+                            </td>
+                            <td className="py-4 px-4 text-center font-mono text-xs font-bold text-gray-600">
+                              {item.size}
+                            </td>
+                            <td className="py-4 px-4 text-center font-mono text-xs font-bold text-gray-600">
+                              {Number(item.quantity)}
+                            </td>
+                            <td className="py-4 pl-4 text-right font-mono font-bold text-black">
+                              {(
+                                (Number(item.price) || 0) *
+                                (Number(item.quantity) || 0)
+                              ).toFixed(2)}
+                            </td>
+                          </tr>
+                        ))}
+
+                        {/* Combo Groups */}
+                        {Array.from(comboGroups.entries()).map(
+                          ([comboId, comboItems]) => {
+                            const comboName =
+                              comboItems[0]?.comboName || "Combo Bundle";
+                            const comboDiscount = comboItems.reduce(
+                              (sum, i) => sum + (Number(i.discount) || 0),
+                              0
+                            );
+
+                            return (
+                              <React.Fragment key={comboId}>
+                                {/* Combo Header Row */}
+                                <tr className="bg-gray-50">
+                                  <td
+                                    colSpan={4}
+                                    className="py-3 px-4 border-y border-gray-200"
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <span className="bg-black text-white text-[10px] font-black px-2 py-0.5 uppercase">
+                                          Combo
+                                        </span>
+                                        <span className="font-bold text-black uppercase text-sm">
+                                          {comboName}
+                                        </span>
+                                      </div>
+                                      {comboDiscount > 0 && (
+                                        <span className="text-xs font-bold text-red-600">
+                                          - Rs. {comboDiscount.toFixed(2)} saved
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                                {/* Combo Items */}
+                                {comboItems.map((item, index) => (
+                                  <tr
+                                    key={`combo-${comboId}-${index}`}
+                                    className="bg-gray-50/50"
+                                  >
+                                    <td className="py-3 pr-4 pl-6">
+                                      <p className="font-medium text-gray-700 uppercase text-xs">
+                                        └ {item.name}
+                                      </p>
+                                      <p className="text-[10px] text-gray-400 uppercase mt-0.5 pl-3">
+                                        {item.variantName}
+                                      </p>
+                                    </td>
+                                    <td className="py-3 px-4 text-center font-mono text-xs text-gray-500">
+                                      {item.size}
+                                    </td>
+                                    <td className="py-3 px-4 text-center font-mono text-xs text-gray-500">
+                                      {Number(item.quantity)}
+                                    </td>
+                                    <td className="py-3 pl-4 text-right font-mono text-gray-600 text-xs">
+                                      {(
+                                        (Number(item.price) || 0) *
+                                        (Number(item.quantity) || 0)
+                                      ).toFixed(2)}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </React.Fragment>
+                            );
+                          }
+                        )}
+                      </>
+                    );
+                  })()}
                 </tbody>
               </table>
             </div>

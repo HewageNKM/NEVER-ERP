@@ -63,6 +63,43 @@ export const getDailySaleReport = async (from: string, to: string) => {
       0
     );
 
+    // Combo Metrics
+    const comboItemsSold = orders.reduce(
+      (count, o) =>
+        count +
+        o.items
+          .filter((i: any) => i.isComboItem === true)
+          .reduce((c: number, i: any) => c + i.quantity, 0),
+      0
+    );
+    const comboSales = orders.reduce(
+      (s, o) =>
+        s +
+        o.items
+          .filter((i: any) => i.isComboItem === true)
+          .reduce((c: number, i: any) => c + (i.price || 0) * i.quantity, 0),
+      0
+    );
+    const comboCOGS = orders.reduce(
+      (s, o) =>
+        s +
+        o.items
+          .filter((i: any) => i.isComboItem === true)
+          .reduce((c: number, i: any) => c + (i.bPrice || 0) * i.quantity, 0),
+      0
+    );
+    const comboDiscount = orders.reduce(
+      (s, o) =>
+        s +
+        o.items
+          .filter((i: any) => i.isComboItem === true)
+          .reduce((c: number, i: any) => c + (i.discount || 0), 0),
+      0
+    );
+    const ordersWithCombos = orders.filter((o) =>
+      o.items.some((i: any) => i.isComboItem === true)
+    ).length;
+
     // ---------- DAILY SUMMARY ----------
     const dailyMap: Record<
       string,
@@ -141,6 +178,12 @@ export const getDailySaleReport = async (from: string, to: string) => {
         totalDiscount,
         totalTransactionFee,
         totalItemsSold,
+        // Combo metrics
+        comboItemsSold,
+        comboSales,
+        comboCOGS,
+        comboDiscount,
+        ordersWithCombos,
         daily,
         from,
         to,
@@ -209,6 +252,43 @@ export const getMonthlySummary = async (from: string, to: string) => {
       (count, o) => count + (o.items?.reduce((c, i) => c + i.quantity, 0) || 0),
       0
     );
+
+    // Combo Metrics
+    const comboItemsSold = orders.reduce(
+      (count, o) =>
+        count +
+        (o.items || [])
+          .filter((i: any) => i.isComboItem === true)
+          .reduce((c: number, i: any) => c + i.quantity, 0),
+      0
+    );
+    const comboSales = orders.reduce(
+      (s, o) =>
+        s +
+        (o.items || [])
+          .filter((i: any) => i.isComboItem === true)
+          .reduce((c: number, i: any) => c + (i.price || 0) * i.quantity, 0),
+      0
+    );
+    const comboCOGS = orders.reduce(
+      (s, o) =>
+        s +
+        (o.items || [])
+          .filter((i: any) => i.isComboItem === true)
+          .reduce((c: number, i: any) => c + (i.bPrice || 0) * i.quantity, 0),
+      0
+    );
+    const comboDiscount = orders.reduce(
+      (s, o) =>
+        s +
+        (o.items || [])
+          .filter((i: any) => i.isComboItem === true)
+          .reduce((c: number, i: any) => c + (i.discount || 0), 0),
+      0
+    );
+    const ordersWithCombos = orders.filter((o) =>
+      (o.items || []).some((i: any) => i.isComboItem === true)
+    ).length;
 
     // ---------- MONTHLY SUMMARY ----------
     const monthlyMap: Record<
@@ -295,6 +375,12 @@ export const getMonthlySummary = async (from: string, to: string) => {
         totalDiscount,
         totalTransactionFee,
         totalItemsSold,
+        // Combo metrics
+        comboItemsSold,
+        comboSales,
+        comboCOGS,
+        comboDiscount,
+        ordersWithCombos,
         monthly,
         from,
         to,
@@ -364,6 +450,43 @@ export const getYearlySummary = async (from: string, to: string) => {
       (count, o) => count + (o.items?.reduce((c, i) => c + i.quantity, 0) || 0),
       0
     );
+
+    // Combo Metrics
+    const comboItemsSold = orders.reduce(
+      (count, o) =>
+        count +
+        (o.items || [])
+          .filter((i: any) => i.isComboItem === true)
+          .reduce((c: number, i: any) => c + i.quantity, 0),
+      0
+    );
+    const comboSales = orders.reduce(
+      (s, o) =>
+        s +
+        (o.items || [])
+          .filter((i: any) => i.isComboItem === true)
+          .reduce((c: number, i: any) => c + (i.price || 0) * i.quantity, 0),
+      0
+    );
+    const comboCOGS = orders.reduce(
+      (s, o) =>
+        s +
+        (o.items || [])
+          .filter((i: any) => i.isComboItem === true)
+          .reduce((c: number, i: any) => c + (i.bPrice || 0) * i.quantity, 0),
+      0
+    );
+    const comboDiscount = orders.reduce(
+      (s, o) =>
+        s +
+        (o.items || [])
+          .filter((i: any) => i.isComboItem === true)
+          .reduce((c: number, i: any) => c + (i.discount || 0), 0),
+      0
+    );
+    const ordersWithCombos = orders.filter((o) =>
+      (o.items || []).some((i: any) => i.isComboItem === true)
+    ).length;
 
     // ---------- YEARLY SUMMARY ----------
     const yearlyMap: Record<
@@ -510,6 +633,12 @@ export const getYearlySummary = async (from: string, to: string) => {
         totalDiscount,
         totalTransactionFee,
         totalItemsSold,
+        // Combo metrics
+        comboItemsSold,
+        comboSales,
+        comboCOGS,
+        comboDiscount,
+        ordersWithCombos,
         yearly,
         from,
         to,

@@ -8,7 +8,6 @@ admin.initializeApp();
 const db = admin.firestore();
 const HASH_SECRET = defineSecret("HASH_SECRET");
 
-
 // ==========================
 // 🔧 Constants & Enums
 // ==========================
@@ -38,7 +37,7 @@ const commitBatch = async (
 
 const generateDocumentHash = (docData: any) => {
   const canonical = stringify(docData);
-  const hashingString = `${canonical}${HASH_SECRET}`
+  const hashingString = `${canonical}${HASH_SECRET}`;
   return crypto.createHash("sha256").update(hashingString).digest("hex");
 };
 
@@ -68,7 +67,10 @@ export const SheduleOrdersCleanup = onSchedule(
 
       const snapshot = await ordersRef
         .where("createdAt", "<=", cutoff)
-        .where("paymentStatus", "in", [PaymentStatus.Failed, PaymentStatus.Refunded])
+        .where("paymentStatus", "in", [
+          PaymentStatus.Failed,
+          PaymentStatus.Refunded,
+        ])
         .get();
 
       if (snapshot.empty) {
@@ -76,7 +78,7 @@ export const SheduleOrdersCleanup = onSchedule(
         return;
       }
 
-      const targets = snapshot.docs.filter((d) => !(d.data()?.restocked));
+      const targets = snapshot.docs.filter((d) => !d.data()?.restocked);
       if (!targets.length) {
         console.log("✅ All failed/refunded orders already processed.");
         return;
@@ -99,6 +101,17 @@ export const SheduleOrdersCleanup = onSchedule(
         }
 
         for (const item of order.items ?? []) {
+          // Identify if this is a combo item
+          const isComboItem = item.isComboItem === true;
+          const comboName = item.comboName || null;
+          const comboId = item.comboId || null;
+
+          if (isComboItem) {
+            console.log(
+              `📦 Restocking combo item: ${item.name} from combo "${comboName}" (${comboId})`
+            );
+          }
+
           // 1️⃣ Restock stock_inventory
           const invQuery = db
             .collection("stock_inventory")
@@ -110,7 +123,11 @@ export const SheduleOrdersCleanup = onSchedule(
           const invSnap = await invQuery.get();
           if (invSnap.empty) {
             console.warn(
-              `⚠️ No stock_inventory found for ${item.name} (${item.size}) in stock ${stockId}`
+              `⚠️ No stock_inventory found for ${item.name} (${
+                item.size
+              }) in stock ${stockId}${
+                isComboItem ? ` [COMBO: ${comboName}]` : ""
+              }`
             );
             continue;
           }
@@ -124,6 +141,12 @@ export const SheduleOrdersCleanup = onSchedule(
             updatedAt: new Date(),
           });
           opCount++;
+
+          console.log(
+            `✅ Restocked ${item.quantity}x ${item.name} (${
+              item.size
+            }) → new qty: ${newQty}${isComboItem ? ` [COMBO]` : ""}`
+          );
 
           // 2️⃣ Restock product totalStock
           const productRef = db.collection("products").doc(item.itemId);
@@ -173,7 +196,12 @@ export const SheduleOrdersCleanup = onSchedule(
 
         [batch, opCount] = await commitBatch(batch, opCount);
 
-        // 4️⃣ Log cleanup
+        // 4️⃣ Log cleanup with combo info
+        const comboItems = (order.items ?? []).filter(
+          (i: any) => i.isComboItem === true
+        );
+        const comboIds = [...new Set(comboItems.map((i: any) => i.comboId))];
+
         logs.push({
           context: "order_cleanup",
           refId: orderId,
@@ -185,6 +213,9 @@ export const SheduleOrdersCleanup = onSchedule(
           paymentStatus: order.paymentStatus,
           stockId,
           items: order.items ?? [],
+          hasComboItems: comboItems.length > 0,
+          comboIds: comboIds.length > 0 ? comboIds : null,
+          comboItemCount: comboItems.length,
           timestamp: admin.firestore.Timestamp.now(),
         });
       }
