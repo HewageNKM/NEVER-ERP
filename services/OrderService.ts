@@ -179,9 +179,11 @@ export const updateOrder = async (order: Order, orderId: string) => {
   }
 };
 
-import { validateCoupon, trackCouponUsage } from "./PromotionService";
-
-// ... existing imports ...
+import {
+  validateCoupon,
+  trackCouponUsage,
+  calculateCartDiscount,
+} from "./PromotionService";
 
 export const addOrder = async (order: Partial<Order>) => {
   if (!order.orderId) throw new Error("Order ID is required");
@@ -192,9 +194,11 @@ export const addOrder = async (order: Partial<Order>) => {
 
   const fromSource = order.from.toLowerCase();
 
-  // Coupon Validation logic (Server Side Trust)
+  // Coupon & Promotion Validation logic (Server Side Trust)
   let finalDiscount = 0;
-  let appliedCouponId = null;
+  let appliedCouponId: string | null = null;
+  let promotionDiscount = 0;
+  let appliedPromotionId: string | null = null;
 
   if (fromSource === "website" && order.couponCode) {
     // Calculate cart total from items (to ensure client didn't spoof total)
@@ -245,15 +249,111 @@ export const addOrder = async (order: Partial<Order>) => {
       }
 
       finalDiscount = validation.discount || 0;
-      appliedCouponId = validation.coupon?.id; // Needed for tracking
-
-      // Override/Verify discount in orderData
-      orderData.discount = (orderData.discount || 0) + finalDiscount;
-      // Note: Use += if other discounts exist? Or just set it?
-      // Assuming web sends total discount, but we want to ENFORCE coupon part.
-      // Let's just set the coupon discount. If other discounts exist (e.g. sale), they should be in price.
-      // Assuming `order.discount` is meant for order-level discounts.
+      appliedCouponId = validation.coupon?.id || null;
     }
+
+    // Apply automatic promotions for website orders
+    if (fromSource === "website") {
+      const cartTotal = order.items.reduce((acc, item) => {
+        const prod = productMap.get(item.itemId);
+        const price = prod ? prod.sellingPrice : 0;
+        const discount = item.discount || 0;
+        return acc + (price * item.quantity - discount);
+      }, 0);
+
+      const promoResult = await calculateCartDiscount(
+        order.items.map((i) => ({
+          productId: i.itemId,
+          variantId: i.variantId,
+          quantity: i.quantity,
+          price: productMap.get(i.itemId)?.sellingPrice || 0,
+          discount: i.discount,
+        })),
+        cartTotal - finalDiscount // Apply promo on cart after coupon
+      );
+
+      if (promoResult.promotion && promoResult.discount > 0) {
+        promotionDiscount = promoResult.discount;
+        appliedPromotionId = promoResult.promotion.id;
+      }
+
+      // --- SERVER-SIDE TOTAL VALIDATION ---
+      // Recalculate total using DB prices to prevent price manipulation
+      const SHIPPING_FLAT_RATE_1 = 380; // 1 item
+      const SHIPPING_FLAT_RATE_2 = 500; // 2+ items
+      const TOLERANCE = 1; // Allow Rs. 1 rounding difference
+
+      // Calculate items total using DB prices
+      const itemsTotal = order.items.reduce((acc, item) => {
+        const prod = productMap.get(item.itemId);
+        const price = prod ? prod.sellingPrice : 0;
+        return acc + price * item.quantity;
+      }, 0);
+
+      // Calculate item-level discounts (combo discounts, sale prices)
+      const itemDiscounts = order.items.reduce(
+        (acc, item) => acc + (item.discount || 0),
+        0
+      );
+
+      // Calculate shipping
+      const totalItems = order.items.reduce(
+        (acc, item) => acc + item.quantity,
+        0
+      );
+      const serverShippingFee =
+        totalItems === 0
+          ? 0
+          : totalItems === 1
+          ? SHIPPING_FLAT_RATE_1
+          : SHIPPING_FLAT_RATE_2;
+
+      // Calculate payment fee (percentage of subtotal)
+      const subtotalBeforeFees = itemsTotal - itemDiscounts;
+      const paymentFeePercent = order.fee
+        ? (order.fee / subtotalBeforeFees) * 100
+        : 0;
+      const serverPaymentFee = parseFloat(
+        ((subtotalBeforeFees * paymentFeePercent) / 100).toFixed(2)
+      );
+
+      // Calculate server total
+      const serverSubtotal =
+        itemsTotal - itemDiscounts + serverShippingFee + serverPaymentFee;
+      const serverCouponDiscount = finalDiscount;
+      const serverTotal = serverSubtotal - serverCouponDiscount;
+
+      // Compare with frontend total
+      const frontendTotal = order.total || 0;
+      const difference = Math.abs(serverTotal - frontendTotal);
+
+      if (difference > TOLERANCE) {
+        console.error(
+          `🚨 Total mismatch! Server: ${serverTotal}, Frontend: ${frontendTotal}, Diff: ${difference}`
+        );
+        console.error(
+          `Breakdown: items=${itemsTotal}, itemDiscounts=${itemDiscounts}, shipping=${serverShippingFee}, fee=${serverPaymentFee}, coupon=${serverCouponDiscount}`
+        );
+        throw new Error(
+          `Order total mismatch. Expected Rs. ${serverTotal.toFixed(
+            2
+          )}, received Rs. ${frontendTotal.toFixed(
+            2
+          )}. Please refresh and try again.`
+        );
+      }
+
+      // Use server-calculated total for security
+      orderData.total = serverTotal;
+    }
+
+    // Store promo metadata in order
+    orderData.discount =
+      (orderData.discount || 0) + finalDiscount + promotionDiscount;
+    orderData.appliedCouponId = appliedCouponId;
+    orderData.appliedPromotionId = appliedPromotionId;
+    orderData.couponDiscount = finalDiscount;
+    orderData.promotionDiscount = promotionDiscount;
 
     // --- STORE ORDER (Batch, with retry) ---
     if (fromSource === "store") {
@@ -385,12 +485,13 @@ export const addOrder = async (order: Partial<Order>) => {
             `🌐 Website order ${order.orderId} committed (attempt ${attempt})`
           );
 
-          // Track Usage AFTER successful commit
+          // Track Coupon Usage AFTER successful commit
           if (appliedCouponId) {
             await trackCouponUsage(
               appliedCouponId,
               order.customer?.uid || "guest",
-              order.orderId
+              order.orderId,
+              finalDiscount
             );
           }
 

@@ -120,6 +120,13 @@ export interface Order {
   integrity: boolean;
   paymentReceived?: Payment[];
 
+  // Promotion & Coupon tracking
+  couponCode?: string;
+  appliedCouponId?: string | null;
+  appliedPromotionId?: string | null;
+  couponDiscount?: number;
+  promotionDiscount?: number;
+
   restockedAt?: Timestamp | string;
   restocked?: boolean;
   cleanupProcessed?: boolean;
@@ -232,7 +239,11 @@ export interface OrderItem {
   quantity: number;
   price: number;
   discount: number;
-  itemType?: "PRODUCT" | "COMBO";
+  itemType?: "PRODUCT" | "COMBO" | "combo";
+  bPrice?: number; // Buying price for profit calculation
+  comboId?: string; // Parent combo bundle ID
+  comboName?: string; // Parent combo bundle name
+  isComboItem?: boolean; // Flag for combo bundle items
 }
 
 export interface Error {
