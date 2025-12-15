@@ -321,7 +321,8 @@ export const addOrder = async (order: Partial<Order>) => {
       const serverSubtotal =
         itemsTotal - itemDiscounts + serverShippingFee + serverPaymentFee;
       const serverCouponDiscount = finalDiscount;
-      const serverTotal = serverSubtotal - serverCouponDiscount;
+      const serverTotal =
+        serverSubtotal - serverCouponDiscount - promotionDiscount;
 
       // Compare with frontend total
       const frontendTotal = order.total || 0;
@@ -332,7 +333,7 @@ export const addOrder = async (order: Partial<Order>) => {
           `🚨 Total mismatch! Server: ${serverTotal}, Frontend: ${frontendTotal}, Diff: ${difference}`
         );
         console.error(
-          `Breakdown: items=${itemsTotal}, itemDiscounts=${itemDiscounts}, shipping=${serverShippingFee}, fee=${serverPaymentFee}, coupon=${serverCouponDiscount}`
+          `Breakdown: items=${itemsTotal}, itemDiscounts=${itemDiscounts}, shipping=${serverShippingFee}, fee=${serverPaymentFee}, coupon=${serverCouponDiscount}, promotion=${promotionDiscount}`
         );
         throw new Error(
           `Order total mismatch. Expected Rs. ${serverTotal.toFixed(
@@ -343,17 +344,30 @@ export const addOrder = async (order: Partial<Order>) => {
         );
       }
 
-      // Use server-calculated total for security
-      orderData.total = serverTotal;
+      // Use server-calculated total for validation only
+      // If validation passes, keep frontend values
     }
 
-    // Store promo metadata in order
-    orderData.discount =
-      (orderData.discount || 0) + finalDiscount + promotionDiscount;
+    // Validate that frontend discount values match server validation
+    // Only log warnings for mismatches, don't override (trust frontend if coupon/promo was validated)
+    const frontendCouponDiscount = order.couponDiscount || 0;
+    const frontendPromotionDiscount = order.promotionDiscount || 0;
+
+    if (Math.abs(frontendCouponDiscount - finalDiscount) > 1) {
+      console.warn(
+        `⚠️ Coupon discount mismatch: frontend=${frontendCouponDiscount}, server=${finalDiscount}`
+      );
+    }
+
+    if (Math.abs(frontendPromotionDiscount - promotionDiscount) > 1) {
+      console.warn(
+        `⚠️ Promotion discount mismatch: frontend=${frontendPromotionDiscount}, server=${promotionDiscount}`
+      );
+    }
+
+    // Store only tracking IDs from server validation, keep discount values from frontend
     orderData.appliedCouponId = appliedCouponId;
     orderData.appliedPromotionId = appliedPromotionId;
-    orderData.couponDiscount = finalDiscount;
-    orderData.promotionDiscount = promotionDiscount;
 
     // --- STORE ORDER (Batch, with retry) ---
     if (fromSource === "store") {
