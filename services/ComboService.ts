@@ -98,11 +98,11 @@ export const updateCombo = async (
   data: Partial<ComboProduct>,
   file?: File
 ): Promise<void> => {
-  // Remove createdAt to prevent overwriting with malformed data
+  // Remove createdAt and thumbnail from data to handle separately
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { createdAt, ...updateData } = data;
+  const { createdAt, thumbnail: existingThumbnail, ...updateData } = data;
 
-  let thumbnail = data.thumbnail;
+  let newThumbnail: ComboProduct["thumbnail"] | undefined;
 
   if (file) {
     const oldCombo = await getComboById(id);
@@ -114,14 +114,21 @@ export const updateCombo = async (
         console.warn(`Failed to delete old thumbnail: ${oldPath}`, delError);
       }
     }
-    thumbnail = await uploadThumbnail(file, id);
+    newThumbnail = await uploadThumbnail(file, id);
   }
 
   const payload: any = {
     ...updateData,
-    thumbnail: thumbnail,
     updatedAt: FieldValue.serverTimestamp(),
   };
+
+  // Only include thumbnail if we have a new one or the existing one is valid
+  if (newThumbnail) {
+    payload.thumbnail = newThumbnail;
+  } else if (existingThumbnail && existingThumbnail.url) {
+    payload.thumbnail = existingThumbnail;
+  }
+  // If no thumbnail data, don't include it in the update (keeps existing value)
 
   if (updateData.startDate) {
     payload.startDate = new Date(updateData.startDate as any);
@@ -129,6 +136,13 @@ export const updateCombo = async (
   if (updateData.endDate) {
     payload.endDate = new Date(updateData.endDate as any);
   }
+
+  // Remove any undefined values from payload
+  Object.keys(payload).forEach((key) => {
+    if (payload[key] === undefined) {
+      delete payload[key];
+    }
+  });
 
   await adminFirestore.collection(COMBOS_COLLECTION).doc(id).update(payload);
 };
