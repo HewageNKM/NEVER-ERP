@@ -4,12 +4,17 @@ import { useEffect, useState } from "react";
 import { useAppSelector } from "@/lib/hooks";
 import { getDailyOverviewAction } from "@/actions/reportsActions";
 import { showNotification } from "@/utils/toast";
-import { IconCurrencyDollar, IconRefresh } from "@tabler/icons-react";
+import {
+  IconCurrencyDollar,
+  IconRefresh,
+  IconReceiptRefund,
+} from "@tabler/icons-react";
 
 const DailyEarnings = () => {
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [totalProfit, setTotalProfit] = useState(0);
   const [totalDiscount, setTotalDiscount] = useState(0);
+  const [totalRefunds, setTotalRefunds] = useState(0); // Future Implementation (Default 0)
   const [invoiceCount, setInvoiceCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const { currentUser } = useAppSelector((state) => state.authSlice);
@@ -26,6 +31,7 @@ const DailyEarnings = () => {
       setTotalProfit(overview.totalProfit);
       setInvoiceCount(overview.totalOrders);
       setTotalDiscount(overview.totalDiscount);
+      // setTotalRefunds(overview.totalRefunds || 0); // Uncomment when backend is ready
     } catch (error: any) {
       console.error(error);
       showNotification(error.message, "error");
@@ -34,30 +40,36 @@ const DailyEarnings = () => {
     }
   };
 
-  // Calculate Net Sales on the fly
-  const grossSale = totalEarnings + totalDiscount;
+  // Logic: Net Sales = Gross - Discounts - Refunds
+  const netSales = totalEarnings - totalDiscount - totalRefunds;
 
   const DetailBlock = ({
     label,
     value,
     isSecondary = false,
+    icon = null,
   }: {
     label: string;
     value: number;
     isSecondary?: boolean;
+    icon?: React.ReactNode;
   }) => (
     <div
-      className={`flex flex-col justify-between p-3 border h-full min-w-0 ${
+      className={`flex flex-col justify-between p-3 border h-full min-w-0 relative overflow-hidden ${
         isSecondary ? "border-gray-200 bg-gray-50" : "border-black bg-white"
       }`}
     >
-      <span
-        className={`block text-[9px] font-bold uppercase tracking-widest mb-1 truncate ${
-          isSecondary ? "text-gray-500" : "text-black"
-        }`}
-      >
-        {label}
-      </span>
+      <div className="flex justify-between items-start mb-1">
+        <span
+          className={`block text-[9px] font-bold uppercase tracking-widest truncate ${
+            isSecondary ? "text-gray-500" : "text-black"
+          }`}
+        >
+          {label}
+        </span>
+        {icon && <div className="opacity-20">{icon}</div>}
+      </div>
+
       <div className="flex flex-col sm:flex-row sm:items-baseline mt-auto">
         <span
           className={`text-[10px] font-bold mr-1 ${
@@ -82,10 +94,10 @@ const DailyEarnings = () => {
 
   return (
     <DashboardCard>
-      {/* Header with Title, Refresh, and Order Count */}
+      {/* Header */}
       <div className="flex justify-between items-center mb-4 min-w-0 gap-2">
         <div className="flex items-center gap-2 overflow-hidden">
-          <h4 className="text-lg font-black uppercase tracking-tighter text-black md:truncate">
+          <h4 className="text-lg font-black uppercase tracking-tighter text-black truncate">
             Daily Snapshot
           </h4>
           <button
@@ -111,14 +123,18 @@ const DailyEarnings = () => {
       </div>
 
       {loading ? (
-        <div className="flex justify-center items-center h-[200px]">
+        <div className="flex justify-center items-center h-[240px]">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
         </div>
       ) : (
         <div className="flex flex-col gap-3 min-w-0">
           {/* Row 1: Gross & Discount */}
           <div className="grid grid-cols-2 gap-3 min-w-0">
-            <DetailBlock label="Gross Sales" value={grossSale} isSecondary />
+            <DetailBlock
+              label="Gross Sales"
+              value={totalEarnings}
+              isSecondary
+            />
             <DetailBlock
               label="Total Discounts"
               value={totalDiscount}
@@ -126,8 +142,17 @@ const DailyEarnings = () => {
             />
           </div>
 
-          {/* Row 2: Net Sales (Highlighted) */}
-          <DetailBlock label="Net Sales (Revenue)" value={grossSale} />
+          {/* Row 2: Net Sales & Refunds */}
+          <div className="grid grid-cols-2 gap-3 min-w-0">
+            <DetailBlock label="Net Sales" value={netSales} />
+            {/* Refund Card - Future Implement */}
+            <DetailBlock
+              label="Refunds"
+              value={totalRefunds}
+              isSecondary
+              icon={<IconReceiptRefund size={16} />}
+            />
+          </div>
 
           {/* Row 3: Net Profit (Hero) */}
           <div className="p-4 border-2 border-black bg-black text-white shadow-[3px_3px_0px_0px_rgba(229,231,235,1)] min-w-0 w-full overflow-hidden">
@@ -155,4 +180,5 @@ const DailyEarnings = () => {
   );
 };
 
+export const dynamic = "force-dynamic";
 export default DailyEarnings;
