@@ -9,6 +9,7 @@ import {
   IconCheck,
   IconX,
   IconWand,
+  IconBrandFacebook,
 } from "@tabler/icons-react";
 import {
   getNavigationAction,
@@ -25,10 +26,12 @@ const NavigationPage = () => {
   // State for JSON strings
   const [mainNavJson, setMainNavJson] = useState("[]");
   const [footerNavJson, setFooterNavJson] = useState("[]");
+  const [socialLinksJson, setSocialLinksJson] = useState("[]");
 
   // State for Validation
   const [mainNavValid, setMainNavValid] = useState(true);
   const [footerNavValid, setFooterNavValid] = useState(true);
+  const [socialLinksValid, setSocialLinksValid] = useState(true);
 
   const { currentUser } = useAppSelector((state) => state.authSlice);
 
@@ -57,12 +60,22 @@ const NavigationPage = () => {
     }
   }, [footerNavJson]);
 
+  useEffect(() => {
+    try {
+      JSON.parse(socialLinksJson);
+      setSocialLinksValid(true);
+    } catch {
+      setSocialLinksValid(false);
+    }
+  }, [socialLinksJson]);
+
   const fetchConfig = async () => {
     try {
       setLoading(true);
       const data = await getNavigationAction();
       setMainNavJson(JSON.stringify(data.mainNav || [], null, 2));
       setFooterNavJson(JSON.stringify(data.footerNav || [], null, 2));
+      setSocialLinksJson(JSON.stringify(data.socialLinks || [], null, 2));
     } catch (e: any) {
       showNotification("Failed to load config", "error");
     } finally {
@@ -70,22 +83,27 @@ const NavigationPage = () => {
     }
   };
 
-  const prettify = (type: "main" | "footer") => {
+  const prettify = (type: "main" | "footer" | "social") => {
     try {
       if (type === "main") {
         const obj = JSON.parse(mainNavJson);
         setMainNavJson(JSON.stringify(obj, null, 2));
-      } else {
+      } else if (type === "footer") {
         const obj = JSON.parse(footerNavJson);
         setFooterNavJson(JSON.stringify(obj, null, 2));
+      } else {
+        const obj = JSON.parse(socialLinksJson);
+        setSocialLinksJson(JSON.stringify(obj, null, 2));
       }
     } catch (e) {
       showNotification("Cannot format invalid JSON", "error");
     }
   };
 
+  const allValid = mainNavValid && footerNavValid && socialLinksValid;
+
   const handleSave = async () => {
-    if (!mainNavValid || !footerNavValid) {
+    if (!allValid) {
       showNotification("Fix invalid JSON before saving", "error");
       return;
     }
@@ -94,8 +112,9 @@ const NavigationPage = () => {
       setSaving(true);
       const mainNav = JSON.parse(mainNavJson);
       const footerNav = JSON.parse(footerNavJson);
+      const socialLinks = JSON.parse(socialLinksJson);
 
-      await saveNavigationAction({ mainNav, footerNav });
+      await saveNavigationAction({ mainNav, footerNav, socialLinks });
       showNotification("NAVIGATION CONFIG SAVED", "success");
     } catch (e: any) {
       showNotification(e.message, "error");
@@ -108,7 +127,7 @@ const NavigationPage = () => {
     sectionTitle:
       "text-xl font-black uppercase tracking-tighter text-black flex items-center gap-2",
     editorContainer: "relative w-full group",
-    textArea: `w-full h-96 bg-[#1a1a1a] text-gray-300 border-2 focus:border-black p-4 font-mono text-xs outline-none transition-colors resize-y leading-relaxed rounded-sm selection:bg-gray-700`,
+    textArea: `w-full h-72 bg-[#1a1a1a] text-gray-300 border-2 focus:border-black p-4 font-mono text-xs outline-none transition-colors resize-y leading-relaxed rounded-sm selection:bg-gray-700`,
     label:
       "text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex justify-between items-center",
     statusBadge: (isValid: boolean) =>
@@ -148,7 +167,7 @@ const NavigationPage = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         {/* Main Nav Editor */}
         <div className="space-y-4">
           <div className="flex items-center justify-between border-b-2 border-black pb-2">
@@ -216,17 +235,54 @@ const NavigationPage = () => {
             />
           </div>
         </div>
+
+        {/* Social Links Editor */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between border-b-2 border-black pb-2">
+            <h3 className={styles.sectionTitle}>
+              <IconBrandFacebook size={20} /> Social Links
+            </h3>
+            <div className={styles.statusBadge(socialLinksValid)}>
+              {socialLinksValid ? <IconCheck size={12} /> : <IconX size={12} />}
+              {socialLinksValid ? "Valid JSON" : "Syntax Error"}
+            </div>
+          </div>
+
+          <div className={styles.editorContainer}>
+            <div className={styles.label}>
+              <span>config.social.json</span>
+              <button
+                onClick={() => prettify("social")}
+                className={styles.formatBtn}
+              >
+                <IconWand size={12} /> Format Code
+              </button>
+            </div>
+            <textarea
+              value={socialLinksJson}
+              onChange={(e) => setSocialLinksJson(e.target.value)}
+              className={`${styles.textArea} ${
+                !socialLinksValid ? "border-red-500" : "border-gray-800"
+              }`}
+              spellCheck="false"
+              placeholder='[ { "name": "facebook", "url": "https://facebook.com/yourpage" } ]'
+            />
+            <p className="text-[9px] text-gray-400 mt-2">
+              Supported names: facebook, instagram, tiktok, youtube, twitter
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Floating Save Action */}
       <div className="fixed bottom-6 right-6 z-50">
         <button
           onClick={handleSave}
-          disabled={saving || !mainNavValid || !footerNavValid}
+          disabled={saving || !allValid}
           className={`
             px-8 py-4 shadow-2xl transition-all text-xs font-black uppercase tracking-[0.2em] flex items-center gap-3
             ${
-              !mainNavValid || !footerNavValid
+              !allValid
                 ? "bg-red-600 text-white cursor-not-allowed opacity-100" // Error State
                 : "bg-black text-white hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed" // Normal State
             }
@@ -236,16 +292,14 @@ const NavigationPage = () => {
             <IconLoader className="animate-spin" size={20} />
           ) : (
             <>
-              {!mainNavValid || !footerNavValid ? (
+              {!allValid ? (
                 <IconAlertTriangle size={20} />
               ) : (
                 <IconDeviceFloppy size={20} />
               )}
             </>
           )}
-          {!mainNavValid || !footerNavValid
-            ? "Fix Errors To Save"
-            : "Save Configuration"}
+          {!allValid ? "Fix Errors To Save" : "Save Configuration"}
         </button>
       </div>
     </div>
