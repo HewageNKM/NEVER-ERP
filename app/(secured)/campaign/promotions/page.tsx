@@ -108,13 +108,18 @@ const PromotionsPage = () => {
       description="Manage promotional campaigns"
     >
       <div className="w-full">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-          <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900">
-            Promotions
-          </h2>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1">
+              Campaign Management
+            </span>
+            <h2 className="text-4xl font-black text-black uppercase tracking-tighter leading-none">
+              Promotions
+            </h2>
+          </div>
           <button
             onClick={handleOpenCreateModal}
-            className="flex items-center px-5 py-2.5 bg-gray-900 text-white text-sm font-bold uppercase tracking-wide rounded-sm hover:bg-gray-800 transition-all shadow-sm"
+            className="flex items-center px-6 py-4 bg-black text-white text-sm font-black uppercase tracking-widest hover:bg-gray-900 transition-all shadow-[4px_4px_0px_0px_rgba(156,163,175,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
           >
             <IconPlus size={18} className="mr-2" />
             Create Promotion
