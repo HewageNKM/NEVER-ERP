@@ -319,7 +319,7 @@ const OrderInvoice = () => {
 
             {/* Financial Summary */}
             <div className="flex justify-end">
-              <div className="w-64 space-y-3">
+              <div className="w-72 space-y-3">
                 <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
                   <span>Subtotal</span>
                   <span className="font-mono text-black">
@@ -334,19 +334,72 @@ const OrderInvoice = () => {
                       .toFixed(2)}
                   </span>
                 </div>
-                {Number(order.discount) > 0 && (
+
+                {/* Coupon Discount */}
+                {order.couponCode && Number(order.couponDiscount) > 0 && (
                   <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
-                    <span>Discount</span>
-                    <span className="font-mono text-red-600">
-                      - {Number(order.discount).toFixed(2)}
+                    <div className="flex items-center gap-2">
+                      <span>Coupon</span>
+                      <span className="bg-green-100 text-green-700 px-1 py-0.5 text-[8px] font-black">
+                        {order.couponCode}
+                      </span>
+                    </div>
+                    <span className="font-mono text-green-600">
+                      - {Number(order.couponDiscount).toFixed(2)}
                     </span>
                   </div>
                 )}
+
+                {/* Promotion Discount */}
+                {Number(order.promotionDiscount) > 0 && (
+                  <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
+                    <div className="flex items-center gap-2">
+                      <span>Promotion</span>
+                      <span className="bg-blue-100 text-blue-700 px-1 py-0.5 text-[8px] font-black">
+                        AUTO
+                      </span>
+                    </div>
+                    <span className="font-mono text-blue-600">
+                      - {Number(order.promotionDiscount).toFixed(2)}
+                    </span>
+                  </div>
+                )}
+
+                {/* Item Discounts (combo discounts, sale prices) */}
+                {(() => {
+                  const totalDiscount = Number(order.discount) || 0;
+                  const couponDiscount = Number(order.couponDiscount) || 0;
+                  const promoDiscount = Number(order.promotionDiscount) || 0;
+                  const itemDiscounts =
+                    totalDiscount - couponDiscount - promoDiscount;
+
+                  if (itemDiscounts > 0) {
+                    return (
+                      <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
+                        <span>Item Discounts</span>
+                        <span className="font-mono text-red-600">
+                          - {itemDiscounts.toFixed(2)}
+                        </span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
                 {Number(order.shippingFee) > 0 && (
                   <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
                     <span>Shipping</span>
                     <span className="font-mono text-black">
                       {Number(order.shippingFee).toFixed(2)}
+                    </span>
+                  </div>
+                )}
+
+                {Number(order.fee) > 0 && (
+                  <div className="flex justify-between text-xs font-bold text-gray-500 uppercase">
+                    <span>Payment Fee</span>
+                    <span className="font-mono text-black">
+                      {Number(order.fee).toFixed(2)}
                     </span>
                   </div>
                 )}

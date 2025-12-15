@@ -410,12 +410,58 @@ const OrderView = ({ orderId }: { orderId: string }) => {
                   {subtotal.toLocaleString()} LKR
                 </span>
               </div>
-              <div className="flex justify-between items-center text-gray-500 font-bold uppercase text-xs">
-                <span>Discount</span>
-                <span className="font-mono text-red-500">
-                  - {discount.toLocaleString()} LKR
-                </span>
-              </div>
+
+              {/* Coupon Discount */}
+              {order?.couponCode && (order?.couponDiscount || 0) > 0 && (
+                <div className="flex justify-between items-center text-gray-500 font-bold uppercase text-xs">
+                  <div className="flex items-center gap-2">
+                    <span>Coupon</span>
+                    <span className="bg-green-100 text-green-700 px-1.5 py-0.5 text-[9px] font-black">
+                      {order.couponCode}
+                    </span>
+                  </div>
+                  <span className="font-mono text-green-600">
+                    - {(order.couponDiscount || 0).toLocaleString()} LKR
+                  </span>
+                </div>
+              )}
+
+              {/* Promotion Discount */}
+              {(order?.promotionDiscount || 0) > 0 && (
+                <div className="flex justify-between items-center text-gray-500 font-bold uppercase text-xs">
+                  <div className="flex items-center gap-2">
+                    <span>Promotion</span>
+                    {order?.appliedPromotionId && (
+                      <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 text-[9px] font-black">
+                        AUTO
+                      </span>
+                    )}
+                  </div>
+                  <span className="font-mono text-blue-600">
+                    - {(order.promotionDiscount || 0).toLocaleString()} LKR
+                  </span>
+                </div>
+              )}
+
+              {/* Item Discounts (combo, sale prices) */}
+              {discount > 0 &&
+                discount !==
+                  (order?.couponDiscount || 0) +
+                    (order?.promotionDiscount || 0) && (
+                  <div className="flex justify-between items-center text-gray-500 font-bold uppercase text-xs">
+                    <span>Item Discounts</span>
+                    <span className="font-mono text-red-500">
+                      -{" "}
+                      {(
+                        discount -
+                        (order?.couponDiscount || 0) -
+                        (order?.promotionDiscount || 0)
+                      ).toLocaleString()}{" "}
+                      LKR
+                    </span>
+                  </div>
+                )}
+
               <div className="flex justify-between items-center text-gray-500 font-bold uppercase text-xs">
                 <span>Shipping</span>
                 <span className="font-mono text-gray-800">
