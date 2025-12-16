@@ -23,7 +23,7 @@ export const getDailySaleReport = async (from: string, to: string) => {
 
     const snap = await query.get();
 
-    const orders = snap.docs.map((d) => ({
+    const orders: any[] = snap.docs.map((d) => ({
       orderId: d.id,
       ...d.data(),
       createdAt: toSafeLocaleString(d.data().createdAt),
@@ -60,6 +60,14 @@ export const getDailySaleReport = async (from: string, to: string) => {
     );
     const totalItemsSold = orders.reduce(
       (count, o) => count + o.items.reduce((c, i) => c + i.quantity, 0),
+      0
+    );
+    const totalCouponDiscount = orders.reduce(
+      (s, o) => s + (o.couponDiscount || 0),
+      0
+    );
+    const totalPromotionDiscount = orders.reduce(
+      (s, o) => s + (o.promotionDiscount || 0),
       0
     );
 
@@ -176,6 +184,8 @@ export const getDailySaleReport = async (from: string, to: string) => {
         totalGrossProfit,
         totalShipping,
         totalDiscount,
+        totalCouponDiscount,
+        totalPromotionDiscount,
         totalTransactionFee,
         totalItemsSold,
         // Combo metrics
@@ -214,7 +224,7 @@ export const getMonthlySummary = async (from: string, to: string) => {
     query = query.orderBy("createdAt", "asc");
     const snap = await query.get();
 
-    const orders = snap.docs.map((d) => ({
+    const orders: any[] = snap.docs.map((d) => ({
       orderId: d.id,
       ...d.data(),
       createdAt: d.data().createdAt.toDate(),
@@ -250,6 +260,14 @@ export const getMonthlySummary = async (from: string, to: string) => {
     );
     const totalItemsSold = orders.reduce(
       (count, o) => count + (o.items?.reduce((c, i) => c + i.quantity, 0) || 0),
+      0
+    );
+    const totalCouponDiscount = orders.reduce(
+      (s, o) => s + (o.couponDiscount || 0),
+      0
+    );
+    const totalPromotionDiscount = orders.reduce(
+      (s, o) => s + (o.promotionDiscount || 0),
       0
     );
 
@@ -373,6 +391,8 @@ export const getMonthlySummary = async (from: string, to: string) => {
         averageOrderValue,
         totalShipping,
         totalDiscount,
+        totalCouponDiscount,
+        totalPromotionDiscount,
         totalTransactionFee,
         totalItemsSold,
         // Combo metrics
@@ -411,7 +431,7 @@ export const getYearlySummary = async (from: string, to: string) => {
     query = query.orderBy("createdAt", "asc");
     const snap = await query.get();
 
-    const orders = snap.docs.map((d) => ({
+    const orders: any[] = snap.docs.map((d) => ({
       orderId: d.id,
       ...d.data(),
       createdAt: d.data().createdAt.toDate(),
@@ -448,6 +468,14 @@ export const getYearlySummary = async (from: string, to: string) => {
     );
     const totalItemsSold = orders.reduce(
       (count, o) => count + (o.items?.reduce((c, i) => c + i.quantity, 0) || 0),
+      0
+    );
+    const totalCouponDiscount = orders.reduce(
+      (s, o) => s + (o.couponDiscount || 0),
+      0
+    );
+    const totalPromotionDiscount = orders.reduce(
+      (s, o) => s + (o.promotionDiscount || 0),
       0
     );
 
@@ -631,6 +659,8 @@ export const getYearlySummary = async (from: string, to: string) => {
         totalGrossProfit,
         totalShipping,
         totalDiscount,
+        totalCouponDiscount,
+        totalPromotionDiscount,
         totalTransactionFee,
         totalItemsSold,
         // Combo metrics
