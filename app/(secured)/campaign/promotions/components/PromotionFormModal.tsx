@@ -119,6 +119,29 @@ const PromotionFormModal: React.FC<Props> = ({
     }
   };
 
+  // State for product variants (keyed by productId)
+  const [productVariants, setProductVariants] = useState<{
+    [productId: string]: { variantId: string; variantName: string }[];
+  }>({});
+
+  const fetchVariantsForProduct = async (productId: string) => {
+    if (!productId || productVariants[productId]) return;
+    try {
+      const token = await getToken();
+      const res = await axios.get(`/api/v2/master/products/${productId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const product = res.data;
+      const variants = (product?.variants || []).map((v: any) => ({
+        variantId: v.variantId,
+        variantName: v.variantName || v.variantId,
+      }));
+      setProductVariants((prev) => ({ ...prev, [productId]: variants }));
+    } catch (e) {
+      console.error("Failed to fetch variants for product", productId, e);
+    }
+  };
+
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -578,13 +601,25 @@ const PromotionFormModal: React.FC<Props> = ({
                                 {cond.type === "SPECIFIC_PRODUCT" ? (
                                   <select
                                     value={cond.value as string}
-                                    onChange={(e) =>
+                                    onChange={(e) => {
                                       updateCondition(
                                         idx,
                                         "value",
                                         e.target.value
-                                      )
-                                    }
+                                      );
+                                      // Load variants when product selected
+                                      if (e.target.value) {
+                                        fetchVariantsForProduct(e.target.value);
+                                        // Default to ALL_VARIANTS if not set
+                                        if (!cond.variantMode) {
+                                          updateCondition(
+                                            idx,
+                                            "variantMode",
+                                            "ALL_VARIANTS"
+                                          );
+                                        }
+                                      }
+                                    }}
                                     className="w-full text-xs font-bold uppercase bg-transparent outline-none border-b border-gray-100 py-1"
                                   >
                                     <option value="">Select...</option>
@@ -610,6 +645,117 @@ const PromotionFormModal: React.FC<Props> = ({
                                 )}
                               </div>
                             </div>
+
+                            {/* Variant Selection for SPECIFIC_PRODUCT */}
+                            {cond.type === "SPECIFIC_PRODUCT" && cond.value && (
+                              <div className="mt-3 pt-3 border-t border-gray-100">
+                                <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">
+                                  Variant Restriction
+                                </label>
+                                <div className="flex gap-4 mb-2">
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      name={`variantMode-${idx}`}
+                                      checked={
+                                        cond.variantMode === "ALL_VARIANTS" ||
+                                        !cond.variantMode
+                                      }
+                                      onChange={() => {
+                                        updateCondition(
+                                          idx,
+                                          "variantMode",
+                                          "ALL_VARIANTS"
+                                        );
+                                        updateCondition(
+                                          idx,
+                                          "variantIds",
+                                          undefined
+                                        );
+                                      }}
+                                      className="accent-black"
+                                    />
+                                    <span className="text-xs font-bold uppercase">
+                                      All Variants
+                                    </span>
+                                  </label>
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      name={`variantMode-${idx}`}
+                                      checked={
+                                        cond.variantMode === "SPECIFIC_VARIANTS"
+                                      }
+                                      onChange={() =>
+                                        updateCondition(
+                                          idx,
+                                          "variantMode",
+                                          "SPECIFIC_VARIANTS"
+                                        )
+                                      }
+                                      className="accent-black"
+                                    />
+                                    <span className="text-xs font-bold uppercase">
+                                      Specific Variants
+                                    </span>
+                                  </label>
+                                </div>
+
+                                {cond.variantMode === "SPECIFIC_VARIANTS" && (
+                                  <div className="mt-2">
+                                    {productVariants[cond.value as string]
+                                      ?.length > 0 ? (
+                                      <div className="flex flex-wrap gap-2">
+                                        {productVariants[
+                                          cond.value as string
+                                        ].map((v) => (
+                                          <label
+                                            key={v.variantId}
+                                            className={`flex items-center gap-1 px-2 py-1 text-[10px] font-bold uppercase border cursor-pointer transition-colors ${
+                                              cond.variantIds?.includes(
+                                                v.variantId
+                                              )
+                                                ? "bg-black text-white border-black"
+                                                : "bg-gray-100 text-gray-600 border-gray-200 hover:border-black"
+                                            }`}
+                                          >
+                                            <input
+                                              type="checkbox"
+                                              className="hidden"
+                                              checked={
+                                                cond.variantIds?.includes(
+                                                  v.variantId
+                                                ) || false
+                                              }
+                                              onChange={(e) => {
+                                                const currentIds =
+                                                  cond.variantIds || [];
+                                                const newIds = e.target.checked
+                                                  ? [...currentIds, v.variantId]
+                                                  : currentIds.filter(
+                                                      (id) => id !== v.variantId
+                                                    );
+                                                updateCondition(
+                                                  idx,
+                                                  "variantIds",
+                                                  newIds
+                                                );
+                                              }}
+                                            />
+                                            {v.variantName}
+                                          </label>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <p className="text-[10px] text-gray-400">
+                                        Loading variants...
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
                             <button
                               onClick={() => removeCondition(idx)}
                               className="absolute -top-2 -right-2 bg-black text-white p-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"

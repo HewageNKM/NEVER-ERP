@@ -1,6 +1,7 @@
 import { firestore } from "firebase-admin";
 import Timestamp = firestore.Timestamp;
 import { Img } from "./index";
+import { VariantMode } from "./Promotion";
 
 export interface ComboProduct {
   id: string;
@@ -37,7 +38,8 @@ export interface ComboProduct {
 
 export interface ComboItem {
   productId: string;
-  variantId?: string;
+  variantMode: VariantMode; // ALL_VARIANTS or SPECIFIC_VARIANTS
+  variantIds?: string[]; // Only used when variantMode is SPECIFIC_VARIANTS
   quantity: number;
   required: boolean; // Must be in cart for combo to apply
 }

@@ -1,6 +1,20 @@
 import { firestore } from "firebase-admin";
 import Timestamp = firestore.Timestamp;
 
+/**
+ * Variant targeting mode for product-level campaign restrictions
+ */
+export type VariantMode = "ALL_VARIANTS" | "SPECIFIC_VARIANTS";
+
+/**
+ * Product-variant targeting for campaigns
+ */
+export interface ProductVariantTarget {
+  productId: string;
+  variantMode: VariantMode;
+  variantIds?: string[]; // Only used when variantMode is SPECIFIC_VARIANTS
+}
+
 export interface Promotion {
   id: string;
   name: string;
@@ -22,7 +36,8 @@ export interface Promotion {
   perUserLimit?: number; // Uses per customer
 
   // Targeting
-  applicableProducts?: string[]; // Product IDs
+  applicableProducts?: string[]; // Product IDs (legacy)
+  applicableProductVariants?: ProductVariantTarget[]; // Variant-level targeting
   applicableCategories?: string[]; // Category names
   applicableBrands?: string[]; // Brand names
   excludedProducts?: string[];
@@ -47,6 +62,9 @@ export interface PromotionCondition {
     | "CUSTOMER_TAG";
   value: string | number;
   productIds?: string[];
+  // Variant-level restriction for SPECIFIC_PRODUCT condition
+  variantMode?: VariantMode;
+  variantIds?: string[]; // Only used when variantMode is SPECIFIC_VARIANTS
 }
 
 export interface PromotionAction {

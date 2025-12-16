@@ -1,5 +1,6 @@
 import { firestore } from "firebase-admin";
 import Timestamp = firestore.Timestamp;
+import { ProductVariantTarget } from "./Promotion";
 
 export interface Coupon {
   id: string;
@@ -15,7 +16,8 @@ export interface Coupon {
   // Conditions
   minOrderAmount?: number;
   minQuantity?: number;
-  applicableProducts?: string[];
+  applicableProducts?: string[]; // Legacy product-level
+  applicableProductVariants?: ProductVariantTarget[]; // Variant-level targeting
   applicableCategories?: string[];
   excludedProducts?: string[];
 

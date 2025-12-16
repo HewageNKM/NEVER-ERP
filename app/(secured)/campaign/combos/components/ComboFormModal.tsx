@@ -115,6 +115,29 @@ const ComboFormModal: React.FC<Props> = ({ open, onClose, onSave, combo }) => {
     }
   };
 
+  // State for product variants (keyed by productId)
+  const [productVariants, setProductVariants] = useState<{
+    [productId: string]: { variantId: string; variantName: string }[];
+  }>({});
+
+  const fetchVariantsForProduct = async (productId: string) => {
+    if (!productId || productVariants[productId]) return;
+    try {
+      const token = await getToken();
+      const res = await axios.get(`/api/v2/master/products/${productId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const product = res.data;
+      const variants = (product?.variants || []).map((v: any) => ({
+        variantId: v.variantId,
+        variantName: v.variantName || v.variantId,
+      }));
+      setProductVariants((prev) => ({ ...prev, [productId]: variants }));
+    } catch (e) {
+      console.error("Failed to fetch variants for product", productId, e);
+    }
+  };
+
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -132,7 +155,12 @@ const ComboFormModal: React.FC<Props> = ({ open, onClose, onSave, combo }) => {
       ...prev,
       items: [
         ...(prev.items || []),
-        { productId: "", quantity: 1, required: true },
+        {
+          productId: "",
+          quantity: 1,
+          required: true,
+          variantMode: "ALL_VARIANTS" as const,
+        },
       ],
     }));
   };
@@ -555,6 +583,113 @@ const ComboFormModal: React.FC<Props> = ({ open, onClose, onSave, combo }) => {
                               </button>
                             </div>
                           </div>
+
+                          {/* Variant Restriction */}
+                          {item.productId && (
+                            <div className="mt-3 pt-3 border-t border-gray-100">
+                              <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">
+                                Variant Restriction
+                              </label>
+                              <div className="flex gap-4 mb-2">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                  <input
+                                    type="radio"
+                                    name={`variantMode-item-${idx}`}
+                                    checked={
+                                      item.variantMode === "ALL_VARIANTS" ||
+                                      !item.variantMode
+                                    }
+                                    onChange={() => {
+                                      updateItem(
+                                        idx,
+                                        "variantMode",
+                                        "ALL_VARIANTS"
+                                      );
+                                      updateItem(idx, "variantIds", undefined);
+                                    }}
+                                    className="accent-black"
+                                  />
+                                  <span className="text-xs font-bold uppercase">
+                                    All Variants
+                                  </span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                  <input
+                                    type="radio"
+                                    name={`variantMode-item-${idx}`}
+                                    checked={
+                                      item.variantMode === "SPECIFIC_VARIANTS"
+                                    }
+                                    onChange={() => {
+                                      updateItem(
+                                        idx,
+                                        "variantMode",
+                                        "SPECIFIC_VARIANTS"
+                                      );
+                                      fetchVariantsForProduct(item.productId);
+                                    }}
+                                    className="accent-black"
+                                  />
+                                  <span className="text-xs font-bold uppercase">
+                                    Specific
+                                  </span>
+                                </label>
+                              </div>
+
+                              {item.variantMode === "SPECIFIC_VARIANTS" && (
+                                <div className="mt-2">
+                                  {productVariants[item.productId]?.length >
+                                  0 ? (
+                                    <div className="flex flex-wrap gap-1">
+                                      {productVariants[item.productId].map(
+                                        (v) => (
+                                          <label
+                                            key={v.variantId}
+                                            className={`flex items-center px-2 py-1 text-[10px] font-bold uppercase border cursor-pointer transition-colors ${
+                                              item.variantIds?.includes(
+                                                v.variantId
+                                              )
+                                                ? "bg-black text-white border-black"
+                                                : "bg-gray-100 text-gray-600 border-gray-200 hover:border-black"
+                                            }`}
+                                          >
+                                            <input
+                                              type="checkbox"
+                                              className="hidden"
+                                              checked={
+                                                item.variantIds?.includes(
+                                                  v.variantId
+                                                ) || false
+                                              }
+                                              onChange={(e) => {
+                                                const currentIds =
+                                                  item.variantIds || [];
+                                                const newIds = e.target.checked
+                                                  ? [...currentIds, v.variantId]
+                                                  : currentIds.filter(
+                                                      (id) => id !== v.variantId
+                                                    );
+                                                updateItem(
+                                                  idx,
+                                                  "variantIds",
+                                                  newIds
+                                                );
+                                              }}
+                                            />
+                                            {v.variantName}
+                                          </label>
+                                        )
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <p className="text-[10px] text-gray-400">
+                                      Loading...
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

@@ -225,8 +225,7 @@ export const addOrder = async (order: Partial<Order>) => {
 
     // Validate Coupon if exists
     if (fromSource === "website" && order.couponCode) {
-      // Calculate true cart total based on DB prices
-      // Calculate true cart total based on DB prices, but respecting item-level discounts (e.g. Comobs)
+      // Calculate true cart total based on DB prices, but respecting item-level discounts (e.g. Combos)
       const cartTotal = order.items.reduce((acc, item) => {
         const prod = productMap.get(item.itemId);
         const price = prod ? prod.sellingPrice : 0;
@@ -234,11 +233,20 @@ export const addOrder = async (order: Partial<Order>) => {
         return acc + (price * item.quantity - discount);
       }, 0);
 
+      // Map order items to CartItem format for validation
+      const cartItems = order.items.map((i) => ({
+        productId: i.itemId,
+        variantId: i.variantId,
+        quantity: i.quantity,
+        price: productMap.get(i.itemId)?.sellingPrice || 0,
+        discount: i.discount,
+      }));
+
       const validation = await validateCoupon(
         order.couponCode,
         order.customer?.uid || "guest",
         cartTotal,
-        order.items
+        cartItems
       );
       if (!validation.valid) {
         console.warn(
