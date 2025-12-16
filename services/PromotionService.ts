@@ -68,6 +68,7 @@ export const createPromotion = async (
     startDate: data.startDate ? new Date(data.startDate as any) : null,
     endDate: data.endDate ? new Date(data.endDate as any) : null,
     usageCount: 0,
+    isDeleted: false,
     createdAt: now,
     updatedAt: now,
   };
@@ -193,6 +194,7 @@ export const createCoupon = async (
     startDate: data.startDate ? new Date(data.startDate as any) : null,
     endDate: data.endDate ? new Date(data.endDate as any) : null,
     usageCount: 0,
+    isDeleted: false,
     createdAt: now,
     updatedAt: now,
   };
