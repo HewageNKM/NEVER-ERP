@@ -35,8 +35,9 @@ export const getCombos = async (
   size: number = 20
 ): Promise<{ dataList: ComboProduct[]; rowCount: number }> => {
   try {
-    let query = adminFirestore
+    let query: FirebaseFirestore.Query = adminFirestore
       .collection(COMBOS_COLLECTION)
+      .where("isDeleted", "!=", true)
       .orderBy("createdAt", "desc");
 
     const offset = (pageNumber - 1) * size;
@@ -44,6 +45,7 @@ export const getCombos = async (
 
     const allDocs = await adminFirestore
       .collection(COMBOS_COLLECTION)
+      .where("isDeleted", "!=", true)
       .count()
       .get();
     const rowCount = allDocs.data().count;
@@ -148,7 +150,10 @@ export const updateCombo = async (
 };
 
 export const deleteCombo = async (id: string): Promise<void> => {
-  await adminFirestore.collection(COMBOS_COLLECTION).doc(id).delete();
+  await adminFirestore.collection(COMBOS_COLLECTION).doc(id).update({
+    isDeleted: true,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
 };
 
 export const getComboById = async (
@@ -157,6 +162,9 @@ export const getComboById = async (
   const doc = await adminFirestore.collection(COMBOS_COLLECTION).doc(id).get();
   if (!doc.exists) return null;
   const data = doc.data() as ComboProduct;
+
+  // Skip soft-deleted combos
+  if (data.isDeleted) return null;
   return {
     ...data,
     id: doc.id,

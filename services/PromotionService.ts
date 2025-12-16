@@ -16,9 +16,9 @@ export const getPromotions = async (
   filterStatus?: string
 ): Promise<{ dataList: Promotion[]; rowCount: number }> => {
   try {
-    let query: FirebaseFirestore.Query = adminFirestore.collection(
-      PROMOTIONS_COLLECTION
-    );
+    let query: FirebaseFirestore.Query = adminFirestore
+      .collection(PROMOTIONS_COLLECTION)
+      .where("isDeleted", "!=", true);
 
     if (filterStatus) {
       query = query.where("status", "==", filterStatus);
@@ -34,6 +34,7 @@ export const getPromotions = async (
     // In production with high volume, consider aggregation queries or counters
     const allDocs = await adminFirestore
       .collection(PROMOTIONS_COLLECTION)
+      .where("isDeleted", "!=", true)
       .get();
     const rowCount = allDocs.size;
 
@@ -110,7 +111,10 @@ export const updatePromotion = async (
 };
 
 export const deletePromotion = async (id: string): Promise<void> => {
-  await adminFirestore.collection(PROMOTIONS_COLLECTION).doc(id).delete();
+  await adminFirestore.collection(PROMOTIONS_COLLECTION).doc(id).update({
+    isDeleted: true,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
 };
 
 export const getPromotionById = async (
@@ -139,8 +143,9 @@ export const getCoupons = async (
   size: number = 20
 ): Promise<{ dataList: Coupon[]; rowCount: number }> => {
   // Similar pagination logic
-  let query = adminFirestore
+  let query: FirebaseFirestore.Query = adminFirestore
     .collection(COUPONS_COLLECTION)
+    .where("isDeleted", "!=", true)
     .orderBy("createdAt", "desc");
 
   const offset = (pageNumber - 1) * size;
@@ -149,6 +154,7 @@ export const getCoupons = async (
   // Total count
   const allDocs = await adminFirestore
     .collection(COUPONS_COLLECTION)
+    .where("isDeleted", "!=", true)
     .count()
     .get();
   const rowCount = allDocs.data().count;
@@ -220,7 +226,10 @@ export const updateCoupon = async (
 };
 
 export const deleteCoupon = async (id: string): Promise<void> => {
-  await adminFirestore.collection(COUPONS_COLLECTION).doc(id).delete();
+  await adminFirestore.collection(COUPONS_COLLECTION).doc(id).update({
+    isDeleted: true,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
 };
 
 export const getCouponByCode = async (code: string): Promise<Coupon | null> => {
@@ -423,10 +432,11 @@ export const calculateCartDiscount = async (
   cartItems: CartItem[],
   cartTotal: number
 ): Promise<CartDiscountResult> => {
-  // Fetch ACTIVE promotions
+  // Fetch ACTIVE promotions (excluding soft-deleted)
   const promotionsSnap = await adminFirestore
     .collection(PROMOTIONS_COLLECTION)
     .where("status", "==", "ACTIVE")
+    .where("isDeleted", "!=", true)
     .get();
 
   const promotions = promotionsSnap.docs.map(

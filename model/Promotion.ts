@@ -33,6 +33,9 @@ export interface Promotion {
 
   createdAt: Timestamp | string;
   updatedAt: Timestamp | string;
+
+  // Soft delete
+  isDeleted?: boolean;
 }
 
 export interface PromotionCondition {
