@@ -145,8 +145,7 @@ export const getCoupons = async (
   // Similar pagination logic
   let query: FirebaseFirestore.Query = adminFirestore
     .collection(COUPONS_COLLECTION)
-    .where("isDeleted", "!=", true)
-    .orderBy("createdAt", "desc");
+    .where("isDeleted", "!=", true);
 
   const offset = (pageNumber - 1) * size;
   const snapshot = await query.offset(offset).limit(size).get();
