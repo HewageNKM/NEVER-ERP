@@ -3,16 +3,9 @@
 import React, { useEffect, useState } from "react";
 import DashboardCard from "../shared/DashboardCard";
 import dynamic from "next/dynamic";
-import {
-  collection,
-  getDocs,
-  query,
-  Timestamp,
-  where,
-} from "@firebase/firestore";
-import { db } from "@/firebase/firebaseClient";
 import { useAppSelector } from "@/lib/hooks";
 import { showNotification } from "@/utils/toast";
+import { getYearlySalesAction } from "@/actions/reportsActions";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
@@ -136,38 +129,10 @@ const SalesOverview = () => {
   const fetchSalesData = async () => {
     try {
       setLoading(true);
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const startOfYear = new Date(currentYear, 0, 1, 0, 0, 0, 0);
-      const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59, 999);
-      const startTimestamp = Timestamp.fromDate(startOfYear);
-      const endTimestamp = Timestamp.fromDate(endOfYear);
-
-      const ordersRef = collection(db, "orders");
-      const ordersQuery = query(
-        ordersRef,
-        where("createdAt", ">=", startTimestamp),
-        where("createdAt", "<=", endTimestamp),
-        where("paymentStatus", "in", ["Paid", "Pending"])
-      );
-
-      const querySnapshot = await getDocs(ordersQuery);
-      const updatedWebsiteOrders = new Array(12).fill(0);
-      const updatedStoreOrders = new Array(12).fill(0);
-
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        const createdAt = data.createdAt?.toDate();
-        if (createdAt) {
-          const monthIndex = createdAt.getMonth();
-          const source = data.from?.toString().toLowerCase() || "store";
-          if (source === "website") updatedWebsiteOrders[monthIndex]++;
-          else updatedStoreOrders[monthIndex]++;
-        }
-      });
+      const data = await getYearlySalesAction();
       setSalesData({
-        website: updatedWebsiteOrders,
-        store: updatedStoreOrders,
+        website: data.website,
+        store: data.store,
       });
     } catch (error: any) {
       console.error(error);
