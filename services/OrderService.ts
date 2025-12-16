@@ -199,6 +199,7 @@ export const addOrder = async (order: Partial<Order>) => {
   let appliedCouponId: string | null = null;
   let promotionDiscount = 0;
   let appliedPromotionId: string | null = null;
+  let appliedPromotionIds: string[] = [];
 
   if (fromSource === "website" && order.couponCode) {
     // Calculate cart total from items (to ensure client didn't spoof total)
@@ -272,9 +273,10 @@ export const addOrder = async (order: Partial<Order>) => {
         cartTotal - finalDiscount // Apply promo on cart after coupon
       );
 
-      if (promoResult.promotion && promoResult.discount > 0) {
-        promotionDiscount = promoResult.discount;
-        appliedPromotionId = promoResult.promotion.id;
+      if (promoResult.promotions && promoResult.promotions.length > 0) {
+        promotionDiscount = promoResult.totalDiscount;
+        appliedPromotionId = promoResult.promotions[0].id; // Primary for backward compat
+        appliedPromotionIds = promoResult.promotions.map((p) => p.id);
       }
 
       // --- SERVER-SIDE TOTAL VALIDATION ---
@@ -420,6 +422,7 @@ export const addOrder = async (order: Partial<Order>) => {
     // Store only tracking IDs from server validation, keep discount values from frontend
     orderData.appliedCouponId = appliedCouponId;
     orderData.appliedPromotionId = appliedPromotionId;
+    orderData.appliedPromotionIds = appliedPromotionIds;
 
     // --- STORE ORDER (Batch, with retry) ---
     if (fromSource === "store") {

@@ -398,18 +398,31 @@ export const trackCouponUsage = async (
 };
 
 /**
- * Calculates the best automatic promotion for the cart.
+ * Result of cart discount calculation supporting both single and stacked promotions
+ */
+interface CartDiscountResult {
+  // New stacking support
+  promotions: Promotion[]; // All applied promotions
+  totalDiscount: number; // Combined discount from all promotions
+
+  // Legacy fields for backward compatibility
+  promotion?: Promotion; // First/primary promotion
+  discount: number; // Same as totalDiscount
+}
+
+/**
+ * Calculates the cart discount, supporting stacking for promotions marked as stackable.
+ *
+ * Stacking Logic:
+ * 1. All eligible promotions are sorted by priority (high to low)
+ * 2. If the highest-priority eligible promotion is NOT stackable, only that one applies
+ * 3. If the highest-priority eligible promotion IS stackable, all stackable promotions are combined
+ * 4. Discounts are summed (each respecting its own maxDiscount cap if percentage-based)
  */
 export const calculateCartDiscount = async (
   cartItems: CartItem[],
   cartTotal: number
-): Promise<{
-  promotion?: Promotion;
-  discount: number;
-}> => {
-  // 1. Fetch active auto-apply promotions (Not type=COUPON ideally, but our type Enum doesn't strictly separate them yet. Assuming all in 'promotions' are auto unless specified)
-  // For this system, let's assume 'promotions' collection implies automatic rules unless defined otherwise.
-
+): Promise<CartDiscountResult> => {
   // Fetch ACTIVE promotions
   const promotionsSnap = await adminFirestore
     .collection(PROMOTIONS_COLLECTION)
@@ -423,10 +436,8 @@ export const calculateCartDiscount = async (
   // Sort by priority (high to low)
   promotions.sort((a, b) => b.priority - a.priority);
 
-  let bestDiscount = 0;
-  let bestPromotion: Promotion | undefined;
-
   const now = new Date();
+  const eligiblePromotions: { promo: Promotion; discount: number }[] = [];
 
   for (const promo of promotions) {
     // Date Checks
@@ -457,7 +468,7 @@ export const calculateCartDiscount = async (
 
     if (!conditionsMet) continue;
 
-    // Calculate Potential Discount
+    // Calculate Discount for this promo
     let currentDiscount = 0;
     const action = promo.actions[0]; // Assuming single action for now
 
@@ -470,22 +481,50 @@ export const calculateCartDiscount = async (
       currentDiscount = action.value;
     }
 
-    // Identify Best Offer (Simple strategy: Highest Discount takes precedence if not stackable)
-    if (currentDiscount > bestDiscount) {
-      bestDiscount = currentDiscount;
-      bestPromotion = promo;
-    }
-
-    // If we want stacking, logic gets complex. For now, we take the highest priority valid one.
-    // Since we sorted by priority, the first one that matches IS the one we want if we don't scan for "best financial value" but "highest priority rule".
-    // If sorting by financial value, we scan all.
-    // Let's stick to "Highest Priority Wins" for simplicity and predictability.
-    if (conditionsMet && promo.priority > 0) {
-      bestDiscount = currentDiscount;
-      bestPromotion = promo;
-      break; // Stop after finding high priority match
+    if (currentDiscount > 0) {
+      eligiblePromotions.push({ promo, discount: currentDiscount });
     }
   }
 
-  return { promotion: bestPromotion, discount: bestDiscount };
+  // No eligible promotions
+  if (eligiblePromotions.length === 0) {
+    return {
+      promotions: [],
+      totalDiscount: 0,
+      promotion: undefined,
+      discount: 0,
+    };
+  }
+
+  // Check the highest-priority eligible promotion
+  const firstEligible = eligiblePromotions[0];
+
+  // If the first (highest priority) promotion is NOT stackable, return only that one
+  if (!firstEligible.promo.stackable) {
+    return {
+      promotions: [firstEligible.promo],
+      totalDiscount: firstEligible.discount,
+      promotion: firstEligible.promo,
+      discount: firstEligible.discount,
+    };
+  }
+
+  // First promotion IS stackable - collect all stackable promotions
+  const stackedPromotions: Promotion[] = [];
+  let totalDiscount = 0;
+
+  for (const { promo, discount } of eligiblePromotions) {
+    if (promo.stackable) {
+      stackedPromotions.push(promo);
+      totalDiscount += discount;
+    }
+  }
+
+  // Return stacked results
+  return {
+    promotions: stackedPromotions,
+    totalDiscount,
+    promotion: stackedPromotions[0], // Primary for backward compat
+    discount: totalDiscount,
+  };
 };

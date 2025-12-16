@@ -123,7 +123,8 @@ export interface Order {
   // Promotion & Coupon tracking
   couponCode?: string;
   appliedCouponId?: string | null;
-  appliedPromotionId?: string | null;
+  appliedPromotionId?: string | null; // Primary promotion (backward compat)
+  appliedPromotionIds?: string[]; // All stacked promotion IDs
   couponDiscount?: number;
   promotionDiscount?: number;
 
