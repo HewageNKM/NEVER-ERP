@@ -127,9 +127,11 @@ export const getPromotionById = async (
     .get();
   if (!doc.exists) return null;
   const data = doc.data() as Promotion;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { id: _, ...rest } = data;
   return {
     id: doc.id,
-    ...data,
+    ...rest,
     startDate: toSafeLocaleString(data.startDate) || "",
     endDate: toSafeLocaleString(data.endDate) || "",
     createdAt: toSafeLocaleString(data.createdAt) || "",
@@ -243,9 +245,11 @@ export const getCouponByCode = async (code: string): Promise<Coupon | null> => {
   if (snapshot.empty) return null;
   const doc = snapshot.docs[0];
   const data = doc.data() as Coupon;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { id: _, ...rest } = data;
   return {
     id: doc.id,
-    ...data,
+    ...rest,
     startDate: toSafeLocaleString(data.startDate) || "",
     endDate: toSafeLocaleString(data.endDate) || "",
     createdAt: toSafeLocaleString(data.createdAt) || "",
@@ -439,6 +443,8 @@ export const validateCoupon = async (
       return {
         valid: false,
         discount: 0,
+        // @ts-ignore - Adding restricted property to return type dynamically
+        restricted: true,
         message:
           "This coupon is not valid for the product variants in your cart",
       };
@@ -459,6 +465,8 @@ export const validateCoupon = async (
       return {
         valid: false,
         discount: 0,
+        // @ts-ignore
+        restricted: true,
         message: "This coupon is not valid for items in your cart",
       };
     }
@@ -484,6 +492,8 @@ export const validateCoupon = async (
       return {
         valid: false,
         discount: 0,
+        // @ts-ignore
+        restricted: true,
         message: "This coupon is not valid for the categories in your cart",
       };
     }

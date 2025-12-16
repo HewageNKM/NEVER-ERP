@@ -201,15 +201,6 @@ export const addOrder = async (order: Partial<Order>) => {
   let appliedPromotionId: string | null = null;
   let appliedPromotionIds: string[] = [];
 
-  if (fromSource === "website" && order.couponCode) {
-    // Calculate cart total from items (to ensure client didn't spoof total)
-    // Note: We need accurate prices. The code below fetches product data.
-    // We should calculate total based on fetched prices ideally, but `productMap` is fetched later.
-    // Let's defer validation until we have product data?
-    // Actually, we can do it inside the transaction or before.
-    // Better to do it before transaction to fail fast, but we need prices.
-  }
-
   const orderRef = adminFirestore.collection("orders").doc(order.orderId);
   const now = admin.firestore.Timestamp.now();
   let orderData: Order = { ...order, createdAt: now, updatedAt: now };
