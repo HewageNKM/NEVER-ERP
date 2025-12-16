@@ -11,7 +11,8 @@ import {
 } from "@tabler/icons-react";
 
 const DailyEarnings = () => {
-  const [totalEarnings, setTotalEarnings] = useState(0);
+  const [totalGrossSales, setTotalGrossSales] = useState(0);
+  const [totalNetSales, setTotalNetSales] = useState(0);
   const [totalProfit, setTotalProfit] = useState(0);
   const [totalDiscount, setTotalDiscount] = useState(0);
   const [totalRefunds, setTotalRefunds] = useState(0); // Future Implementation (Default 0)
@@ -27,7 +28,8 @@ const DailyEarnings = () => {
     setLoading(true);
     try {
       const overview = await getDailyOverviewAction();
-      setTotalEarnings(overview.totalEarnings);
+      setTotalGrossSales(overview.totalGrossSales);
+      setTotalNetSales(overview.totalNetSales);
       setTotalProfit(overview.totalProfit);
       setInvoiceCount(overview.totalOrders);
       setTotalDiscount(overview.totalDiscount);
@@ -39,9 +41,6 @@ const DailyEarnings = () => {
       setLoading(false);
     }
   };
-
-  // Logic: Net Sales = Gross - Discounts - Refunds
-  const netSales = totalEarnings - totalDiscount - totalRefunds;
 
   const DetailBlock = ({
     label,
@@ -132,7 +131,7 @@ const DailyEarnings = () => {
           <div className="grid grid-cols-2 gap-3 min-w-0">
             <DetailBlock
               label="Gross Sales"
-              value={totalEarnings}
+              value={totalGrossSales}
               isSecondary
             />
             <DetailBlock
@@ -144,7 +143,7 @@ const DailyEarnings = () => {
 
           {/* Row 2: Net Sales & Refunds */}
           <div className="grid grid-cols-2 gap-3 min-w-0">
-            <DetailBlock label="Net Sales" value={netSales} />
+            <DetailBlock label="Net Sales" value={totalNetSales} />
             {/* Refund Card - Future Implement */}
             <DetailBlock
               label="Refunds"

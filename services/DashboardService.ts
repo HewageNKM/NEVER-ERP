@@ -108,6 +108,8 @@ export const getOverviewByDateRange = async (
     let totalNetSales = 0;
     let totalDiscount = 0;
     let totalBuyingCost = 0;
+    let totalTransactionFee = 0;
+    let totalFee = 0;
 
     querySnapshot.docs.forEach((doc) => {
       const order = doc.data() as Order;
@@ -121,7 +123,7 @@ export const getOverviewByDateRange = async (
 
       // Match ReportService formulas:
       // Net Sale = total - shippingFee - transactionFeeCharge
-      const netSale = orderTotal - orderShippingFee - orderTransactionFee;
+      const netSale = orderTotal - orderShippingFee - orderFee;
       totalNetSales += netSale;
 
       // Gross Sale (Sales) = total - shippingFee + discount
@@ -141,10 +143,14 @@ export const getOverviewByDateRange = async (
           totalBuyingCost += buyingPrice * quantity;
         });
       }
+      totalTransactionFee += orderTransactionFee;
+      totalFee += orderFee;
     });
 
     // Gross Profit = Net Sales - COGS (matches ReportService)
-    const totalProfit = totalNetSales - totalBuyingCost;
+    // Note: Transaction fees and order fees are already subtracted in netSale calculation
+    const totalProfit =
+      totalNetSales - totalBuyingCost + totalFee - totalTransactionFee;
 
     console.log(
       `[DashboardService] Fetched ${totalOrders} orders | Gross: ${totalGrossSales} | Net: ${totalNetSales} | COGS: ${totalBuyingCost} | Profit: ${totalProfit}`

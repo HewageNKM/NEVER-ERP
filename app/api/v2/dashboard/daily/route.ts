@@ -11,15 +11,7 @@ export const GET = async (req: Request) => {
     }
 
     const overview = await getDailySnapshot();
-
-    // Map to match existing frontend expectations
-    return NextResponse.json({
-      totalOrders: overview.totalOrders,
-      totalEarnings: overview.totalGrossSales,
-      totalBuyingCost: overview.totalBuyingCost,
-      totalProfit: overview.totalProfit,
-      totalDiscount: overview.totalDiscount,
-    });
+    return NextResponse.json(overview);
   } catch (error: any) {
     console.error("[Dashboard API] Error:", error);
     return NextResponse.json(

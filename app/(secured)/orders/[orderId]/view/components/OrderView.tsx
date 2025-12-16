@@ -69,13 +69,7 @@ const OrderView = ({ orderId }: { orderId: string }) => {
     }
   };
 
-  const subtotal =
-    order?.items?.reduce(
-      (sum, item) =>
-        sum +
-        (item?.quantity || 0) * ((item?.price || 0) - (item?.discount || 0)),
-      0
-    ) || 0;
+  const subtotal = (order?.total || 0) + (order?.discount || 0);
 
   const discount = order?.discount || 0;
   const fee = order?.fee || 0;
