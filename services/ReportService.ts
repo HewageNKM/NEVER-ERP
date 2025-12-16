@@ -704,9 +704,16 @@ export const getTopSellingProducts = async (
     const productMap: Record<string, any> = {};
 
     snap.docs.forEach((doc) => {
-      const order = doc.data();
+      const order: any = doc.data();
+      const orderItems = order.items || [];
+      const orderGrossSales = orderItems.reduce(
+        (sum: number, i: any) => sum + (i.price || 0) * i.quantity,
+        0
+      );
+      const orderLevelDiscount =
+        (order.couponDiscount || 0) + (order.promotionDiscount || 0);
 
-      order.items?.forEach((item: any) => {
+      orderItems.forEach((item: any) => {
         const key = item.itemId + (item.variantId || "");
 
         if (!productMap[key]) {
@@ -725,8 +732,12 @@ export const getTopSellingProducts = async (
         }
 
         const getSales = (item.price || 0) * item.quantity;
+        const itemShare = orderGrossSales > 0 ? getSales / orderGrossSales : 0;
+        const allocatedDiscount = orderLevelDiscount * itemShare;
+
         const getCOGS = (item.bPrice || 0) * item.quantity;
-        const totalNetSales = getSales - (item.discount || 0);
+        const totalNetSales =
+          getSales - (item.discount || 0) - allocatedDiscount;
         const totalGrossProfit = totalNetSales - getCOGS;
 
         productMap[key].totalQuantity += item.quantity;
@@ -782,9 +793,16 @@ export const getSalesByCategory = async (from?: string, to?: string) => {
     const productCache: Record<string, any> = {}; // cache products
 
     for (const doc of snap.docs) {
-      const order = doc.data();
+      const order: any = doc.data();
+      const orderItems = order.items || [];
+      const orderGrossSales = orderItems.reduce(
+        (sum: number, i: any) => sum + (i.price || 0) * i.quantity,
+        0
+      );
+      const orderLevelDiscount =
+        (order.couponDiscount || 0) + (order.promotionDiscount || 0);
 
-      for (const item of order.items || []) {
+      for (const item of orderItems) {
         // 3. Fetch product (with cache)
         let product: any;
         if (productCache[item.itemId]) {
@@ -818,12 +836,20 @@ export const getSalesByCategory = async (from?: string, to?: string) => {
 
         // FIXED: Distribute transaction fee proportionally
         const orderTotal = (order.total || 0) - (order.shippingFee || 0);
-        const itemShare = orderTotal > 0 ? getSales / orderTotal : 0;
+        const itemShareByTotal = orderTotal > 0 ? getSales / orderTotal : 0;
         const itemTransactionFee =
-          (order.transactionFeeCharge || 0) * itemShare;
+          (order.transactionFeeCharge || 0) * itemShareByTotal;
+
+        // Distribute discount proportionally
+        const itemShareByGross =
+          orderGrossSales > 0 ? getSales / orderGrossSales : 0;
+        const allocatedDiscount = orderLevelDiscount * itemShareByGross;
 
         const getNetSales =
-          getSales - (item.discount || 0) - itemTransactionFee;
+          getSales -
+          (item.discount || 0) -
+          allocatedDiscount -
+          itemTransactionFee;
         const getGrossProfit = getNetSales - getCOGS;
 
         // 5. Update category totals
