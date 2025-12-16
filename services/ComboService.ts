@@ -37,8 +37,7 @@ export const getCombos = async (
   try {
     let query: FirebaseFirestore.Query = adminFirestore
       .collection(COMBOS_COLLECTION)
-      .where("isDeleted", "!=", true)
-      .orderBy("createdAt", "desc");
+      .where("isDeleted", "!=", true);
 
     const offset = (pageNumber - 1) * size;
     const snapshot = await query.offset(offset).limit(size).get();
@@ -87,6 +86,7 @@ export const createCombo = async (
     endDate: data.endDate ? new Date(data.endDate as any) : null,
     createdAt: now,
     updatedAt: now,
+    isDeleted: false,
     thumbnail: thumbnail || null,
   };
 
