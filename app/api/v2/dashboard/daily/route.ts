@@ -19,7 +19,6 @@ export const GET = async (req: Request) => {
       totalBuyingCost: overview.totalBuyingCost,
       totalProfit: overview.totalProfit,
       totalDiscount: overview.totalDiscount,
-      totalExpense: overview.totalExpense,
     });
   } catch (error: any) {
     console.error("[Dashboard API] Error:", error);

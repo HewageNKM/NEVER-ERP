@@ -1,17 +1,17 @@
 import { adminFirestore } from "@/firebase/firebaseAdmin";
 import { Timestamp } from "firebase-admin/firestore";
-import { Order, Item } from "@/model";
+import { Order, Item, PopularItem } from "@/model";
 
 /**
  * Dashboard Overview Response
  */
 export interface DashboardOverview {
   totalOrders: number;
-  totalGrossSales: number; // Gross Sale = order.total + order.discount - order.fee - order.shippingFee
-  totalNetSales: number; // Net Sale = order.total - order.fee - order.shippingFee
+  totalGrossSales: number; // Gross Sale = total - shippingFee + discount
+  totalNetSales: number; // Net Sale = total - shippingFee - transactionFee
   totalDiscount: number;
   totalBuyingCost: number; // COGS (Cost of Goods Sold)
-  totalProfit: number; // Net Profit = Net Sales - COGS - TransactionFees
+  totalProfit: number; // Gross Profit = Net Sales - COGS
 }
 
 /**
@@ -108,8 +108,6 @@ export const getOverviewByDateRange = async (
     let totalNetSales = 0;
     let totalDiscount = 0;
     let totalBuyingCost = 0;
-    let totalTransactionFeeCharge = 0;
-    let totalProfit = 0;
 
     querySnapshot.docs.forEach((doc) => {
       const order = doc.data() as Order;
@@ -117,38 +115,37 @@ export const getOverviewByDateRange = async (
 
       const orderTotal = order.total || 0;
       const orderDiscount = order.discount || 0;
-      const orderFee = order.fee || 0;
       const orderShippingFee = order.shippingFee || 0;
       const orderTransactionFee = order.transactionFeeCharge || 0;
+      const orderFee = order.fee || 0;
 
-      // Gross Sale = order.total + order.discount - order.fee - order.shippingFee
-      const grossSale =
-        orderTotal + orderDiscount - orderFee - orderShippingFee;
-      totalGrossSales += grossSale;
-
-      // Net Sale = order.total - order.fee - order.shippingFee
-      const netSale = orderTotal - orderFee - orderShippingFee;
-
+      // Match ReportService formulas:
+      // Net Sale = total - shippingFee - transactionFeeCharge
+      const netSale = orderTotal - orderShippingFee - orderTransactionFee;
       totalNetSales += netSale;
 
-      // Accumulate discounts
-      totalDiscount += orderDiscount;
-      totalTransactionFeeCharge += orderTransactionFee;
+      // Gross Sale (Sales) = total - shippingFee + discount
+      const grossSale =
+        orderTotal - orderShippingFee + orderDiscount - orderFee;
+      totalGrossSales += grossSale;
 
-      // Calculate COGS from items
+      // Accumulate discount
+      totalDiscount += orderDiscount;
+
+      // Calculate COGS from items (bPrice * quantity)
       if (Array.isArray(order.items)) {
-        order.items.forEach((item) => {
+        order.items.forEach((item: any) => {
           const buyingPrice =
             item.bPrice ?? productPriceMap.get(item.itemId) ?? 0;
-          totalBuyingCost += buyingPrice * (item.quantity || 1);
+          const quantity = item.quantity || 0;
+          totalBuyingCost += buyingPrice * quantity;
         });
       }
-      const orderProfit =
-        orderTotal - orderShippingFee - orderTransactionFee - totalBuyingCost;
-      totalProfit += orderProfit;
     });
 
-    // Net Profit = Net Sales - COGS - TransactionFees
+    // Gross Profit = Net Sales - COGS (matches ReportService)
+    const totalProfit = totalNetSales - totalBuyingCost;
+
     console.log(
       `[DashboardService] Fetched ${totalOrders} orders | Gross: ${totalGrossSales} | Net: ${totalNetSales} | COGS: ${totalBuyingCost} | Profit: ${totalProfit}`
     );
@@ -286,6 +283,104 @@ export const getRecentOrders = async (
 
     console.log(`[DashboardService] Fetched ${orders.length} recent orders`);
     return orders;
+  } catch (error: any) {
+    console.error("[DashboardService] Error:", error);
+    throw new Error(error.message);
+  }
+};
+
+/**
+ * Get popular items for a specific month (for dashboard)
+ */
+export const getPopularItems = async (
+  limit: number = 10,
+  month: number, // 0-indexed (0 = Jan, 11 = Dec)
+  year: number
+): Promise<PopularItem[]> => {
+  try {
+    // 1. Calculate First Day: Year, Month, 1st day
+    const startDay = new Date(year, month, 1);
+    startDay.setHours(0, 0, 0, 0);
+
+    // 2. Calculate Last Day: "0th" day of the NEXT month gives the last day of THIS month
+    const endDay = new Date(year, month + 1, 0);
+    endDay.setHours(23, 59, 59, 999);
+
+    console.log(
+      `[DashboardService] Fetching popular items from ${startDay.toString()} to ${endDay.toString()}`
+    );
+
+    const startTimestamp = Timestamp.fromDate(startDay);
+    const endTimestamp = Timestamp.fromDate(endDay);
+
+    // 3. Query Orders
+    const orders = await adminFirestore
+      .collection("orders")
+      .where("paymentStatus", "==", "Paid")
+      .where("createdAt", ">=", startTimestamp)
+      .where("createdAt", "<=", endTimestamp)
+      .get();
+
+    console.log(
+      `[DashboardService] Fetched ${orders.size} orders for popular items`
+    );
+
+    // 4. Aggregate Sales Counts
+    const itemsMap = new Map<string, number>();
+    orders.forEach((doc) => {
+      const order = doc.data() as Order;
+      if (order.items && Array.isArray(order.items)) {
+        order.items.forEach((item) => {
+          const count = itemsMap.get(item.itemId) || 0;
+          itemsMap.set(item.itemId, count + item.quantity);
+        });
+      }
+    });
+
+    console.log(`[DashboardService] Found ${itemsMap.size} unique items sold`);
+
+    // 5. Sort IDs by count FIRST, slice top N, THEN fetch product data
+    const sortedEntries = Array.from(itemsMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit);
+
+    // 6. Fetch details only for the top items
+    const popularItems: PopularItem[] = [];
+
+    await Promise.all(
+      sortedEntries.map(async ([itemId, count]) => {
+        try {
+          const productDoc = await adminFirestore
+            .collection("products")
+            .doc(itemId)
+            .get();
+
+          if (productDoc.exists) {
+            const itemData = productDoc.data() as Item;
+            popularItems.push({
+              item: {
+                ...itemData,
+                createdAt: null,
+                updatedAt: null,
+              },
+              soldCount: count,
+            });
+          }
+        } catch (fetchErr) {
+          console.error(
+            `[DashboardService] Error fetching product ${itemId}:`,
+            fetchErr
+          );
+        }
+      })
+    );
+
+    console.log(
+      `[DashboardService] Returning ${popularItems.length} popular items`
+    );
+
+    // 7. Final sort (Promise.all might return out of order)
+    return popularItems.sort((a, b) => b.soldCount - a.soldCount);
   } catch (error: any) {
     console.error("[DashboardService] Error:", error);
     throw new Error(error.message);
