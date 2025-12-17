@@ -248,7 +248,7 @@ const ProductViewPage = () => {
                   </div>
                   <div className="grid grid-cols-2 border-b border-gray-100 pb-2">
                     <span className={styles.label}>Weight</span>
-                    <span className={styles.value}>{product.weight} KG</span>
+                    <span className={styles.value}>{product.weight} G</span>
                   </div>
                 </div>
               </div>

@@ -350,7 +350,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   </div>
 
                   <div>
-                    <label className={styles.label}>Weight (kg)</label>
+                    <label className={styles.label}>Weight (g)</label>
                     <input
                       type="number"
                       name="weight"
