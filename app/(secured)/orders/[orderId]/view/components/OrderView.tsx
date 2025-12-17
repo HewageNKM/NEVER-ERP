@@ -69,7 +69,11 @@ const OrderView = ({ orderId }: { orderId: string }) => {
     }
   };
 
-  const subtotal = (order?.total || 0) + (order?.discount || 0);
+  const subtotal =
+    (order?.total || 0) +
+    (order?.discount || 0) -
+    (order?.shippingFee || 0) -
+    (order?.fee || 0);
 
   const discount = order?.discount || 0;
   const fee = order?.fee || 0;
