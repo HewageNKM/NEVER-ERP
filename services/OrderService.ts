@@ -361,9 +361,11 @@ export const addOrder = async (order: Partial<Order>) => {
       let totalWeight = 0;
       for (const item of order.items) {
         const prod = productMap.get(item.itemId);
-        // Default to 1kg if weight is missing to prevent under-pricing shipping
-        const weight = prod?.weight || 1;
-        totalWeight += weight * item.quantity;
+        // Default to 1kg (1000g) if weight is missing to prevent under-pricing shipping
+        // Convert Grams to KG
+        const weightInGrams = prod?.weight || 1000;
+        const weightInKg = weightInGrams / 1000;
+        totalWeight += weightInKg * item.quantity;
       }
 
       // 2. Fetch Active Shipping Rules
