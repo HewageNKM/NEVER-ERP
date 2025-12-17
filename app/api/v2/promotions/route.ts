@@ -33,7 +33,36 @@ export const POST = async (req: NextRequest) => {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const data = await req.json();
+    const formData = await req.formData();
+    const file = formData.get("banner") as File | null;
+
+    // Parse JSON-encoded fields or reconstruct object
+    const data: any = {};
+    for (const [key, value] of formData.entries()) {
+      if (key === "banner") continue;
+      // Handle complex objects (conditions, actions) that might be sent as JSON strings
+      if (
+        [
+          "conditions",
+          "actions",
+          "applicableProducts",
+          "applicableProductVariants",
+          "applicableCategories",
+          "applicableBrands",
+          "excludedProducts",
+        ].includes(key)
+      ) {
+        try {
+          data[key] = JSON.parse(value as string);
+        } catch {
+          data[key] = value;
+        }
+      } else if (key === "stackable") {
+        data[key] = value === "true";
+      } else {
+        data[key] = value;
+      }
+    }
 
     // Basic validation
     if (!data.name || !data.type) {
@@ -43,7 +72,7 @@ export const POST = async (req: NextRequest) => {
       );
     }
 
-    const promotion = await createPromotion(data);
+    const promotion = await createPromotion(data, file);
     return NextResponse.json(promotion, { status: 201 });
   } catch (error: any) {
     console.error("POST /api/v2/promotions Error:", error);

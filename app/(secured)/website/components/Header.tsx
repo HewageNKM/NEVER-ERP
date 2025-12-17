@@ -10,7 +10,6 @@ const Header = ({
 }) => {
   const tabs = [
     { id: "banner", label: "Banner Rotator" },
-    { id: "promotions", label: "Promo Grid" },
     { id: "navigation", label: "Site Navigation" },
   ];
 

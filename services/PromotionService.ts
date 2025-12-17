@@ -1,4 +1,4 @@
-import { adminFirestore } from "@/firebase/firebaseAdmin";
+import { adminFirestore, adminStorageBucket } from "@/firebase/firebaseAdmin";
 import { Promotion, Coupon, CouponUsage, ProductVariantTarget } from "@/model";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { nanoid } from "nanoid";
@@ -7,6 +7,22 @@ import { toSafeLocaleString } from "./UtilService";
 const PROMOTIONS_COLLECTION = "promotions";
 const COUPONS_COLLECTION = "coupons";
 const COUPON_USAGE_COLLECTION = "coupon_usage";
+const BUCKET = adminStorageBucket;
+
+const uploadBanner = async (file: File, id: string): Promise<string> => {
+  const filePath = `promotions/${id}/banner/${file.name}`;
+  const fileRef = BUCKET.file(filePath);
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  await fileRef.save(buffer, {
+    metadata: {
+      contentType: file.type,
+    },
+  });
+
+  await fileRef.makePublic();
+  return `https://storage.googleapis.com/${BUCKET.name}/${filePath}`;
+};
 
 // --- PROMOTIONS CRUD ---
 
@@ -58,13 +74,20 @@ export const getPromotions = async (
 };
 
 export const createPromotion = async (
-  data: Omit<Promotion, "id" | "updatedAt" | "createdAt" | "usageCount">
+  data: Omit<Promotion, "id" | "updatedAt" | "createdAt" | "usageCount">,
+  file?: File | null
 ): Promise<Promotion> => {
   const docId = `promo-${nanoid(10)}`;
   const now = FieldValue.serverTimestamp();
 
+  let bannerUrl = data.bannerUrl;
+  if (file) {
+    bannerUrl = await uploadBanner(file, docId);
+  }
+
   const newPromo = {
     ...data,
+    bannerUrl,
     startDate: data.startDate ? new Date(data.startDate as any) : null,
     endDate: data.endDate ? new Date(data.endDate as any) : null,
     usageCount: 0,
@@ -83,7 +106,8 @@ export const createPromotion = async (
 
 export const updatePromotion = async (
   id: string,
-  data: Partial<Promotion>
+  data: Partial<Promotion>,
+  file?: File | null
 ): Promise<void> => {
   // Remove createdAt to prevent overwriting with malformed data
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -95,6 +119,11 @@ export const updatePromotion = async (
     ...updateData,
     updatedAt: FieldValue.serverTimestamp(),
   };
+
+  if (file) {
+    const bannerUrl = await uploadBanner(file, id);
+    payload.bannerUrl = bannerUrl;
+  }
 
   if (updateData.startDate) {
     payload.startDate = new Date(updateData.startDate as any);

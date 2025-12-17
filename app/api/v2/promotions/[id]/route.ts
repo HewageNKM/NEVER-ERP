@@ -39,8 +39,37 @@ export const PUT = async (req: NextRequest, { params }: Props) => {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
-    const data = await req.json();
-    await updatePromotion(id, data);
+    const formData = await req.formData();
+    const file = formData.get("banner") as File | null;
+
+    // Parse JSON-encoded fields or reconstruct object
+    const data: any = {};
+    for (const [key, value] of formData.entries()) {
+      if (key === "banner") continue;
+      if (
+        [
+          "conditions",
+          "actions",
+          "applicableProducts",
+          "applicableProductVariants",
+          "applicableCategories",
+          "applicableBrands",
+          "excludedProducts",
+        ].includes(key)
+      ) {
+        try {
+          data[key] = JSON.parse(value as string);
+        } catch {
+          data[key] = value;
+        }
+      } else if (key === "stackable") {
+        data[key] = value === "true";
+      } else {
+        data[key] = value;
+      }
+    }
+
+    await updatePromotion(id, data, file);
 
     return NextResponse.json({ message: "Updated successfully" });
   } catch (error: any) {

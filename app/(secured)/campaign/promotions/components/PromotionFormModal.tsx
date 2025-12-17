@@ -6,10 +6,12 @@ import {
   PromotionCondition,
   PromotionAction,
 } from "@/model/Promotion";
+import Image from "next/image";
 import {
   IconX,
   IconLoader,
   IconPlus,
+  IconUpload,
   IconTrash,
   IconCalendarEvent,
   IconTag,
@@ -76,10 +78,12 @@ const PromotionFormModal: React.FC<Props> = ({
   // Dates
   const [startDate, setStartDate] = useState<Date | null>(new Date());
   const [endDate, setEndDate] = useState<Date | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (open) {
       fetchProducts();
+      setBannerFile(null);
       if (promotion) {
         setFormData({ ...promotion });
         const parseDate = (d: any) => {
@@ -155,6 +159,12 @@ const PromotionFormModal: React.FC<Props> = ({
     }));
   };
 
+  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setBannerFile(e.target.files[0]);
+    }
+  };
+
   const addCondition = () => {
     setFormData((prev) => ({
       ...prev,
@@ -219,7 +229,7 @@ const PromotionFormModal: React.FC<Props> = ({
     setSaving(true);
     try {
       const token = await getToken();
-      const payload = {
+      const payloadObj = {
         ...formData,
         startDate: startDate ? startDate.toISOString() : null,
         endDate: endDate ? endDate.toISOString() : null,
@@ -233,15 +243,45 @@ const PromotionFormModal: React.FC<Props> = ({
         })),
       };
 
-      console.log("Submitting Payload:", payload); // DEBUG log
+      // Convert to FormData
+      const formDataToSend = new FormData();
+      if (bannerFile) {
+        formDataToSend.append("banner", bannerFile);
+      }
+
+      for (const [key, value] of Object.entries(payloadObj)) {
+        if (key === "bannerUrl" && !bannerFile) {
+          // Keep existing bannerUrl if passed
+          formDataToSend.append(key, String(value));
+          continue;
+        }
+
+        if (
+          [
+            "conditions",
+            "actions",
+            "applicableProducts",
+            "applicableProductVariants",
+            "applicableCategories",
+            "applicableBrands",
+            "excludedProducts",
+          ].includes(key)
+        ) {
+          formDataToSend.append(key, JSON.stringify(value));
+        } else {
+          formDataToSend.append(key, String(value));
+        }
+      }
+
+      console.log("Submitting Payload"); // DEBUG log
 
       if (isEditing && promotion) {
-        await axios.put(`/api/v2/promotions/${promotion.id}`, payload, {
+        await axios.put(`/api/v2/promotions/${promotion.id}`, formDataToSend, {
           headers: { Authorization: `Bearer ${token}` },
         });
         showNotification("PROMOTION UPDATED", "success");
       } else {
-        await axios.post("/api/v2/promotions", payload, {
+        await axios.post("/api/v2/promotions", formDataToSend, {
           headers: { Authorization: `Bearer ${token}` },
         });
         showNotification("PROMOTION CREATED", "success");
@@ -307,6 +347,49 @@ const PromotionFormModal: React.FC<Props> = ({
                       </span>
                       Details
                     </h3>
+
+                    {/* Banner Upload */}
+                    <div className="mb-6">
+                      <label className={styles.label}>Marketing Banner</label>
+                      <div className="flex flex-col sm:flex-row items-start gap-4 p-4 border-2 border-dashed border-gray-200 hover:border-black transition-colors bg-gray-50/50">
+                        <div className="flex-1 w-full">
+                          <label className="cursor-pointer inline-flex items-center justify-center w-full px-4 py-2 bg-black text-white text-[10px] font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors mb-2">
+                            <IconUpload size={14} className="mr-2" />
+                            Select Image
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept="image/webp, image/png, image/jpeg"
+                              onChange={handleBannerChange}
+                            />
+                          </label>
+                          <div className="text-[9px] text-gray-400 font-bold uppercase tracking-wide">
+                            {bannerFile
+                              ? `Selected: ${bannerFile.name}`
+                              : formData.bannerUrl
+                              ? "Current Banner Active"
+                              : "No banner selected"}
+                          </div>
+                        </div>
+
+                        {(bannerFile || formData.bannerUrl) && (
+                          <div className="relative w-24 h-24 bg-white border border-gray-200 p-1 shadow-sm shrink-0">
+                            <Image
+                              width={200}
+                              height={200}
+                              src={
+                                bannerFile
+                                  ? URL.createObjectURL(bannerFile)
+                                  : formData.bannerUrl || ""
+                              }
+                              alt="Preview"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
                     <div className="space-y-6">
                       <div>
                         <label className={styles.label}>Campaign Name</label>

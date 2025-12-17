@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import PageContainer from "@/app/(secured)/components/container/PageContainer";
 import Banner from "@/app/(secured)/website/banner/page";
 import Header from "../website/components/Header";
-import Promotions from "@/app/(secured)/website/promotions/page";
 import Navigation from "@/app/(secured)/website/navigation/page";
 import { IconLayoutDashboard, IconWorldWww } from "@tabler/icons-react";
 
@@ -35,11 +34,6 @@ const Page = () => {
             {formType === "banner" && (
               <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <Banner />
-              </div>
-            )}
-            {formType === "promotions" && (
-              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <Promotions />
               </div>
             )}
             {formType === "navigation" && (

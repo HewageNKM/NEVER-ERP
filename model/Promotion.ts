@@ -26,6 +26,11 @@ export interface Promotion {
   startDate: Timestamp | string;
   endDate: Timestamp | string;
 
+  // Banner / Display
+  bannerUrl?: string; // Marketing banner image
+  bannerTitle?: string; // Marketing headline
+  bannerDescription?: string; // Marketing subtext
+
   // Rules
   conditions: PromotionCondition[];
   actions: PromotionAction[];
