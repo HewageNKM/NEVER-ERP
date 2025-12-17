@@ -9,6 +9,7 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { InventoryItem } from "@/model/InventoryItem";
 import { Product } from "@/model/Product";
 import { toSafeLocaleString } from "./UtilService";
+import { ShippingRule } from "@/model/ShippingRule";
 
 const ORDERS_COLLECTION = "orders";
 
@@ -350,16 +351,60 @@ export const addOrder = async (order: Partial<Order>) => {
       }
 
       // Calculate shipping
+      // --- DYNAMIC SHIPPING CALCULATION ---
       const totalItems = order.items.reduce(
         (acc, item) => acc + item.quantity,
         0
       );
-      const serverShippingFee =
-        totalItems === 0
-          ? 0
-          : totalItems === 1
-          ? SHIPPING_FLAT_RATE_1
-          : SHIPPING_FLAT_RATE_2;
+
+      // 1. Calculate Total Weight
+      let totalWeight = 0;
+      for (const item of order.items) {
+        const prod = productMap.get(item.itemId);
+        // Default to 1kg if weight is missing to prevent under-pricing shipping
+        const weight = prod?.weight || 1;
+        totalWeight += weight * item.quantity;
+      }
+
+      // 2. Fetch Active Shipping Rules
+      let serverShippingFee = 0;
+      const rulesSnapshot = await adminFirestore
+        .collection("shipping_rules")
+        .where("isActive", "==", true)
+        .get();
+
+      if (!rulesSnapshot.empty) {
+        const rules = rulesSnapshot.docs.map(
+          (doc) => doc.data() as ShippingRule
+        );
+        // Find matching rule
+        const match = rules.find(
+          (r) => totalWeight >= r.minWeight && totalWeight < r.maxWeight
+        );
+
+        if (match) {
+          serverShippingFee = match.rate;
+        } else {
+          // Check if weight exceeds all rules, use the max weight rule or fallback
+          // Sort by maxWeight descending
+          rules.sort((a, b) => b.maxWeight - a.maxWeight);
+          if (totalWeight >= rules[0].maxWeight) {
+            serverShippingFee = rules[0].rate;
+          } else {
+            // Fallback if no range matches (unlikely if covered from 0)
+            serverShippingFee =
+              totalItems <= 1 ? SHIPPING_FLAT_RATE_1 : SHIPPING_FLAT_RATE_2;
+          }
+        }
+      } else {
+        // Fallback to Legacy Logic if no rules exist
+        serverShippingFee =
+          totalItems === 0
+            ? 0
+            : totalItems === 1
+            ? SHIPPING_FLAT_RATE_1
+            : SHIPPING_FLAT_RATE_2;
+      }
 
       // Calculate payment fee (percentage of subtotal)
       const subtotalBeforeFees = itemsTotal - itemDiscounts;

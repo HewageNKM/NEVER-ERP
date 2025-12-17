@@ -127,7 +127,10 @@ const Menuitems = [
     id: uniqueId(),
     title: "Settings",
     icon: IconSettings,
-    href: "/settings",
+    children: [
+      { id: uniqueId(), title: "ERP Settings", href: "/settings" },
+      { id: uniqueId(), title: "Shipping Rates", href: "/settings/shipping" },
+    ],
   },
 ];
 
