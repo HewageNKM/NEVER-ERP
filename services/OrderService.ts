@@ -383,13 +383,34 @@ export const addOrder = async (order: Partial<Order>) => {
         );
 
         if (match) {
-          serverShippingFee = match.rate;
+          if (
+            match.isIncremental &&
+            match.baseWeight !== undefined &&
+            match.perKgRate !== undefined
+          ) {
+            const extraWeight = Math.max(0, totalWeight - match.baseWeight);
+            const extraCost = Math.ceil(extraWeight) * match.perKgRate;
+            serverShippingFee = match.rate + extraCost;
+          } else {
+            serverShippingFee = match.rate;
+          }
         } else {
           // Check if weight exceeds all rules, use the max weight rule or fallback
           // Sort by maxWeight descending
           rules.sort((a, b) => b.maxWeight - a.maxWeight);
           if (totalWeight >= rules[0].maxWeight) {
-            serverShippingFee = rules[0].rate;
+            const maxRule = rules[0];
+            if (
+              maxRule.isIncremental &&
+              maxRule.baseWeight !== undefined &&
+              maxRule.perKgRate !== undefined
+            ) {
+              const extraWeight = Math.max(0, totalWeight - maxRule.baseWeight);
+              const extraCost = Math.ceil(extraWeight) * maxRule.perKgRate;
+              serverShippingFee = maxRule.rate + extraCost;
+            } else {
+              serverShippingFee = maxRule.rate;
+            }
           } else {
             // Fallback if no range matches (unlikely if covered from 0)
             serverShippingFee =

@@ -198,12 +198,9 @@ export default function PettyCashList() {
           </div>
           <button
             onClick={handleOpenCreate}
-            className="flex items-center px-6 py-4 bg-black text-white text-sm font-black uppercase tracking-widest hover:bg-gray-900 transition-all group"
+            className="flex items-center justify-center px-6 py-4 bg-black text-white text-sm font-black uppercase tracking-widest hover:bg-gray-900 transition-all shadow-[4px_4px_0px_0px_rgba(156,163,175,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
           >
-            <IconPlus
-              size={18}
-              className="mr-2 group-hover:rotate-90 transition-transform"
-            />
+            <IconPlus size={18} className="mr-2" />
             Create Entry
           </button>
         </div>
