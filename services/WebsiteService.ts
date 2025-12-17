@@ -37,3 +37,48 @@ export const saveNavigationConfig = async (config: NavigationConfig) => {
     throw e;
   }
 };
+
+// ============ PROMOTIONS (BANNERS) LOGIC ============
+
+export interface WebsitePromotion {
+  id?: string;
+  file: string;
+  url: string;
+  title: string;
+  link: string;
+  createdAt?: any;
+}
+
+export const getAllPromotions = async () => {
+  try {
+    const snapshot = await adminFirestore
+      .collection("website_promotions")
+      .get();
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  } catch (e) {
+    console.error("Error getting promotions:", e);
+    throw e;
+  }
+};
+
+export const addPromotion = async (data: WebsitePromotion) => {
+  try {
+    const docRef = await adminFirestore.collection("website_promotions").add({
+      ...data,
+      createdAt: new Date(),
+    });
+    return docRef.id;
+  } catch (e) {
+    console.error("Error adding promotion:", e);
+    throw e;
+  }
+};
+
+export const deletePromotion = async (id: string) => {
+  try {
+    await adminFirestore.collection("website_promotions").doc(id).delete();
+  } catch (e) {
+    console.error("Error deleting promotion:", e);
+    throw e;
+  }
+};
