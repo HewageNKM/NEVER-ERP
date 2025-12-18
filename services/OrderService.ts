@@ -623,6 +623,9 @@ export const addOrder = async (order: Partial<Order>) => {
       for (let attempt = 1; attempt <= 3 && !success; attempt++) {
         try {
           await adminFirestore.runTransaction(async (tx) => {
+            // 1. READ PHASE: Fetch all necessary data first
+            const inventoryUpdates = [];
+
             for (const item of order.items) {
               const invQuery = adminFirestore
                 .collection("stock_inventory")
@@ -638,6 +641,12 @@ export const addOrder = async (order: Partial<Order>) => {
 
               const invDoc = invSnap.docs[0];
               const invData = invDoc.data() as InventoryItem;
+
+              inventoryUpdates.push({ invDoc, invData, item });
+            }
+
+            // 2. WRITE PHASE: Perform all updates
+            for (const { invDoc, invData, item } of inventoryUpdates) {
               const prodData = productMap.get(item.itemId);
               if (!prodData)
                 throw new Error(`Product not found: ${item.itemId}`);
