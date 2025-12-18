@@ -474,6 +474,26 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                       />
                     </div>
                   </div>
+                  {/* Discounted Price Display */}
+                  {Number(formData.discount) > 0 &&
+                    Number(formData.sellingPrice) > 0 && (
+                      <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-sm">
+                        <span className="text-[10px] font-bold text-green-600 uppercase tracking-[0.15em]">
+                          Discounted Price:{" "}
+                        </span>
+                        <span className="text-lg font-black text-green-700">
+                          Rs.{" "}
+                          {Math.round(
+                            (Number(formData.sellingPrice) *
+                              (1 - Number(formData.discount) / 100)) /
+                              10
+                          ) * 10}
+                        </span>
+                        <span className="text-xs text-green-600 ml-2">
+                          (rounded to nearest 10)
+                        </span>
+                      </div>
+                    )}
                 </div>
 
                 {/* Toggles */}
