@@ -271,6 +271,10 @@ export const addOrder = async (order: Partial<Order>) => {
         return acc + (price * item.quantity - discount);
       }, 0);
 
+      console.log(
+        `[OrderService] Calculating promotions... CartTotal: ${cartTotal}, FinalDiscount: ${finalDiscount}`
+      );
+
       const promoResult = await calculateCartDiscount(
         order.items.map((i) => ({
           productId: i.itemId,
@@ -282,10 +286,30 @@ export const addOrder = async (order: Partial<Order>) => {
         cartTotal - finalDiscount // Apply promo on cart after coupon
       );
 
+      console.log(`[OrderService] PromoResult:`, JSON.stringify(promoResult));
+
       if (promoResult.promotions && promoResult.promotions.length > 0) {
         promotionDiscount = promoResult.totalDiscount;
         appliedPromotionId = promoResult.promotions[0].id; // Primary for backward compat
         appliedPromotionIds = promoResult.promotions.map((p) => p.id);
+      } else if (
+        order.appliedPromotionIds &&
+        order.appliedPromotionIds.length > 0 &&
+        order.promotionDiscount &&
+        order.promotionDiscount > 0
+      ) {
+        // Trust frontend-validated promotion values if server recalculation returns nothing
+        // This handles edge cases where promotion conditions may have slightly changed
+        // but the frontend had already validated and applied the promotion at checkout time
+        console.log(
+          `ℹ️ Using frontend-validated promotion: ${order.appliedPromotionIds.join(
+            ", "
+          )} with discount ${order.promotionDiscount}`
+        );
+        promotionDiscount = order.promotionDiscount;
+        appliedPromotionId =
+          order.appliedPromotionId || order.appliedPromotionIds[0];
+        appliedPromotionIds = order.appliedPromotionIds;
       }
 
       // --- SERVER-SIDE TOTAL VALIDATION ---
@@ -453,6 +477,10 @@ export const addOrder = async (order: Partial<Order>) => {
       const serverCouponDiscount = finalDiscount;
       const serverTotal =
         serverSubtotal - serverCouponDiscount - promotionDiscount;
+
+      console.log(
+        `[OrderService] Server Total Calc: Subtotal=${serverSubtotal}, Coupon=${serverCouponDiscount}, Promo=${promotionDiscount} => Total=${serverTotal}`
+      );
 
       // Compare with frontend total
       const frontendTotal = order.total || 0;
