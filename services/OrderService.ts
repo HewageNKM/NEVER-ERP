@@ -283,7 +283,7 @@ export const addOrder = async (order: Partial<Order>) => {
           price: productMap.get(i.itemId)?.sellingPrice || 0,
           discount: i.discount,
         })),
-        cartTotal - finalDiscount // Apply promo on cart after coupon
+        cartTotal
       );
 
       console.log(`[OrderService] PromoResult:`, JSON.stringify(promoResult));
@@ -292,24 +292,6 @@ export const addOrder = async (order: Partial<Order>) => {
         promotionDiscount = promoResult.totalDiscount;
         appliedPromotionId = promoResult.promotions[0].id; // Primary for backward compat
         appliedPromotionIds = promoResult.promotions.map((p) => p.id);
-      } else if (
-        order.appliedPromotionIds &&
-        order.appliedPromotionIds.length > 0 &&
-        order.promotionDiscount &&
-        order.promotionDiscount > 0
-      ) {
-        // Trust frontend-validated promotion values if server recalculation returns nothing
-        // This handles edge cases where promotion conditions may have slightly changed
-        // but the frontend had already validated and applied the promotion at checkout time
-        console.log(
-          `ℹ️ Using frontend-validated promotion: ${order.appliedPromotionIds.join(
-            ", "
-          )} with discount ${order.promotionDiscount}`
-        );
-        promotionDiscount = order.promotionDiscount;
-        appliedPromotionId =
-          order.appliedPromotionId || order.appliedPromotionIds[0];
-        appliedPromotionIds = order.appliedPromotionIds;
       }
 
       // --- SERVER-SIDE TOTAL VALIDATION ---
