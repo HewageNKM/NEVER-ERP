@@ -693,7 +693,8 @@ interface CartDiscountResult {
  */
 export const calculateCartDiscount = async (
   cartItems: CartItem[],
-  cartTotal: number
+  cartTotal: number,
+  userId?: string | null
 ): Promise<CartDiscountResult> => {
   // Fetch ACTIVE promotions (excluding soft-deleted)
   const promotionsSnap = await adminFirestore
@@ -838,6 +839,49 @@ export const calculateCartDiscount = async (
           if (!hasProduct) {
             console.log(
               `[PromotionService] Condition Failed ${promo.id}: SPECIFIC_PRODUCT not found (checked aggregated list)`
+            );
+            conditionsMet = false;
+          }
+        }
+      } else if (condition.type === "CUSTOMER_TAG") {
+        // Validate customer has required tag
+        if (!userId) {
+          console.log(
+            `[PromotionService] Condition Failed ${promo.id}: CUSTOMER_TAG requires authenticated user`
+          );
+          conditionsMet = false;
+        } else {
+          try {
+            const userDoc = await adminFirestore
+              .collection("users")
+              .doc(userId)
+              .get();
+
+            if (!userDoc.exists) {
+              console.log(
+                `[PromotionService] Condition Failed ${promo.id}: User ${userId} not found`
+              );
+              conditionsMet = false;
+            } else {
+              const userData = userDoc.data();
+              const customerTags = userData?.tags || [];
+              const requiredTag = condition.value as string;
+
+              if (!customerTags.includes(requiredTag)) {
+                console.log(
+                  `[PromotionService] Condition Failed ${promo.id}: Customer missing tag "${requiredTag}"`
+                );
+                conditionsMet = false;
+              } else {
+                console.log(
+                  `[PromotionService] CUSTOMER_TAG validated for ${promo.id}: Customer has tag "${requiredTag}"`
+                );
+              }
+            }
+          } catch (error) {
+            console.error(
+              `[PromotionService] Error checking CUSTOMER_TAG for ${promo.id}:`,
+              error
             );
             conditionsMet = false;
           }

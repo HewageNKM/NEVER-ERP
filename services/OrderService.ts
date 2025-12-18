@@ -282,7 +282,8 @@ export const addOrder = async (order: Partial<Order>) => {
           price: productMap.get(i.itemId)?.sellingPrice || 0,
           discount: i.discount,
         })),
-        cartTotal
+        cartTotal,
+        order.customer?.uid || null // Pass userId for CUSTOMER_TAG validation
       );
 
       console.log(`[OrderService] PromoResult:`, JSON.stringify(promoResult));
