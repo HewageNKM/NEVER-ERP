@@ -215,6 +215,15 @@ export const addOrder = async (order: Partial<Order>) => {
       productSnaps.map((snap) => [snap.id, snap.data() as Product])
     );
 
+    // Set bPrice on items from server-side product data (never trust frontend)
+    order.items = order.items.map((item) => {
+      const prod = productMap.get(item.itemId);
+      return {
+        ...item,
+        bPrice: prod?.buyingPrice || 0,
+      };
+    });
+
     // Validate Coupon if exists
     if (fromSource === "website" && order.couponCode) {
       // Calculate true cart total based on DB prices, but respecting item-level discounts (e.g. Combos)
