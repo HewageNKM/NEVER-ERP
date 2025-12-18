@@ -79,41 +79,51 @@ const ProductListTable: React.FC<ProductListTableProps> = ({
               </td>
               <td className="p-6 align-top">
                 <div className="flex flex-wrap gap-1">
-                  {(product.gender || []).length > 0 ? (
-                    (product.gender || []).map((g: string) => (
-                      <span
-                        key={g}
-                        className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide bg-gray-100 text-gray-600"
-                      >
-                        {g}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-[10px] text-gray-400">—</span>
-                  )}
+                  {(() => {
+                    const genderArr = Array.isArray(product.gender)
+                      ? product.gender
+                      : [];
+                    return genderArr.length > 0 ? (
+                      genderArr.map((g: string) => (
+                        <span
+                          key={g}
+                          className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide bg-gray-100 text-gray-600"
+                        >
+                          {g}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-[10px] text-gray-400">—</span>
+                    );
+                  })()}
                 </div>
               </td>
               <td className="p-6 align-top">
                 <div className="flex flex-wrap gap-1 max-w-[120px]">
-                  {(product.availableSizes || []).length > 0 ? (
-                    (product.availableSizes || [])
-                      .slice(0, 6)
-                      .map((s: string) => (
-                        <span
-                          key={s}
-                          className="px-1.5 py-0.5 text-[9px] font-bold bg-black text-white"
-                        >
-                          {s}
-                        </span>
-                      ))
-                  ) : (
-                    <span className="text-[10px] text-gray-400">—</span>
-                  )}
-                  {(product.availableSizes || []).length > 6 && (
-                    <span className="text-[9px] text-gray-500 font-bold">
-                      +{(product.availableSizes || []).length - 6}
-                    </span>
-                  )}
+                  {(() => {
+                    const sizesArr = Array.isArray(product.availableSizes)
+                      ? product.availableSizes
+                      : [];
+                    return sizesArr.length > 0 ? (
+                      <>
+                        {sizesArr.slice(0, 6).map((s: string) => (
+                          <span
+                            key={s}
+                            className="px-1.5 py-0.5 text-[9px] font-bold bg-black text-white"
+                          >
+                            {s}
+                          </span>
+                        ))}
+                        {sizesArr.length > 6 && (
+                          <span className="text-[9px] text-gray-500 font-bold">
+                            +{sizesArr.length - 6}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-[10px] text-gray-400">—</span>
+                    );
+                  })()}
                 </div>
               </td>
               <td className="p-6 align-top text-center">

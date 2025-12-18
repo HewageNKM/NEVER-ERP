@@ -280,21 +280,25 @@ const ProductViewPage = () => {
                   Target Audience (Gender)
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {(product as any).gender &&
-                  (product as any).gender.length > 0 ? (
-                    (product as any).gender.map((g: string) => (
-                      <span
-                        key={g}
-                        className="px-4 py-2 bg-black text-white text-xs font-black uppercase tracking-wide"
-                      >
-                        {g}
+                  {(() => {
+                    const genderArr = Array.isArray((product as any).gender)
+                      ? (product as any).gender
+                      : [];
+                    return genderArr.length > 0 ? (
+                      genderArr.map((g: string) => (
+                        <span
+                          key={g}
+                          className="px-4 py-2 bg-black text-white text-xs font-black uppercase tracking-wide"
+                        >
+                          {g}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-gray-400 italic">
+                        No gender specified
                       </span>
-                    ))
-                  ) : (
-                    <span className="text-xs text-gray-400 italic">
-                      No gender specified
-                    </span>
-                  )}
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -303,21 +307,27 @@ const ProductViewPage = () => {
                   Available Sizes
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {(product as any).availableSizes &&
-                  (product as any).availableSizes.length > 0 ? (
-                    (product as any).availableSizes.map((size: string) => (
-                      <span
-                        key={size}
-                        className="w-10 h-10 flex items-center justify-center border-2 border-black text-xs font-black"
-                      >
-                        {size}
+                  {(() => {
+                    const sizesArr = Array.isArray(
+                      (product as any).availableSizes
+                    )
+                      ? (product as any).availableSizes
+                      : [];
+                    return sizesArr.length > 0 ? (
+                      sizesArr.map((size: string) => (
+                        <span
+                          key={size}
+                          className="w-10 h-10 flex items-center justify-center border-2 border-black text-xs font-black"
+                        >
+                          {size}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-gray-400 italic">
+                        No sizes specified
                       </span>
-                    ))
-                  ) : (
-                    <span className="text-xs text-gray-400 italic">
-                      No sizes specified
-                    </span>
-                  )}
+                    );
+                  })()}
                 </div>
               </div>
             </div>
