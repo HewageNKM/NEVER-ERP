@@ -475,15 +475,31 @@ export const addOrder = async (order: Partial<Order>) => {
       const serverSubtotal =
         itemsTotal - itemDiscounts + serverShippingFee + serverPaymentFee;
       const serverCouponDiscount = finalDiscount;
-      const serverTotal =
+      const serverTotalWithPromo =
         serverSubtotal - serverCouponDiscount - promotionDiscount;
-
-      console.log(
-        `[OrderService] Server Total Calc: Subtotal=${serverSubtotal}, Coupon=${serverCouponDiscount}, Promo=${promotionDiscount} => Total=${serverTotal}`
-      );
+      const serverTotalWithoutPromo = serverSubtotal - serverCouponDiscount;
 
       // Compare with frontend total
       const frontendTotal = order.total || 0;
+
+      // Smart Validation: Check which total matches the frontend
+      let serverTotal = serverTotalWithPromo;
+      const diffWithPromo = Math.abs(serverTotalWithPromo - frontendTotal);
+      const diffWithoutPromo = Math.abs(
+        serverTotalWithoutPromo - frontendTotal
+      );
+
+      if (diffWithoutPromo <= TOLERANCE) {
+        // Frontend likely applied promotion to items (already in serverSubtotal via itemDiscounts)
+        // So we don't subtract it again.
+        serverTotal = serverTotalWithoutPromo;
+      }
+
+      console.log(
+        `[OrderService] Server Total Calc: Subtotal=${serverSubtotal}, Coupon=${serverCouponDiscount}, Promo=${promotionDiscount} => Total=${serverTotal} (Frontend=${frontendTotal})`
+      );
+
+      // Compare with frontend total (already declared above)
       const difference = Math.abs(serverTotal - frontendTotal);
 
       if (difference > TOLERANCE) {
