@@ -758,40 +758,50 @@ export const calculateCartDiscount = async (
           `[PromotionService] Skipped ${promo.id}: Variant eligibility check failed`
         );
         continue;
-      }
-    }
 
     // Condition Checks
     let conditionsMet = true;
+
+    // Collect all SPECIFIC_PRODUCT values into one array for easier checking (Frontend parity)
+    const specificProductIds: string[] = [];
+    promo.conditions.forEach((condition: any) => {
+      if (condition.type === "SPECIFIC_PRODUCT") {
+        if (condition.value) specificProductIds.push(condition.value);
+        if (condition.productIds)
+          specificProductIds.push(...condition.productIds);
+      }
+    });
+
     for (const condition of promo.conditions) {
       if (condition.type === "MIN_AMOUNT") {
         if (cartTotal < Number(condition.value)) {
-          console.log(
-            `[PromotionService] Condition Failed ${promo.id}: MIN_AMOUNT ${cartTotal} < ${condition.value}`
-          );
-          conditionsMet = false;
+           console.log(`[PromotionService] Condition Failed ${promo.id}: MIN_AMOUNT ${cartTotal} < ${condition.value}`);
+           conditionsMet = false;
         }
       } else if (condition.type === "MIN_QUANTITY") {
-        const totalQty = cartItems.reduce(
+        // If there are specific products, count only those, otherwise count all (Frontend parity)
+        const applicableItems =
+            specificProductIds.length > 0
+              ? cartItems.filter((item) => specificProductIds.includes(item.productId))
+              : cartItems;
+
+        const totalQty = applicableItems.reduce(
           (sum, item) => sum + item.quantity,
           0
         );
         if (totalQty < Number(condition.value)) {
-          console.log(
-            `[PromotionService] Condition Failed ${promo.id}: MIN_QUANTITY ${totalQty} < ${condition.value}`
-          );
-          conditionsMet = false;
+           console.log(`[PromotionService] Condition Failed ${promo.id}: MIN_QUANTITY ${totalQty} < ${condition.value}`);
+           conditionsMet = false;
         }
       } else if (condition.type === "SPECIFIC_PRODUCT") {
-        // Check if cart has the required product(s)
-        const productId = condition.value as string;
-        const productIds = condition.productIds || [productId];
-
         // Check variant restrictions if defined
         if (
           condition.variantMode === "SPECIFIC_VARIANTS" &&
           condition.variantIds
         ) {
+          const productId = condition.value as string;
+          const productIds = condition.productIds || [productId];
+          
           const hasMatchingVariant = cartItems.some(
             (item) =>
               productIds.includes(item.productId) &&
@@ -799,25 +809,25 @@ export const calculateCartDiscount = async (
               condition.variantIds!.includes(item.variantId)
           );
           if (!hasMatchingVariant) {
-            console.log(
-              `[PromotionService] Condition Failed ${promo.id}: SPECIFIC_VARIANTS not found`
-            );
-            conditionsMet = false;
+             console.log(`[PromotionService] Condition Failed ${promo.id}: SPECIFIC_VARIANTS not found`);
+             // NOTE: Frontend treats variant checks strictly if they exist on the condition being iterated.
+             // However, for pure product IDs, it effectively uses the aggregated list.
+             // If we have mixed strict-variant and loose-product conditions, this might be tricky.
+             // Given the logs, the failing conditions are simple product checks.
+             
+             // If this condition failed strict variant check, we fail.
+             conditionsMet = false;
           }
         } else {
-          // ALL_VARIANTS or no restriction - just check product presence
+          // General product check - use the aggregated list (OR logic)
+          // Frontend: if (specificProductIds.length > 0) return items.some(...)
           const hasProduct = cartItems.some((item) =>
-            productIds.includes(item.productId)
+            specificProductIds.includes(item.productId)
           );
+
           if (!hasProduct) {
-            console.log(
-              `[PromotionService] Condition Failed ${
-                promo.id
-              }: SPECIFIC_PRODUCT not found. Needed one of: ${productIds.join(
-                ","
-              )}. Have: ${cartItems.map((i) => i.productId).join(",")}`
-            );
-            conditionsMet = false;
+             console.log(`[PromotionService] Condition Failed ${promo.id}: SPECIFIC_PRODUCT not found (checked aggregated list)`);
+             conditionsMet = false;
           }
         }
       }
