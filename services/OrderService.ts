@@ -10,6 +10,11 @@ import { InventoryItem } from "@/model/InventoryItem";
 import { Product } from "@/model/Product";
 import { toSafeLocaleString } from "./UtilService";
 import { ShippingRule } from "@/model/ShippingRule";
+import {
+  validateCoupon,
+  trackCouponUsage,
+  calculateCartDiscount,
+} from "./PromotionService";
 
 const ORDERS_COLLECTION = "orders";
 
@@ -179,12 +184,6 @@ export const updateOrder = async (order: Order, orderId: string) => {
     throw error;
   }
 };
-
-import {
-  validateCoupon,
-  trackCouponUsage,
-  calculateCartDiscount,
-} from "./PromotionService";
 
 export const addOrder = async (order: Partial<Order>) => {
   if (!order.orderId) throw new Error("Order ID is required");
