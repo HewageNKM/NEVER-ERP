@@ -18,9 +18,15 @@ const parseProductFromFormData = async (
     if (key === "thumbnail") continue; // Skip file
     if (key === "variants" || key === "tags" || key === "gender") {
       // Parse JSON fields
-      product[key as "variants" | "tags" | "gender"] = JSON.parse(
-        value as string
-      );
+      const parsed = JSON.parse(value as string);
+      // Ensure gender is an array of lowercase strings
+      if (key === "gender") {
+        product.gender = Array.isArray(parsed)
+          ? parsed.map((g: string) => g.toLowerCase())
+          : [];
+      } else {
+        product[key as "variants" | "tags"] = parsed;
+      }
     } else if (key === "status" || key === "listing") {
       // Parse string booleans
       product[key as "status" | "listing"] = value === "true";
