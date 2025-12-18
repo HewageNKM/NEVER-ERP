@@ -273,6 +273,55 @@ const ProductViewPage = () => {
               </div>
             </div>
 
+            {/* Gender & Available Sizes */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+              <div className="bg-gray-50 p-6 border border-gray-200">
+                <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-4 border-b border-gray-200 pb-2">
+                  Target Audience (Gender)
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {(product as any).gender &&
+                  (product as any).gender.length > 0 ? (
+                    (product as any).gender.map((g: string) => (
+                      <span
+                        key={g}
+                        className="px-4 py-2 bg-black text-white text-xs font-black uppercase tracking-wide"
+                      >
+                        {g}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-gray-400 italic">
+                      No gender specified
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-gray-50 p-6 border border-gray-200">
+                <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-4 border-b border-gray-200 pb-2">
+                  Available Sizes
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {(product as any).availableSizes &&
+                  (product as any).availableSizes.length > 0 ? (
+                    (product as any).availableSizes.map((size: string) => (
+                      <span
+                        key={size}
+                        className="w-10 h-10 flex items-center justify-center border-2 border-black text-xs font-black"
+                      >
+                        {size}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-gray-400 italic">
+                      No sizes specified
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Description */}
             <div className="mb-12">
               <h3 className="text-lg font-black text-black uppercase tracking-tight mb-2">

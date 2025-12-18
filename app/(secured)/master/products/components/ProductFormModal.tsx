@@ -456,14 +456,16 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                             ) || false
                           }
                           onChange={(e) => {
-                            const current = (formData as any).gender || [];
                             const value = g.toLowerCase();
-                            setFormData((prev: any) => ({
-                              ...prev,
-                              gender: e.target.checked
-                                ? [...current, value]
-                                : current.filter((x: string) => x !== value),
-                            }));
+                            setFormData((prev: any) => {
+                              const current = prev.gender || [];
+                              return {
+                                ...prev,
+                                gender: e.target.checked
+                                  ? [...current, value]
+                                  : current.filter((x: string) => x !== value),
+                              };
+                            });
                           }}
                         />
                         <span className="text-xs font-bold text-black uppercase tracking-wide">

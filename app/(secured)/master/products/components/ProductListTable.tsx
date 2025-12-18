@@ -43,6 +43,8 @@ const ProductListTable: React.FC<ProductListTableProps> = ({
           <tr>
             <th className="p-6">Product Details</th>
             <th className="p-6">Category / Brand</th>
+            <th className="p-6">Gender</th>
+            <th className="p-6">Sizes</th>
             <th className="p-6 text-center">Inventory</th>
             <th className="p-6 text-center">Status</th>
             <th className="p-6 text-center">Listing</th>
@@ -73,6 +75,45 @@ const ProductListTable: React.FC<ProductListTableProps> = ({
                   <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">
                     {brandMap.get(product.brand) || product.brand}
                   </span>
+                </div>
+              </td>
+              <td className="p-6 align-top">
+                <div className="flex flex-wrap gap-1">
+                  {(product.gender || []).length > 0 ? (
+                    (product.gender || []).map((g: string) => (
+                      <span
+                        key={g}
+                        className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide bg-gray-100 text-gray-600"
+                      >
+                        {g}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-[10px] text-gray-400">—</span>
+                  )}
+                </div>
+              </td>
+              <td className="p-6 align-top">
+                <div className="flex flex-wrap gap-1 max-w-[120px]">
+                  {(product.availableSizes || []).length > 0 ? (
+                    (product.availableSizes || [])
+                      .slice(0, 6)
+                      .map((s: string) => (
+                        <span
+                          key={s}
+                          className="px-1.5 py-0.5 text-[9px] font-bold bg-black text-white"
+                        >
+                          {s}
+                        </span>
+                      ))
+                  ) : (
+                    <span className="text-[10px] text-gray-400">—</span>
+                  )}
+                  {(product.availableSizes || []).length > 6 && (
+                    <span className="text-[9px] text-gray-500 font-bold">
+                      +{(product.availableSizes || []).length - 6}
+                    </span>
+                  )}
                 </div>
               </td>
               <td className="p-6 align-top text-center">
