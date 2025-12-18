@@ -712,7 +712,15 @@ export const calculateCartDiscount = async (
   const now = new Date();
   const eligiblePromotions: { promo: Promotion; discount: number }[] = [];
 
+  console.log(
+    `[PromotionService] Found ${promotions.length} active promotions`
+  );
+
   for (const promo of promotions) {
+    console.log(
+      `[PromotionService] Checking promo: ${promo.id} (${promo.name})`
+    );
+
     // Date Checks
     const startDate =
       promo.startDate instanceof Timestamp
@@ -722,7 +730,19 @@ export const calculateCartDiscount = async (
       promo.endDate instanceof Timestamp
         ? promo.endDate.toDate()
         : new Date(promo.endDate as string);
-    if (now < startDate || now > endDate) continue;
+
+    if (now < startDate) {
+      console.log(
+        `[PromotionService] Skipped ${promo.id}: Not started (Starts: ${startDate})`
+      );
+      continue;
+    }
+    if (now > endDate) {
+      console.log(
+        `[PromotionService] Skipped ${promo.id}: Expired (Ends: ${endDate})`
+      );
+      continue;
+    }
 
     // Check variant-level targeting first (if defined)
     if (
@@ -733,20 +753,35 @@ export const calculateCartDiscount = async (
         cartItems,
         promo.applicableProductVariants
       );
-      if (!variantEligible) continue;
+      if (!variantEligible) {
+        console.log(
+          `[PromotionService] Skipped ${promo.id}: Variant eligibility check failed`
+        );
+        continue;
+      }
     }
 
     // Condition Checks
     let conditionsMet = true;
     for (const condition of promo.conditions) {
       if (condition.type === "MIN_AMOUNT") {
-        if (cartTotal < Number(condition.value)) conditionsMet = false;
+        if (cartTotal < Number(condition.value)) {
+          console.log(
+            `[PromotionService] Condition Failed ${promo.id}: MIN_AMOUNT ${cartTotal} < ${condition.value}`
+          );
+          conditionsMet = false;
+        }
       } else if (condition.type === "MIN_QUANTITY") {
         const totalQty = cartItems.reduce(
           (sum, item) => sum + item.quantity,
           0
         );
-        if (totalQty < Number(condition.value)) conditionsMet = false;
+        if (totalQty < Number(condition.value)) {
+          console.log(
+            `[PromotionService] Condition Failed ${promo.id}: MIN_QUANTITY ${totalQty} < ${condition.value}`
+          );
+          conditionsMet = false;
+        }
       } else if (condition.type === "SPECIFIC_PRODUCT") {
         // Check if cart has the required product(s)
         const productId = condition.value as string;
@@ -763,18 +798,35 @@ export const calculateCartDiscount = async (
               item.variantId &&
               condition.variantIds!.includes(item.variantId)
           );
-          if (!hasMatchingVariant) conditionsMet = false;
+          if (!hasMatchingVariant) {
+            console.log(
+              `[PromotionService] Condition Failed ${promo.id}: SPECIFIC_VARIANTS not found`
+            );
+            conditionsMet = false;
+          }
         } else {
           // ALL_VARIANTS or no restriction - just check product presence
           const hasProduct = cartItems.some((item) =>
             productIds.includes(item.productId)
           );
-          if (!hasProduct) conditionsMet = false;
+          if (!hasProduct) {
+            console.log(
+              `[PromotionService] Condition Failed ${
+                promo.id
+              }: SPECIFIC_PRODUCT not found. Needed one of: ${productIds.join(
+                ","
+              )}. Have: ${cartItems.map((i) => i.productId).join(",")}`
+            );
+            conditionsMet = false;
+          }
         }
       }
     }
 
-    if (!conditionsMet) continue;
+    if (!conditionsMet) {
+      console.log(`[PromotionService] Skipped ${promo.id}: Conditions not met`);
+      continue;
+    }
 
     // Calculate Discount for this promo
     let currentDiscount = 0;
@@ -802,7 +854,12 @@ export const calculateCartDiscount = async (
     }
 
     if (currentDiscount > 0) {
+      console.log(
+        `[PromotionService] Eligible ${promo.id}: Discount ${currentDiscount}`
+      );
       eligiblePromotions.push({ promo, discount: currentDiscount });
+    } else {
+      console.log(`[PromotionService] Skipped ${promo.id}: Discount was 0`);
     }
   }
 
