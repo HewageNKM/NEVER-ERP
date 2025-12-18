@@ -30,6 +30,7 @@ const emptyProduct: Omit<Product, "itemId"> & { itemId: string | null } = {
   listing: true,
   status: true,
   tags: [],
+  gender: [],
 };
 
 type ProductErrors = Partial<Record<keyof Product, string>> & {
@@ -423,6 +424,55 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   </div>
                 </div>
 
+                {/* Gender Selection */}
+                <div className="p-6 bg-gray-50 border border-gray-200">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-4 border-b border-gray-200 pb-2">
+                    Target Audience
+                  </h3>
+                  <div className="flex gap-6">
+                    {["Men", "Women", "Kids"].map((g) => (
+                      <label
+                        key={g}
+                        className="flex items-center gap-3 cursor-pointer"
+                      >
+                        <div
+                          className={`w-5 h-5 border-2 flex items-center justify-center transition-all ${
+                            (formData as any).gender?.includes(g.toLowerCase())
+                              ? "bg-black border-black"
+                              : "bg-white border-gray-400"
+                          }`}
+                        >
+                          {(formData as any).gender?.includes(
+                            g.toLowerCase()
+                          ) && <div className="w-2 h-2 bg-white" />}
+                        </div>
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          disabled={saving}
+                          checked={
+                            (formData as any).gender?.includes(
+                              g.toLowerCase()
+                            ) || false
+                          }
+                          onChange={(e) => {
+                            const current = (formData as any).gender || [];
+                            const value = g.toLowerCase();
+                            setFormData((prev: any) => ({
+                              ...prev,
+                              gender: e.target.checked
+                                ? [...current, value]
+                                : current.filter((x: string) => x !== value),
+                            }));
+                          }}
+                        />
+                        <span className="text-xs font-bold text-black uppercase tracking-wide">
+                          {g}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
                 {/* Pricing Grid */}
                 <div className="p-6 bg-gray-50 border border-gray-200">
                   <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-4 border-b border-gray-200 pb-2">

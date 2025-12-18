@@ -2,7 +2,6 @@ import { adminFirestore, adminStorageBucket } from "@/firebase/firebaseAdmin";
 import { Product } from "@/model/Product";
 import { ProductVariant } from "@/model/ProductVariant";
 import { nanoid } from "nanoid";
-import { generateTags } from "./AIService";
 import { FieldValue } from "firebase-admin/firestore";
 import { toSafeLocaleString } from "./UtilService";
 import { Order, PopularItem } from "@/model";
@@ -47,14 +46,17 @@ export const addProducts = async (product: Partial<Product>, file: File) => {
     // 1. Upload thumbnail
     const thumbnail = await uploadThumbnail(file, id);
 
-    const textContext = `
-      Name: ${product.name || ""}
-      Description: ${product.description || ""}
-      Variants: ${(product.variants || []).map((v) => v.variantName).join(", ")}
-    `;
-    const tags = await generateTags("Extract product tags", textContext);
-    tags.push(product.brand?.toLocaleLowerCase());
-    tags.push(product.category?.toLocaleLowerCase());
+    // Build tags from brand and category (no AI)
+    const tags: string[] = [];
+    if (product.brand) tags.push(product.brand.toLowerCase());
+    if (product.category) tags.push(product.category.toLowerCase());
+
+    // Denormalize sizes from variants for search
+    const allSizes = new Set<string>();
+    (product.variants || []).forEach((v) =>
+      v.sizes?.forEach((s) => allSizes.add(s))
+    );
+
     const newProductDocument: Product = {
       ...(product as Product), // Cast after filling required fields
       id: id,
@@ -62,6 +64,8 @@ export const addProducts = async (product: Partial<Product>, file: File) => {
       thumbnail: thumbnail,
       nameLower: product.name?.toLowerCase(),
       tags: tags,
+      gender: product.gender || [],
+      availableSizes: Array.from(allSizes),
       isDeleted: false,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
@@ -82,7 +86,7 @@ export const addProducts = async (product: Partial<Product>, file: File) => {
 };
 
 /**
- * UPDATED to await generateTags
+ * Update product - removed AI tags, added gender and availableSizes
  */
 export const updateProduct = async (
   id: string,
@@ -90,14 +94,17 @@ export const updateProduct = async (
   file?: File | null
 ) => {
   try {
-    const textContext = `
-      Name: ${product.name || ""}
-      Description: ${product.description || ""}
-      Variants: ${(product.variants || []).map((v) => v.variantName).join(", ")}
-    `;
-    const tags = await generateTags("Extract product tags", textContext);
-    tags.push(product.brand?.toLocaleLowerCase());
-    tags.push(product.category?.toLocaleLowerCase());
+    // Build tags from brand and category (no AI)
+    const tags: string[] = [];
+    if (product.brand) tags.push(product.brand.toLowerCase());
+    if (product.category) tags.push(product.category.toLowerCase());
+
+    // Denormalize sizes from variants for search
+    const allSizes = new Set<string>();
+    (product.variants || []).forEach((v) =>
+      v.sizes?.forEach((s) => allSizes.add(s))
+    );
+
     let thumbnail = product.thumbnail;
 
     if (file) {
@@ -129,6 +136,8 @@ export const updateProduct = async (
       thumbnail: thumbnail,
       nameLower: product.name?.toLowerCase(),
       tags: tags,
+      gender: product.gender || [],
+      availableSizes: Array.from(allSizes),
       updatedAt: new Date(),
     };
 

@@ -25,6 +25,8 @@ export interface Product {
   status: boolean;
 
   tags: string[];
+  gender?: string[]; // ["men", "women", "kids"] - can be multiple
+  availableSizes?: string[]; // Denormalized from variants for search
 
   // --- NEW DENORMALIZED FIELDS ---
   // We add these later for filtering

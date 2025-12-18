@@ -16,14 +16,22 @@ const parseProductFromFormData = async (
   // Handle all string/number fields
   for (const [key, value] of formData.entries()) {
     if (key === "thumbnail") continue; // Skip file
-    if (key === "variants" || key === "tags") {
+    if (key === "variants" || key === "tags" || key === "gender") {
       // Parse JSON fields
-      product[key as "variants" | "tags"] = JSON.parse(value as string);
+      product[key as "variants" | "tags" | "gender"] = JSON.parse(
+        value as string
+      );
     } else if (key === "status" || key === "listing") {
       // Parse string booleans
       product[key as "status" | "listing"] = value === "true";
     } else if (
-      ["buyingPrice", "sellingPrice", "marketPrice", "discount","weight"].includes(key)
+      [
+        "buyingPrice",
+        "sellingPrice",
+        "marketPrice",
+        "discount",
+        "weight",
+      ].includes(key)
     ) {
       // Parse numbers
       product[key as "buyingPrice"] = parseFloat(value as string) || 0;
