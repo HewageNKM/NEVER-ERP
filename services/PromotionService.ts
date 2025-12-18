@@ -758,6 +758,8 @@ export const calculateCartDiscount = async (
           `[PromotionService] Skipped ${promo.id}: Variant eligibility check failed`
         );
         continue;
+      }
+    }
 
     // Condition Checks
     let conditionsMet = true;
@@ -775,23 +777,29 @@ export const calculateCartDiscount = async (
     for (const condition of promo.conditions) {
       if (condition.type === "MIN_AMOUNT") {
         if (cartTotal < Number(condition.value)) {
-           console.log(`[PromotionService] Condition Failed ${promo.id}: MIN_AMOUNT ${cartTotal} < ${condition.value}`);
-           conditionsMet = false;
+          console.log(
+            `[PromotionService] Condition Failed ${promo.id}: MIN_AMOUNT ${cartTotal} < ${condition.value}`
+          );
+          conditionsMet = false;
         }
       } else if (condition.type === "MIN_QUANTITY") {
         // If there are specific products, count only those, otherwise count all (Frontend parity)
         const applicableItems =
-            specificProductIds.length > 0
-              ? cartItems.filter((item) => specificProductIds.includes(item.productId))
-              : cartItems;
+          specificProductIds.length > 0
+            ? cartItems.filter((item) =>
+                specificProductIds.includes(item.productId)
+              )
+            : cartItems;
 
         const totalQty = applicableItems.reduce(
           (sum, item) => sum + item.quantity,
           0
         );
         if (totalQty < Number(condition.value)) {
-           console.log(`[PromotionService] Condition Failed ${promo.id}: MIN_QUANTITY ${totalQty} < ${condition.value}`);
-           conditionsMet = false;
+          console.log(
+            `[PromotionService] Condition Failed ${promo.id}: MIN_QUANTITY ${totalQty} < ${condition.value}`
+          );
+          conditionsMet = false;
         }
       } else if (condition.type === "SPECIFIC_PRODUCT") {
         // Check variant restrictions if defined
@@ -801,7 +809,7 @@ export const calculateCartDiscount = async (
         ) {
           const productId = condition.value as string;
           const productIds = condition.productIds || [productId];
-          
+
           const hasMatchingVariant = cartItems.some(
             (item) =>
               productIds.includes(item.productId) &&
@@ -809,14 +817,16 @@ export const calculateCartDiscount = async (
               condition.variantIds!.includes(item.variantId)
           );
           if (!hasMatchingVariant) {
-             console.log(`[PromotionService] Condition Failed ${promo.id}: SPECIFIC_VARIANTS not found`);
-             // NOTE: Frontend treats variant checks strictly if they exist on the condition being iterated.
-             // However, for pure product IDs, it effectively uses the aggregated list.
-             // If we have mixed strict-variant and loose-product conditions, this might be tricky.
-             // Given the logs, the failing conditions are simple product checks.
-             
-             // If this condition failed strict variant check, we fail.
-             conditionsMet = false;
+            console.log(
+              `[PromotionService] Condition Failed ${promo.id}: SPECIFIC_VARIANTS not found`
+            );
+            // NOTE: Frontend treats variant checks strictly if they exist on the condition being iterated.
+            // However, for pure product IDs, it effectively uses the aggregated list.
+            // If we have mixed strict-variant and loose-product conditions, this might be tricky.
+            // Given the logs, the failing conditions are simple product checks.
+
+            // If this condition failed strict variant check, we fail.
+            conditionsMet = false;
           }
         } else {
           // General product check - use the aggregated list (OR logic)
@@ -826,8 +836,10 @@ export const calculateCartDiscount = async (
           );
 
           if (!hasProduct) {
-             console.log(`[PromotionService] Condition Failed ${promo.id}: SPECIFIC_PRODUCT not found (checked aggregated list)`);
-             conditionsMet = false;
+            console.log(
+              `[PromotionService] Condition Failed ${promo.id}: SPECIFIC_PRODUCT not found (checked aggregated list)`
+            );
+            conditionsMet = false;
           }
         }
       }
