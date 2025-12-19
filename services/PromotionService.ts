@@ -37,7 +37,7 @@ export const getPromotions = async (
       .where("isDeleted", "!=", true);
 
     if (filterStatus) {
-      query = query.where("status", "==", filterStatus);
+      query = query.where("isActive", "==", filterStatus === "ACTIVE");
     }
 
     // Sort by priority and created date
@@ -384,7 +384,7 @@ export const validateCoupon = async (
   }
 
   // 1. Status Check
-  if (coupon.status !== "ACTIVE") {
+  if (coupon.isActive !== true) {
     return { valid: false, discount: 0, message: "Coupon is not active" };
   }
 
@@ -699,7 +699,7 @@ export const calculateCartDiscount = async (
   // Fetch ACTIVE promotions (excluding soft-deleted)
   const promotionsSnap = await adminFirestore
     .collection(PROMOTIONS_COLLECTION)
-    .where("status", "==", "ACTIVE")
+    .where("isActive", "==", true)
     .where("isDeleted", "!=", true)
     .get();
 

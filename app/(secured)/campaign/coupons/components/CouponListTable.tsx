@@ -123,21 +123,16 @@ const CouponListTable: React.FC<Props> = ({
   };
 
   // Status Badge Logic - Sharp, Industrial Look
-  const renderStatus = (status: string) => {
-    const styles = {
-      ACTIVE: "bg-black text-white border-black",
-      INACTIVE: "bg-gray-100 text-gray-400 border-gray-100",
-      EXPIRED:
-        "bg-white text-gray-300 border-gray-200 line-through decoration-2 decoration-gray-300",
-    };
-
-    const styleClass = styles[status as keyof typeof styles] || styles.INACTIVE;
-
+  const renderStatus = (isActive: boolean) => {
     return (
       <span
-        className={`px-2 py-1 text-[9px] font-black uppercase tracking-widest border ${styleClass}`}
+        className={`px-2 py-1 text-[9px] font-black uppercase tracking-widest border ${
+          isActive
+            ? "bg-black text-white border-black"
+            : "bg-gray-100 text-gray-400 border-gray-100"
+        }`}
       >
-        {status}
+        {isActive ? "ACTIVE" : "INACTIVE"}
       </span>
     );
   };
@@ -198,7 +193,7 @@ const CouponListTable: React.FC<Props> = ({
 
               {/* Status */}
               <td className="px-6 py-5 align-top text-center">
-                {renderStatus(coupon.status)}
+                {renderStatus(coupon.isActive)}
               </td>
 
               {/* Actions */}

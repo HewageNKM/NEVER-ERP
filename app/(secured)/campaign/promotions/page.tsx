@@ -137,7 +137,6 @@ const PromotionsPage = () => {
               <option value="">All Statuses</option>
               <option value="ACTIVE">Active</option>
               <option value="INACTIVE">Inactive</option>
-              <option value="SCHEDULED">Scheduled</option>
             </select>
           </div>
 

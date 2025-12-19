@@ -39,7 +39,7 @@ const emptyCombo: Partial<ComboProduct> = {
   comboPrice: 0,
   savings: 0,
   type: "BUNDLE",
-  status: "ACTIVE",
+  isActive: true,
   thumbnail: undefined,
 };
 
@@ -219,7 +219,7 @@ const ComboFormModal: React.FC<Props> = ({ open, onClose, onSave, combo }) => {
       if (formData.description)
         payload.append("description", formData.description);
       if (formData.type) payload.append("type", formData.type);
-      if (formData.status) payload.append("status", formData.status);
+      payload.append("isActive", String(formData.isActive ?? true));
       payload.append("originalPrice", String(formData.originalPrice || 0));
       payload.append("comboPrice", String(formData.comboPrice || 0));
       payload.append("savings", String(formData.savings || 0));
@@ -401,16 +401,36 @@ const ComboFormModal: React.FC<Props> = ({ open, onClose, onSave, combo }) => {
                         </div>
                         <div>
                           <label className={styles.label}>Status</label>
-                          <select
-                            name="status"
-                            value={formData.status}
-                            onChange={handleChange}
-                            className={styles.select}
-                          >
-                            <option value="ACTIVE">ACTIVE</option>
-                            <option value="INACTIVE">INACTIVE</option>
-                            <option value="DRAFT">DRAFT</option>
-                          </select>
+                          <label className="group flex items-center gap-4 cursor-pointer mt-2">
+                            <div
+                              className={`w-6 h-6 border-2 flex items-center justify-center transition-colors ${
+                                formData.isActive
+                                  ? "bg-green-600 border-green-600"
+                                  : "bg-transparent border-gray-300"
+                              }`}
+                            >
+                              {formData.isActive && (
+                                <span className="text-white text-xs font-bold">
+                                  ✓
+                                </span>
+                              )}
+                            </div>
+                            <input
+                              type="checkbox"
+                              name="isActive"
+                              checked={formData.isActive}
+                              onChange={(e) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  isActive: e.target.checked,
+                                }))
+                              }
+                              className="hidden"
+                            />
+                            <span className="text-sm font-bold text-black uppercase tracking-wide">
+                              {formData.isActive ? "Active" : "Inactive"}
+                            </span>
+                          </label>
                         </div>
                       </div>
                       <div>

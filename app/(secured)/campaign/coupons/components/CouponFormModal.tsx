@@ -33,7 +33,7 @@ const emptyCoupon: Partial<Coupon> = {
   discountValue: 0,
   maxDiscount: 0,
   minOrderAmount: 0,
-  status: "ACTIVE",
+  isActive: true,
   usageLimit: 0,
   perUserLimit: 1,
   firstOrderOnly: false,
@@ -225,16 +225,31 @@ const CouponFormModal: React.FC<Props> = ({
                         </div>
                         <div>
                           <label className={styles.label}>Status</label>
-                          <select
-                            name="status"
-                            value={formData.status}
-                            onChange={handleChange}
-                            className={styles.select}
-                          >
-                            <option value="ACTIVE">ACTIVE</option>
-                            <option value="INACTIVE">INACTIVE</option>
-                            <option value="EXPIRED">EXPIRED</option>
-                          </select>
+                          <label className="group flex items-center gap-4 cursor-pointer mt-2">
+                            <div
+                              className={`w-6 h-6 border-2 flex items-center justify-center transition-colors ${
+                                formData.isActive
+                                  ? "bg-green-600 border-green-600"
+                                  : "bg-transparent border-gray-300"
+                              }`}
+                            >
+                              {formData.isActive && (
+                                <span className="text-white text-xs font-bold">
+                                  ✓
+                                </span>
+                              )}
+                            </div>
+                            <input
+                              type="checkbox"
+                              name="isActive"
+                              checked={formData.isActive}
+                              onChange={handleChange}
+                              className="hidden"
+                            />
+                            <span className="text-sm font-bold text-black uppercase tracking-wide">
+                              {formData.isActive ? "Active" : "Inactive"}
+                            </span>
+                          </label>
                         </div>
                       </div>
                       <div>
