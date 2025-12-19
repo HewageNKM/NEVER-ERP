@@ -225,6 +225,7 @@ export const createCoupon = async (
     startDate: data.startDate ? new Date(data.startDate as any) : null,
     endDate: data.endDate ? new Date(data.endDate as any) : null,
     usageCount: 0,
+    isActive: Boolean(data.isActive),
     isDeleted: false,
     createdAt: now,
     updatedAt: now,
@@ -252,6 +253,14 @@ export const updateCoupon = async (
   }
   if (updateData.endDate) {
     payload.endDate = new Date(updateData.endDate as any);
+  }
+
+  // Enforce boolean types for status flags
+  if ("isActive" in updateData) {
+    payload.isActive = Boolean(updateData.isActive);
+  }
+  if ("isDeleted" in updateData) {
+    payload.isDeleted = Boolean(updateData.isDeleted);
   }
 
   await adminFirestore.collection(COUPONS_COLLECTION).doc(id).update(payload);
