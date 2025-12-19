@@ -128,6 +128,11 @@ export interface Order {
   couponDiscount?: number;
   promotionDiscount?: number;
 
+  // Order Tracking
+  trackingNumber?: string;
+  estimatedDelivery?: Timestamp | string;
+  statusHistory?: { status: string; date: Timestamp | string }[];
+
   restockedAt?: Timestamp | string;
   restocked?: boolean;
   cleanupProcessed?: boolean;

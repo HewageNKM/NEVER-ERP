@@ -42,10 +42,20 @@ export const OrderEditForm: React.FC<OrderEditFormProps> = ({
   };
 
   const handleOrderStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      status: e.target.value,
-    }));
+    const newStatus = e.target.value;
+    setFormData((prev) => {
+      // Add status change to history
+      const existingHistory = prev.statusHistory || [];
+      const newHistoryEntry = {
+        status: newStatus,
+        date: new Date().toISOString(),
+      };
+      return {
+        ...prev,
+        status: newStatus,
+        statusHistory: [...existingHistory, newHistoryEntry],
+      };
+    });
   };
 
   const handleCustomerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -148,11 +158,61 @@ export const OrderEditForm: React.FC<OrderEditFormProps> = ({
                 onChange={handleOrderStatusChange}
                 className={styles.select}
               >
-                <option value="Cancelled">CANCELLED</option>
+                <option value="Pending">PENDING</option>
                 <option value="Processing">PROCESSING</option>
                 <option value="Shipped">SHIPPED</option>
                 <option value="Completed">COMPLETED</option>
+                <option value="Cancelled">CANCELLED</option>
               </select>
+            </div>
+          </div>
+
+          {/* Tracking Information */}
+          <div className="pt-4 border-t border-gray-100">
+            <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
+              <span className="w-1 h-1 bg-black rounded-full"></span> Tracking
+              Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="flex flex-col">
+                <label className={styles.label}>Tracking Number</label>
+                <input
+                  type="text"
+                  name="trackingNumber"
+                  value={formData?.trackingNumber || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      trackingNumber: e.target.value,
+                    }))
+                  }
+                  placeholder="Enter tracking number..."
+                  className={styles.input}
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className={styles.label}>Estimated Delivery</label>
+                <input
+                  type="date"
+                  name="estimatedDelivery"
+                  value={
+                    formData?.estimatedDelivery
+                      ? new Date(formData.estimatedDelivery as string)
+                          .toISOString()
+                          .split("T")[0]
+                      : ""
+                  }
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      estimatedDelivery: e.target.value
+                        ? new Date(e.target.value).toISOString()
+                        : undefined,
+                    }))
+                  }
+                  className={styles.input}
+                />
+              </div>
             </div>
           </div>
 
