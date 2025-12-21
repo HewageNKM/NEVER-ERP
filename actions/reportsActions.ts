@@ -126,3 +126,154 @@ export const getRecentOrdersAction = async (limit: number = 6) => {
     throw new Error(e.response ? e.response.data.message : e.message);
   }
 };
+
+// ============================================================
+// NEW DASHBOARD ACTIONS
+// ============================================================
+
+export const getLowStockAlertsAction = async (
+  threshold: number = 5,
+  limit: number = 10
+) => {
+  try {
+    const token = await getToken();
+    const res = await axios({
+      method: "GET",
+      url: `/api/v2/dashboard/low-stock?threshold=${threshold}&limit=${limit}`,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.data;
+  } catch (e: any) {
+    throw new Error(e.response ? e.response.data.message : e.message);
+  }
+};
+
+export const getMonthlyComparisonAction = async () => {
+  try {
+    const token = await getToken();
+    const res = await axios({
+      method: "GET",
+      url: "/api/v2/dashboard/monthly-comparison",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.data;
+  } catch (e: any) {
+    throw new Error(e.response ? e.response.data.message : e.message);
+  }
+};
+
+export const getOrderStatusDistributionAction = async () => {
+  try {
+    const token = await getToken();
+    const res = await axios({
+      method: "GET",
+      url: "/api/v2/dashboard/order-status",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.data;
+  } catch (e: any) {
+    throw new Error(e.response ? e.response.data.message : e.message);
+  }
+};
+
+export const getPendingOrdersCountAction = async () => {
+  try {
+    const token = await getToken();
+    const res = await axios({
+      method: "GET",
+      url: "/api/v2/dashboard/pending-orders",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.data;
+  } catch (e: any) {
+    throw new Error(e.response ? e.response.data.message : e.message);
+  }
+};
+
+export const getWeeklyTrendsAction = async () => {
+  try {
+    const token = await getToken();
+    const res = await axios({
+      method: "GET",
+      url: "/api/v2/dashboard/weekly-trends",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.data;
+  } catch (e: any) {
+    throw new Error(e.response ? e.response.data.message : e.message);
+  }
+};
+
+export const getExpenseSummaryAction = async () => {
+  try {
+    const token = await getToken();
+    const res = await axios({
+      method: "GET",
+      url: "/api/v2/dashboard/expense-summary",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.data;
+  } catch (e: any) {
+    throw new Error(e.response ? e.response.data.message : e.message);
+  }
+};
+
+export const getProfitMarginsAction = async () => {
+  try {
+    const token = await getToken();
+    const res = await axios({
+      method: "GET",
+      url: "/api/v2/dashboard/profit-margins",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.data;
+  } catch (e: any) {
+    throw new Error(e.response ? e.response.data.message : e.message);
+  }
+};
+
+export const getInventoryValueAction = async () => {
+  try {
+    const token = await getToken();
+    const res = await axios({
+      method: "GET",
+      url: "/api/v2/dashboard/inventory-value",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.data;
+  } catch (e: any) {
+    throw new Error(e.response ? e.response.data.message : e.message);
+  }
+};
+
+export const getRevenueByCategoryAction = async () => {
+  try {
+    const token = await getToken();
+    const res = await axios({
+      method: "GET",
+      url: "/api/v2/dashboard/revenue-by-category",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.data;
+  } catch (e: any) {
+    throw new Error(e.response ? e.response.data.message : e.message);
+  }
+};

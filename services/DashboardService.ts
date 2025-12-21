@@ -394,3 +394,794 @@ export const getPopularItems = async (
     throw new Error(error.message);
   }
 };
+
+// ============================================================
+// NEW DASHBOARD METRICS
+// ============================================================
+
+/**
+ * Low Stock Alert Item
+ */
+export interface LowStockItem {
+  productId: string;
+  productName: string;
+  variantName: string;
+  size: string;
+  currentStock: number;
+  thumbnail?: string;
+}
+
+/**
+ * Get products with low stock (threshold: 5 or less)
+ */
+export const getLowStockAlerts = async (
+  threshold: number = 5,
+  limit: number = 10
+): Promise<LowStockItem[]> => {
+  try {
+    console.log(
+      `[DashboardService] Fetching low stock items (threshold: ${threshold})`
+    );
+
+    // Use 'stock_inventory' collection (not 'inventory')
+    const inventoryQuery = adminFirestore
+      .collection("stock_inventory")
+      .where("quantity", "<=", threshold)
+      .where("quantity", ">", 0)
+      .orderBy("quantity", "asc")
+      .limit(limit);
+
+    const snapshot = await inventoryQuery.get();
+
+    if (snapshot.empty) {
+      return [];
+    }
+
+    // Collect product IDs for batch fetch - filter out empty/invalid values
+    const productIds = new Set<string>();
+    snapshot.docs.forEach((doc) => {
+      const productId = doc.data().productId;
+      if (
+        productId &&
+        typeof productId === "string" &&
+        productId.trim() !== ""
+      ) {
+        productIds.add(productId);
+      }
+    });
+
+    // Fetch product details only if we have valid IDs
+    const validProductIds = Array.from(productIds);
+    const productDocs =
+      validProductIds.length > 0
+        ? await Promise.all(
+            validProductIds.map((id) =>
+              adminFirestore.collection("products").doc(id).get()
+            )
+          )
+        : [];
+
+    const productMap = new Map<string, any>();
+    productDocs.forEach((doc) => {
+      if (doc.exists) {
+        productMap.set(doc.id, doc.data());
+      }
+    });
+
+    const lowStockItems: LowStockItem[] = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      const product = productMap.get(data.productId);
+
+      return {
+        productId: data.productId,
+        productName: product?.name || "Unknown Product",
+        variantName: data.variantName || "",
+        size: data.size || "",
+        currentStock: data.quantity || 0,
+        thumbnail: product?.thumbnail?.url,
+      };
+    });
+
+    console.log(
+      `[DashboardService] Found ${lowStockItems.length} low stock items`
+    );
+    return lowStockItems;
+  } catch (error: any) {
+    console.error("[DashboardService] Error:", error);
+    throw new Error(error.message);
+  }
+};
+
+/**
+ * Monthly Comparison Response
+ */
+export interface MonthlyComparison {
+  currentMonth: {
+    orders: number;
+    revenue: number;
+    profit: number;
+  };
+  lastMonth: {
+    orders: number;
+    revenue: number;
+    profit: number;
+  };
+  percentageChange: {
+    orders: number;
+    revenue: number;
+    profit: number;
+  };
+}
+
+/**
+ * Get monthly comparison (this month vs last month)
+ */
+export const getMonthlyComparison = async (): Promise<MonthlyComparison> => {
+  try {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    // Current month range
+    const currentMonthStart = new Date(
+      currentYear,
+      currentMonth,
+      1,
+      0,
+      0,
+      0,
+      0
+    );
+    const currentMonthEnd = new Date(
+      currentYear,
+      currentMonth + 1,
+      0,
+      23,
+      59,
+      59,
+      999
+    );
+
+    // Last month range
+    const lastMonthStart = new Date(
+      currentYear,
+      currentMonth - 1,
+      1,
+      0,
+      0,
+      0,
+      0
+    );
+    const lastMonthEnd = new Date(
+      currentYear,
+      currentMonth,
+      0,
+      23,
+      59,
+      59,
+      999
+    );
+
+    console.log("[DashboardService] Fetching monthly comparison");
+
+    // Fetch both months in parallel
+    const [currentData, lastData] = await Promise.all([
+      getOverviewByDateRange(currentMonthStart, currentMonthEnd),
+      getOverviewByDateRange(lastMonthStart, lastMonthEnd),
+    ]);
+
+    // Calculate percentage changes
+    const calcChange = (current: number, last: number): number => {
+      if (last === 0) return current > 0 ? 100 : 0;
+      return Math.round(((current - last) / last) * 100);
+    };
+
+    return {
+      currentMonth: {
+        orders: currentData.totalOrders,
+        revenue: currentData.totalNetSales,
+        profit: currentData.totalProfit,
+      },
+      lastMonth: {
+        orders: lastData.totalOrders,
+        revenue: lastData.totalNetSales,
+        profit: lastData.totalProfit,
+      },
+      percentageChange: {
+        orders: calcChange(currentData.totalOrders, lastData.totalOrders),
+        revenue: calcChange(currentData.totalNetSales, lastData.totalNetSales),
+        profit: calcChange(currentData.totalProfit, lastData.totalProfit),
+      },
+    };
+  } catch (error: any) {
+    console.error("[DashboardService] Error:", error);
+    throw new Error(error.message);
+  }
+};
+
+/**
+ * Order Status Distribution
+ */
+export interface OrderStatusDistribution {
+  pending: number;
+  processing: number;
+  shipped: number;
+  delivered: number;
+  cancelled: number;
+  refunded: number;
+}
+
+/**
+ * Get order status distribution for current month
+ */
+export const getOrderStatusDistribution =
+  async (): Promise<OrderStatusDistribution> => {
+    try {
+      const now = new Date();
+      const startOfMonth = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        1,
+        0,
+        0,
+        0,
+        0
+      );
+      const endOfMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999
+      );
+
+      console.log("[DashboardService] Fetching order status distribution");
+
+      const ordersQuery = adminFirestore
+        .collection("orders")
+        .where("createdAt", ">=", Timestamp.fromDate(startOfMonth))
+        .where("createdAt", "<=", Timestamp.fromDate(endOfMonth));
+
+      const snapshot = await ordersQuery.get();
+
+      const distribution: OrderStatusDistribution = {
+        pending: 0,
+        processing: 0,
+        shipped: 0,
+        delivered: 0,
+        cancelled: 0,
+        refunded: 0,
+      };
+
+      snapshot.docs.forEach((doc) => {
+        const order = doc.data() as Order;
+        const status = order.status?.toLowerCase() || "pending";
+
+        switch (status) {
+          case "pending":
+            distribution.pending++;
+            break;
+          case "processing":
+            distribution.processing++;
+            break;
+          case "shipped":
+            distribution.shipped++;
+            break;
+          case "delivered":
+            distribution.delivered++;
+            break;
+          case "cancelled":
+            distribution.cancelled++;
+            break;
+          case "refunded":
+            distribution.refunded++;
+            break;
+          default:
+            distribution.pending++;
+        }
+      });
+
+      console.log(
+        "[DashboardService] Order status distribution:",
+        distribution
+      );
+      return distribution;
+    } catch (error: any) {
+      console.error("[DashboardService] Error:", error);
+      throw new Error(error.message);
+    }
+  };
+
+/**
+ * Pending Orders Count Response
+ */
+export interface PendingOrdersCount {
+  pendingPayment: number;
+  pendingShipment: number;
+  total: number;
+}
+
+/**
+ * Get count of orders needing attention
+ */
+export const getPendingOrdersCount = async (): Promise<PendingOrdersCount> => {
+  try {
+    console.log("[DashboardService] Fetching pending orders count");
+
+    // Pending payment
+    const pendingPaymentQuery = adminFirestore
+      .collection("orders")
+      .where("paymentStatus", "==", "Pending");
+
+    // Pending shipment (paid but not shipped)
+    const pendingShipmentQuery = adminFirestore
+      .collection("orders")
+      .where("paymentStatus", "==", "Paid")
+      .where("status", "in", ["Pending", "Processing"]);
+
+    const [paymentSnapshot, shipmentSnapshot] = await Promise.all([
+      pendingPaymentQuery.get(),
+      pendingShipmentQuery.get(),
+    ]);
+
+    const result = {
+      pendingPayment: paymentSnapshot.size,
+      pendingShipment: shipmentSnapshot.size,
+      total: paymentSnapshot.size + shipmentSnapshot.size,
+    };
+
+    console.log("[DashboardService] Pending orders:", result);
+    return result;
+  } catch (error: any) {
+    console.error("[DashboardService] Error:", error);
+    throw new Error(error.message);
+  }
+};
+
+/**
+ * Weekly Trend Data
+ */
+export interface WeeklyTrends {
+  labels: string[]; // Day names
+  orders: number[];
+  revenue: number[];
+}
+
+/**
+ * Get weekly trends (last 7 days)
+ */
+export const getWeeklyTrends = async (): Promise<WeeklyTrends> => {
+  try {
+    console.log("[DashboardService] Fetching weekly trends");
+
+    const now = new Date();
+    const labels: string[] = [];
+    const orders: number[] = [];
+    const revenue: number[] = [];
+
+    // Get last 7 days
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
+      labels.push(dayName);
+
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const dayQuery = adminFirestore
+        .collection("orders")
+        .where("createdAt", ">=", Timestamp.fromDate(startOfDay))
+        .where("createdAt", "<=", Timestamp.fromDate(endOfDay))
+        .where("paymentStatus", "==", "Paid");
+
+      const snapshot = await dayQuery.get();
+
+      let dayRevenue = 0;
+      snapshot.docs.forEach((doc) => {
+        const order = doc.data() as Order;
+        dayRevenue += order.total || 0;
+      });
+
+      orders.push(snapshot.size);
+      revenue.push(dayRevenue);
+    }
+
+    return { labels, orders, revenue };
+  } catch (error: any) {
+    console.error("[DashboardService] Error:", error);
+    throw new Error(error.message);
+  }
+};
+
+/**
+ * Expense Summary Response
+ */
+export interface ExpenseSummary {
+  todayExpenses: number;
+  monthExpenses: number;
+  topCategory: string;
+  topCategoryAmount: number;
+}
+
+/**
+ * Get expense summary
+ */
+export const getExpenseSummary = async (): Promise<ExpenseSummary> => {
+  try {
+    console.log("[DashboardService] Fetching expense summary");
+
+    const now = new Date();
+
+    // Today
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(now);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // This month
+    const startOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1,
+      0,
+      0,
+      0
+    );
+    const endOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999
+    );
+
+    // Fetch today's expenses
+    const todayQuery = adminFirestore
+      .collection("expenses")
+      .where("type", "==", "expense")
+      .where("status", "==", "APPROVED")
+      .where("createdAt", ">=", Timestamp.fromDate(startOfDay))
+      .where("createdAt", "<=", Timestamp.fromDate(endOfDay));
+
+    // Fetch month's expenses
+    const monthQuery = adminFirestore
+      .collection("expenses")
+      .where("type", "==", "expense")
+      .where("status", "==", "APPROVED")
+      .where("createdAt", ">=", Timestamp.fromDate(startOfMonth))
+      .where("createdAt", "<=", Timestamp.fromDate(endOfMonth));
+
+    const [todaySnapshot, monthSnapshot] = await Promise.all([
+      todayQuery.get(),
+      monthQuery.get(),
+    ]);
+
+    let todayExpenses = 0;
+    todaySnapshot.docs.forEach((doc) => {
+      todayExpenses += Number(doc.data().amount || 0);
+    });
+
+    let monthExpenses = 0;
+    const categoryTotals = new Map<string, number>();
+    monthSnapshot.docs.forEach((doc) => {
+      const data = doc.data();
+      const amount = Number(data.amount || 0);
+      monthExpenses += amount;
+
+      const category = data.for || "Other";
+      categoryTotals.set(
+        category,
+        (categoryTotals.get(category) || 0) + amount
+      );
+    });
+
+    // Find top category
+    let topCategory = "None";
+    let topCategoryAmount = 0;
+    categoryTotals.forEach((amount, category) => {
+      if (amount > topCategoryAmount) {
+        topCategory = category;
+        topCategoryAmount = amount;
+      }
+    });
+
+    return {
+      todayExpenses,
+      monthExpenses,
+      topCategory,
+      topCategoryAmount,
+    };
+  } catch (error: any) {
+    console.error("[DashboardService] Error:", error);
+    throw new Error(error.message);
+  }
+};
+
+/**
+ * Profit Margin Response
+ */
+export interface ProfitMargins {
+  grossMargin: number;
+  netMargin: number;
+  avgOrderValue: number;
+}
+
+/**
+ * Get profit margins for current month
+ */
+export const getProfitMargins = async (): Promise<ProfitMargins> => {
+  try {
+    console.log("[DashboardService] Fetching profit margins");
+
+    const now = new Date();
+    const startOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1,
+      0,
+      0,
+      0,
+      0
+    );
+    const endOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999
+    );
+
+    const overview = await getOverviewByDateRange(startOfMonth, endOfMonth);
+
+    const grossMargin =
+      overview.totalGrossSales > 0
+        ? Math.round(
+            ((overview.totalGrossSales - overview.totalBuyingCost) /
+              overview.totalGrossSales) *
+              100
+          )
+        : 0;
+
+    const netMargin =
+      overview.totalNetSales > 0
+        ? Math.round((overview.totalProfit / overview.totalNetSales) * 100)
+        : 0;
+
+    const avgOrderValue =
+      overview.totalOrders > 0
+        ? Math.round(overview.totalNetSales / overview.totalOrders)
+        : 0;
+
+    return {
+      grossMargin,
+      netMargin,
+      avgOrderValue,
+    };
+  } catch (error: any) {
+    console.error("[DashboardService] Error:", error);
+    throw new Error(error.message);
+  }
+};
+
+/**
+ * Inventory Value Response
+ */
+export interface InventoryValue {
+  totalProducts: number;
+  totalQuantity: number;
+  totalValue: number;
+  avgItemValue: number;
+}
+
+/**
+ * Get total inventory value
+ */
+export const getInventoryValue = async (): Promise<InventoryValue> => {
+  try {
+    console.log("[DashboardService] Fetching inventory value");
+
+    // Use 'stock_inventory' collection (not 'inventory')
+    const inventorySnapshot = await adminFirestore
+      .collection("stock_inventory")
+      .get();
+
+    if (inventorySnapshot.empty) {
+      return {
+        totalProducts: 0,
+        totalQuantity: 0,
+        totalValue: 0,
+        avgItemValue: 0,
+      };
+    }
+
+    // Collect product IDs - filter out empty/invalid values
+    const productIds = new Set<string>();
+    inventorySnapshot.docs.forEach((doc) => {
+      const productId = doc.data().productId;
+      if (
+        productId &&
+        typeof productId === "string" &&
+        productId.trim() !== ""
+      ) {
+        productIds.add(productId);
+      }
+    });
+
+    // Fetch product prices only if we have valid IDs
+    const validProductIds = Array.from(productIds);
+    const productDocs =
+      validProductIds.length > 0
+        ? await Promise.all(
+            validProductIds.map((id) =>
+              adminFirestore.collection("products").doc(id).get()
+            )
+          )
+        : [];
+
+    const productPriceMap = new Map<string, number>();
+    productDocs.forEach((doc) => {
+      if (doc.exists) {
+        productPriceMap.set(doc.id, doc.data()?.buyingPrice || 0);
+      }
+    });
+
+    let totalQuantity = 0;
+    let totalValue = 0;
+
+    inventorySnapshot.docs.forEach((doc) => {
+      const data = doc.data();
+      const quantity = data.quantity || 0;
+      const buyingPrice = productPriceMap.get(data.productId) || 0;
+
+      totalQuantity += quantity;
+      totalValue += quantity * buyingPrice;
+    });
+
+    return {
+      totalProducts: productIds.size,
+      totalQuantity,
+      totalValue,
+      avgItemValue:
+        totalQuantity > 0 ? Math.round(totalValue / totalQuantity) : 0,
+    };
+  } catch (error: any) {
+    console.error("[DashboardService] Error:", error);
+    throw new Error(error.message);
+  }
+};
+
+/**
+ * Revenue by Category Item
+ */
+export interface CategoryRevenue {
+  category: string;
+  revenue: number;
+  orders: number;
+  percentage: number;
+}
+
+/**
+ * Get revenue breakdown by category for current month
+ */
+export const getRevenueByCategory = async (): Promise<CategoryRevenue[]> => {
+  try {
+    console.log("[DashboardService] Fetching revenue by category");
+
+    const now = new Date();
+    const startOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1,
+      0,
+      0,
+      0,
+      0
+    );
+    const endOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999
+    );
+
+    const ordersQuery = adminFirestore
+      .collection("orders")
+      .where("paymentStatus", "==", "Paid")
+      .where("createdAt", ">=", Timestamp.fromDate(startOfMonth))
+      .where("createdAt", "<=", Timestamp.fromDate(endOfMonth));
+
+    const ordersSnapshot = await ordersQuery.get();
+
+    // Collect product IDs - filter out empty/invalid values
+    const productIds = new Set<string>();
+    ordersSnapshot.docs.forEach((doc) => {
+      const order = doc.data() as Order;
+      order.items?.forEach((item) => {
+        if (
+          item.itemId &&
+          typeof item.itemId === "string" &&
+          item.itemId.trim() !== ""
+        ) {
+          productIds.add(item.itemId);
+        }
+      });
+    });
+
+    // Fetch product categories only if we have valid IDs
+    const validProductIds = Array.from(productIds);
+    const productDocs =
+      validProductIds.length > 0
+        ? await Promise.all(
+            validProductIds.map((id) =>
+              adminFirestore.collection("products").doc(id).get()
+            )
+          )
+        : [];
+
+    const productCategoryMap = new Map<string, string>();
+    productDocs.forEach((doc) => {
+      if (doc.exists) {
+        productCategoryMap.set(doc.id, doc.data()?.category || "Uncategorized");
+      }
+    });
+
+    // Aggregate by category
+    const categoryMap = new Map<
+      string,
+      { revenue: number; orders: Set<string> }
+    >();
+
+    ordersSnapshot.docs.forEach((doc) => {
+      const order = doc.data() as Order;
+      order.items?.forEach((item) => {
+        const category = productCategoryMap.get(item.itemId) || "Uncategorized";
+        const itemRevenue = (item.price || 0) * (item.quantity || 0);
+
+        if (!categoryMap.has(category)) {
+          categoryMap.set(category, { revenue: 0, orders: new Set() });
+        }
+
+        const catData = categoryMap.get(category)!;
+        catData.revenue += itemRevenue;
+        catData.orders.add(doc.id);
+      });
+    });
+
+    // Calculate totals and percentages
+    let totalRevenue = 0;
+    categoryMap.forEach((data) => {
+      totalRevenue += data.revenue;
+    });
+
+    const result: CategoryRevenue[] = Array.from(categoryMap.entries())
+      .map(([category, data]) => ({
+        category,
+        revenue: data.revenue,
+        orders: data.orders.size,
+        percentage:
+          totalRevenue > 0
+            ? Math.round((data.revenue / totalRevenue) * 100)
+            : 0,
+      }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 6); // Top 6 categories
+
+    console.log(`[DashboardService] Found ${result.length} categories`);
+    return result;
+  } catch (error: any) {
+    console.error("[DashboardService] Error:", error);
+    throw new Error(error.message);
+  }
+};
