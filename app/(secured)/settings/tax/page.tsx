@@ -27,6 +27,49 @@ interface TaxSettings {
   minimumOrderForTax?: number;
 }
 
+// Toggle Switch Component
+const Toggle = ({
+  checked,
+  onChange,
+  size = "md",
+}: {
+  checked: boolean;
+  onChange: () => void;
+  size?: "sm" | "md";
+}) => {
+  const isSmall = size === "sm";
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={onChange}
+      className={`
+        relative inline-flex shrink-0 cursor-pointer items-center
+        rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out
+        focus:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2
+        ${checked ? "bg-black" : "bg-gray-300"}
+        ${isSmall ? "h-6 w-11" : "h-7 w-14"}
+      `}
+    >
+      <span
+        className={`
+          pointer-events-none inline-block transform rounded-full bg-white shadow-lg
+          ring-0 transition duration-200 ease-in-out
+          ${
+            checked
+              ? isSmall
+                ? "translate-x-5"
+                : "translate-x-7"
+              : "translate-x-0.5"
+          }
+          ${isSmall ? "h-5 w-5" : "h-6 w-6"}
+        `}
+      />
+    </button>
+  );
+};
+
 const TaxSettingsPage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -108,21 +151,21 @@ const TaxSettingsPage = () => {
 
   return (
     <PageContainer title="Tax Settings">
-      <div className="w-full space-y-8 max-w-4xl">
+      <div className="w-full space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h2 className="text-2xl font-bold uppercase tracking-tight text-gray-900">
+            <h2 className="text-xl sm:text-2xl font-bold uppercase tracking-tight text-gray-900">
               Tax Settings
             </h2>
             <p className="text-sm text-gray-500 mt-1 font-medium">
-              Configure tax rates and calculation rules for your business.
+              Configure tax rates and calculation rules.
             </p>
           </div>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-6 py-2 bg-black text-white text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-gray-900 transition-colors flex items-center gap-2 disabled:opacity-50"
+            className="w-full sm:w-auto px-6 py-3 bg-black text-white text-xs font-bold uppercase tracking-wider hover:bg-gray-900 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {saving ? (
               <IconLoader2 size={16} className="animate-spin" />
@@ -134,57 +177,49 @@ const TaxSettingsPage = () => {
         </div>
 
         {/* Main Toggle */}
-        <div className="bg-white border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="bg-white border border-gray-200 p-4 sm:p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <div
-                className={`w-12 h-12 flex items-center justify-center ${
+                className={`w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center flex-shrink-0 ${
                   settings.taxEnabled ? "bg-black" : "bg-gray-100"
                 }`}
               >
                 <IconReceipt2
-                  size={24}
+                  size={20}
                   className={
                     settings.taxEnabled ? "text-white" : "text-gray-400"
                   }
                 />
               </div>
-              <div>
-                <h3 className="font-bold text-gray-900">
+              <div className="min-w-0">
+                <h3 className="font-bold text-gray-900 text-sm sm:text-base">
                   Enable Tax Collection
                 </h3>
-                <p className="text-sm text-gray-500">
-                  Turn on to calculate and track tax on orders
+                <p className="text-xs sm:text-sm text-gray-500 truncate">
+                  Calculate and track tax on orders
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => handleChange("taxEnabled", !settings.taxEnabled)}
-              className={`relative w-14 h-7 rounded-full transition-colors ${
-                settings.taxEnabled ? "bg-black" : "bg-gray-200"
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${
-                  settings.taxEnabled ? "translate-x-7" : "translate-x-0.5"
-                }`}
-              />
-            </button>
+            <Toggle
+              checked={settings.taxEnabled}
+              onChange={() => handleChange("taxEnabled", !settings.taxEnabled)}
+            />
           </div>
         </div>
 
         {/* Tax Configuration */}
         {settings.taxEnabled && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-300">
-            {/* Basic Settings */}
+          <div className="space-y-6">
+            {/* Tax Rate Section */}
             <div className="bg-white border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-gray-900">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-gray-50">
+                <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-gray-900">
                   Tax Rate
                 </h3>
               </div>
-              <div className="p-6 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
                       Tax Name
@@ -193,8 +228,8 @@ const TaxSettingsPage = () => {
                       type="text"
                       value={settings.taxName}
                       onChange={(e) => handleChange("taxName", e.target.value)}
-                      placeholder="e.g., VAT, GST, Sales Tax"
-                      className="w-full px-4 py-3 bg-white border border-gray-300 text-gray-900 font-medium focus:outline-none focus:border-black"
+                      placeholder="e.g., VAT, GST"
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white border border-gray-300 text-gray-900 font-medium focus:outline-none focus:border-black focus:ring-1 focus:ring-black text-sm sm:text-base"
                     />
                   </div>
                   <div>
@@ -210,29 +245,26 @@ const TaxSettingsPage = () => {
                       onChange={(e) =>
                         handleChange("taxRate", parseFloat(e.target.value) || 0)
                       }
-                      className="w-full px-4 py-3 bg-white border border-gray-300 text-gray-900 font-medium focus:outline-none focus:border-black"
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white border border-gray-300 text-gray-900 font-medium focus:outline-none focus:border-black focus:ring-1 focus:ring-black text-sm sm:text-base"
                     />
                   </div>
                 </div>
 
                 {/* Calculation Preview */}
-                <div className="bg-gray-50 border border-gray-200 p-4">
-                  <div className="flex items-start gap-2 mb-3">
+                <div className="bg-gray-50 border border-gray-200 p-3 sm:p-4">
+                  <div className="flex items-start gap-2 mb-2">
                     <IconInfoCircle
                       size={16}
-                      className="text-gray-400 mt-0.5"
+                      className="text-gray-400 mt-0.5 flex-shrink-0"
                     />
                     <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
                       Calculation Preview
                     </span>
                   </div>
                   <div className="text-sm text-gray-700">
-                    For an order of{" "}
-                    <strong>Rs {examplePrice.toLocaleString()}</strong>:
-                    <br />
-                    {settings.taxName} ({settings.taxRate}%) ={" "}
+                    For Rs {examplePrice.toLocaleString()}:{" "}
                     <strong className="text-black">
-                      Rs {calculateExampleTax().toFixed(2)}
+                      {settings.taxName} = Rs {calculateExampleTax().toFixed(2)}
                     </strong>
                   </div>
                 </div>
@@ -241,68 +273,55 @@ const TaxSettingsPage = () => {
 
             {/* Calculation Rules */}
             <div className="bg-white border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-gray-900">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-gray-50">
+                <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-gray-900">
                   Calculation Rules
                 </h3>
               </div>
               <div className="divide-y divide-gray-100">
-                <div className="p-6 flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium text-gray-900">
+                {/* Tax Included Toggle */}
+                <div className="p-4 sm:p-6 flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <h4 className="font-medium text-gray-900 text-sm sm:text-base">
                       Tax Included in Prices
                     </h4>
-                    <p className="text-sm text-gray-500">
-                      Product prices already include tax (common in retail)
+                    <p className="text-xs sm:text-sm text-gray-500">
+                      Prices already include tax
                     </p>
                   </div>
-                  <button
-                    onClick={() =>
+                  <Toggle
+                    checked={settings.taxIncludedInPrice}
+                    onChange={() =>
                       handleChange(
                         "taxIncludedInPrice",
                         !settings.taxIncludedInPrice
                       )
                     }
-                    className={`relative w-12 h-6 rounded-full transition-colors ${
-                      settings.taxIncludedInPrice ? "bg-black" : "bg-gray-200"
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                        settings.taxIncludedInPrice
-                          ? "translate-x-6"
-                          : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
+                    size="sm"
+                  />
                 </div>
-                <div className="p-6 flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium text-gray-900">
+
+                {/* Apply to Shipping Toggle */}
+                <div className="p-4 sm:p-6 flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <h4 className="font-medium text-gray-900 text-sm sm:text-base">
                       Apply Tax to Shipping
                     </h4>
-                    <p className="text-sm text-gray-500">
-                      Include shipping fees in taxable amount
+                    <p className="text-xs sm:text-sm text-gray-500">
+                      Include shipping in taxable amount
                     </p>
                   </div>
-                  <button
-                    onClick={() =>
+                  <Toggle
+                    checked={settings.applyToShipping}
+                    onChange={() =>
                       handleChange("applyToShipping", !settings.applyToShipping)
                     }
-                    className={`relative w-12 h-6 rounded-full transition-colors ${
-                      settings.applyToShipping ? "bg-black" : "bg-gray-200"
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                        settings.applyToShipping
-                          ? "translate-x-6"
-                          : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
+                    size="sm"
+                  />
                 </div>
-                <div className="p-6">
+
+                {/* Minimum Order */}
+                <div className="p-4 sm:p-6">
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
                     Minimum Order for Tax (Rs)
                   </label>
@@ -316,12 +335,11 @@ const TaxSettingsPage = () => {
                         parseFloat(e.target.value) || 0
                       )
                     }
-                    placeholder="0 = Apply to all orders"
-                    className="w-full max-w-xs px-4 py-3 bg-white border border-gray-300 text-gray-900 font-medium focus:outline-none focus:border-black"
+                    placeholder="0"
+                    className="w-full sm:max-w-xs px-3 sm:px-4 py-2.5 sm:py-3 bg-white border border-gray-300 text-gray-900 font-medium focus:outline-none focus:border-black focus:ring-1 focus:ring-black text-sm sm:text-base"
                   />
                   <p className="text-xs text-gray-500 mt-2">
-                    Only apply tax to orders above this amount. Set to 0 to
-                    apply to all.
+                    Set to 0 to apply to all orders
                   </p>
                 </div>
               </div>
@@ -329,13 +347,13 @@ const TaxSettingsPage = () => {
 
             {/* Business Information */}
             <div className="bg-white border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-gray-900">
-                  Business Information (Optional)
+              <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-gray-50">
+                <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-gray-900">
+                  Business Information
                 </h3>
               </div>
-              <div className="p-6 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-4 sm:p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
                       Business Name
@@ -347,7 +365,7 @@ const TaxSettingsPage = () => {
                         handleChange("businessName", e.target.value)
                       }
                       placeholder="Your business name"
-                      className="w-full px-4 py-3 bg-white border border-gray-300 text-gray-900 font-medium focus:outline-none focus:border-black"
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white border border-gray-300 text-gray-900 font-medium focus:outline-none focus:border-black focus:ring-1 focus:ring-black text-sm sm:text-base"
                     />
                   </div>
                   <div>
@@ -361,7 +379,7 @@ const TaxSettingsPage = () => {
                         handleChange("taxRegistrationNumber", e.target.value)
                       }
                       placeholder="e.g., VAT-123456789"
-                      className="w-full px-4 py-3 bg-white border border-gray-300 text-gray-900 font-medium focus:outline-none focus:border-black"
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white border border-gray-300 text-gray-900 font-medium focus:outline-none focus:border-black focus:ring-1 focus:ring-black text-sm sm:text-base"
                     />
                   </div>
                 </div>

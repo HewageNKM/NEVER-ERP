@@ -1,7 +1,7 @@
 import {
   IconLayoutDashboard,
   IconApps,
-  IconList,
+  IconPackage,
   IconShoppingCart,
   IconUsers,
   IconCash,
@@ -9,6 +9,10 @@ import {
   IconWorld,
   IconChartPie,
   IconSettings,
+  IconTruckDelivery,
+  IconClipboardList,
+  IconReceipt,
+  IconAdjustments,
 } from "@tabler/icons-react";
 import { uniqueId } from "lodash";
 
@@ -50,8 +54,18 @@ const Menuitems = [
   {
     id: uniqueId(),
     title: "Inventory",
-    icon: IconList,
-    href: "/inventory",
+    icon: IconPackage,
+    children: [
+      { id: uniqueId(), title: "Stock Overview", href: "/inventory" },
+      { id: uniqueId(), title: "Adjustments", href: "/inventory/adjustments" },
+      { id: uniqueId(), title: "Suppliers", href: "/inventory/suppliers" },
+      {
+        id: uniqueId(),
+        title: "Purchase Orders",
+        href: "/inventory/purchase-orders",
+      },
+      { id: uniqueId(), title: "Goods Received", href: "/inventory/grn" },
+    ],
   },
   {
     id: uniqueId(),
@@ -130,6 +144,7 @@ const Menuitems = [
     children: [
       { id: uniqueId(), title: "ERP Settings", href: "/settings" },
       { id: uniqueId(), title: "Shipping Rates", href: "/settings/shipping" },
+      { id: uniqueId(), title: "Tax Settings", href: "/settings/tax" },
     ],
   },
 ];
