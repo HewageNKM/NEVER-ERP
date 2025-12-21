@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authorizeRequest } from "@/firebase/firebaseAdmin";
 import { addOrder, getOrders } from "@/services/OrderService";
 import { authorizeOrderRequest } from "@/services/AuthService";
-import { Order } from "@/model";
+import { Order } from "@/model/Order";
 
 export const GET = async (req: NextRequest) => {
   try {

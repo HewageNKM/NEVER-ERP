@@ -1,18 +1,16 @@
 import admin, { credential } from "firebase-admin";
-import {
-  CashFlowReport,
-  Email,
-  Expense,
-  ExpensesReport,
-  Item,
-  Order,
-  PaymentMethod,
-  PopularItem,
-  SalesReport,
-  SMS,
-  StocksReport,
-  User,
-} from "@/model";
+import { CashFlowReport } from "@/model/CashFlowReport";
+import { Email } from "@/model/Email";
+import { Expense } from "@/model/Expense";
+import { ExpensesReport } from "@/model/ExpensesReport";
+import { Item } from "@/model/Item";
+import { Order } from "@/model/Order";
+import { PaymentMethod } from "@/model/PaymentMethod";
+import { PopularItem } from "@/model/PopularItem";
+import { SalesReport } from "@/model/SalesReport";
+import { SMS } from "@/model/SMS";
+import { StocksReport } from "@/model/StocksReport";
+import { User } from "@/model/User";
 import { uuidv4 } from "@firebase/util";
 import { Timestamp } from "firebase-admin/firestore";
 import { generateRandomPassword, hashPassword } from "@/utils/Generate";

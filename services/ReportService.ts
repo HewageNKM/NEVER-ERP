@@ -1,7 +1,7 @@
 import { adminFirestore } from "@/firebase/firebaseAdmin";
 import { Timestamp } from "firebase-admin/firestore";
 import { toSafeLocaleString } from "./UtilService";
-import { Order } from "@/model";
+import { Order } from "@/model/Order";
 
 export const getDailySaleReport = async (from: string, to: string) => {
   try {

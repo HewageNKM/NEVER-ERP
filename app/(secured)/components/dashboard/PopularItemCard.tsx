@@ -1,4 +1,4 @@
-import { PopularItem } from "@/model";
+import { PopularItem } from "@/model/PopularItem";
 
 const PopularItemCard = ({ item }: { item: PopularItem }) => {
   return (

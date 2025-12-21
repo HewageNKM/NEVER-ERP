@@ -1,5 +1,5 @@
 import { adminFirestore, adminStorageBucket } from "@/firebase/firebaseAdmin";
-import { ComboProduct } from "@/model";
+import { ComboProduct } from "@/model/ComboProduct";
 import { FieldValue } from "firebase-admin/firestore";
 import { nanoid } from "nanoid";
 import { toSafeLocaleString } from "./UtilService";

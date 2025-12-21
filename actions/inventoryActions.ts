@@ -1,7 +1,7 @@
 "use client";
 import axios from "axios";
 import { getToken } from "@/firebase/firebaseClient";
-import { Item } from "@/model";
+import { Item } from "@/model/Item";
 
 export const fetchInventoryAction = async (size: number, page: number) => {
   try {

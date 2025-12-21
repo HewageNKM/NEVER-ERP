@@ -1,5 +1,5 @@
 "use client";
-import { PopularItem } from "@/model";
+import { PopularItem } from "@/model/PopularItem";
 import { useEffect, useState, useRef } from "react";
 import { useAppSelector } from "@/lib/hooks";
 import { getPopularItemsAction } from "@/actions/inventoryActions";

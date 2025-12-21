@@ -20,7 +20,7 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { useAppSelector } from "@/lib/hooks";
-import { User } from "@/model";
+import { User } from "@/model/User";
 import PageContainer from "../components/container/PageContainer";
 import {
   getUsersV2Action,

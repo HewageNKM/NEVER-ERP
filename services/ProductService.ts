@@ -4,7 +4,8 @@ import { ProductVariant } from "@/model/ProductVariant";
 import { nanoid } from "nanoid";
 import { FieldValue } from "firebase-admin/firestore";
 import { toSafeLocaleString } from "./UtilService";
-import { Order, PopularItem } from "@/model";
+import { Order } from "@/model/Order";
+import { PopularItem } from "@/model/PopularItem";
 import { Timestamp } from "firebase-admin/firestore";
 
 const PRODUCTS_COLLECTION = "products";

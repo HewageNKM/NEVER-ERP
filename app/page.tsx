@@ -9,7 +9,7 @@ import PageContainer from "@/app/(secured)/components/container/PageContainer";
 import Logo from "@/app/(secured)/components/layout/shared/logo/Logo";
 import { authenticateUserAction } from "@/actions/authActions";
 import { setUser } from "@/lib/authSlice/authSlice";
-import { User } from "@/model";
+import { User } from "@/model/User";
 import { showNotification } from "@/utils/toast";
 import ComponentsLoader from "@/app/components/ComponentsLoader";
 

@@ -1,5 +1,6 @@
 import { adminFirestore, adminStorageBucket } from "@/firebase/firebaseAdmin";
-import { Promotion, Coupon, CouponUsage, ProductVariantTarget } from "@/model";
+import { Promotion, ProductVariantTarget } from "@/model/Promotion";
+import { Coupon, CouponUsage } from "@/model/Coupon";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { nanoid } from "nanoid";
 import { toSafeLocaleString } from "./UtilService";

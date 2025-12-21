@@ -1,6 +1,6 @@
 import { adminFirestore } from "@/firebase/firebaseAdmin";
 import admin from "firebase-admin";
-import { Order } from "@/model";
+import { Order } from "@/model/Order";
 import {
   updateOrAddOrderHash,
   validateDocumentIntegrity,

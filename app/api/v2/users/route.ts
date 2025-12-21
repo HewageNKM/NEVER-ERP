@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { authorizeRequest, adminFirestore } from "@/firebase/firebaseAdmin";
-import { User } from "@/model";
+import { User } from "@/model/User";
 import admin from "firebase-admin";
 
 export const GET = async (req: Request) => {

@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Order } from "@/model";
+import { Order } from "@/model/Order";
 import Image from "next/image";
 import axios from "axios";
 import { getToken } from "@/firebase/firebaseClient";

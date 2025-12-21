@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Order } from "@/model";
+import { Order } from "@/model/Order";
 import { showNotification } from "@/utils/toast";
 import { useAppSelector } from "@/lib/hooks";
 import axios from "axios";

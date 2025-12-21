@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Order, Customer } from "@/model";
+import { Order } from "@/model/Order";
+import { Customer } from "@/model/Customer";
 import { IoCheckmark, IoClose } from "react-icons/io5";
 import { showNotification } from "@/utils/toast";
 import axios from "axios";

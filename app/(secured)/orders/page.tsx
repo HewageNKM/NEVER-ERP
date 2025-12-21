@@ -22,7 +22,7 @@ import PageContainer from "../components/container/PageContainer";
 import { showNotification } from "@/utils/toast";
 import { getToken } from "@/firebase/firebaseClient";
 import { useAppSelector } from "@/lib/hooks";
-import { Order } from "@/model";
+import { Order } from "@/model/Order";
 
 const paymentStatusList = [
   { id: 1, name: "PAID", value: "Paid" },

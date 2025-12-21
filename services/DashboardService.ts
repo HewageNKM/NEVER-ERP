@@ -1,6 +1,8 @@
 import { adminFirestore } from "@/firebase/firebaseAdmin";
 import { Timestamp } from "firebase-admin/firestore";
-import { Order, Item, PopularItem } from "@/model";
+import { Order } from "@/model/Order";
+import { Item } from "@/model/Item";
+import { PopularItem } from "@/model/PopularItem";
 
 /**
  * Dashboard Overview Response
