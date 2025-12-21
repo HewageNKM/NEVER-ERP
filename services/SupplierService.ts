@@ -115,7 +115,7 @@ export const deleteSupplier = async (id: string): Promise<void> => {
  * Get suppliers dropdown list
  */
 export const getSuppliersDropdown = async (): Promise<
-  { id: string; name: string }[]
+  { id: string; label: string }[]
 > => {
   try {
     const snapshot = await adminFirestore
@@ -126,7 +126,7 @@ export const getSuppliersDropdown = async (): Promise<
 
     return snapshot.docs.map((doc) => ({
       id: doc.id,
-      name: doc.data().name,
+      label: doc.data().name,
     }));
   } catch (error) {
     console.error(

@@ -18,18 +18,18 @@ import { RootState } from "@/lib/store";
 
 interface Supplier {
   id: string;
-  name: string;
+  label: string;
 }
 
 interface Product {
   id: string;
-  name: string;
+  label: string;
   buyingPrice?: number;
 }
 
 interface Stock {
   id: string;
-  name: string;
+  label: string;
 }
 
 interface POItem {
@@ -99,7 +99,7 @@ const NewPurchaseOrderPage = () => {
   const handleSupplierChange = (id: string) => {
     setSupplierId(id);
     const supplier = suppliers.find((s) => s.id === id);
-    setSupplierName(supplier?.name || "");
+    setSupplierName(supplier?.label || "");
   };
 
   const handleProductChange = (id: string) => {
@@ -119,7 +119,7 @@ const NewPurchaseOrderPage = () => {
 
     const newItem: POItem = {
       productId: product.id,
-      productName: product.name,
+      productName: product.label,
       size,
       quantity,
       unitCost,
@@ -224,7 +224,7 @@ const NewPurchaseOrderPage = () => {
                 <option value="">Select supplier</option>
                 {suppliers.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.name}
+                    {s.label}
                   </option>
                 ))}
               </select>
@@ -241,7 +241,7 @@ const NewPurchaseOrderPage = () => {
                 <option value="">Select stock location</option>
                 {stocks.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.name}
+                    {s.label}
                   </option>
                 ))}
               </select>
@@ -294,7 +294,7 @@ const NewPurchaseOrderPage = () => {
                 <option value="">Select Product</option>
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name}
+                    {p.label}
                   </option>
                 ))}
               </select>

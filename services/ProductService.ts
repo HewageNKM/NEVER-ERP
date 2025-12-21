@@ -265,7 +265,14 @@ export const getProductDropdown = async () => {
       .where("status", "==", true)
       .get();
 
-    return snapshot.docs.map((doc) => ({ id: doc.id, label: doc.data().name }));
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        label: data.name,
+        buyingPrice: data.buyingPrice || 0,
+      };
+    });
   } catch (error) {
     console.error("Get Product Dropdown Error:", error);
     throw error;

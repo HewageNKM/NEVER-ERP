@@ -21,12 +21,12 @@ type AdjustmentType = "add" | "remove" | "damage" | "return" | "transfer";
 
 interface Product {
   id: string;
-  name: string;
+  label: string;
 }
 
 interface Stock {
   id: string;
-  name: string;
+  label: string;
 }
 
 interface AdjustmentItem {
@@ -119,15 +119,15 @@ const NewAdjustmentPage = () => {
 
     const newItem: AdjustmentItem = {
       productId: product.id,
-      productName: product.name,
+      productName: product.label,
       size,
       quantity,
       stockId: stock.id,
-      stockName: stock.name,
+      stockName: stock.label,
       ...(type === "transfer" && destStock
         ? {
             destinationStockId: destStock.id,
-            destinationStockName: destStock.name,
+            destinationStockName: destStock.label,
           }
         : {}),
     };
@@ -269,7 +269,7 @@ const NewAdjustmentPage = () => {
                 <option value="">Select Product</option>
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name}
+                    {p.label}
                   </option>
                 ))}
               </select>
@@ -313,7 +313,7 @@ const NewAdjustmentPage = () => {
                 <option value="">Select Stock</option>
                 {stocks.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.name}
+                    {s.label}
                   </option>
                 ))}
               </select>
@@ -333,7 +333,7 @@ const NewAdjustmentPage = () => {
                     .filter((s) => s.id !== stockId)
                     .map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.name}
+                        {s.label}
                       </option>
                     ))}
                 </select>

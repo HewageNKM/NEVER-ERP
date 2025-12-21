@@ -34,7 +34,7 @@ interface PurchaseOrder {
 
 interface Stock {
   id: string;
-  name: string;
+  label: string;
 }
 
 interface GRNItemInput {
@@ -367,7 +367,7 @@ const NewGRNPageContent = () => {
                             <option value="">Select</option>
                             {stocks.map((s) => (
                               <option key={s.id} value={s.id}>
-                                {s.name}
+                                {s.label}
                               </option>
                             ))}
                           </select>
@@ -452,7 +452,7 @@ const NewGRNPageContent = () => {
                           <option value="">Select</option>
                           {stocks.map((s) => (
                             <option key={s.id} value={s.id}>
-                              {s.name}
+                              {s.label}
                             </option>
                           ))}
                         </select>

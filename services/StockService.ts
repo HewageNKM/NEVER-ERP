@@ -13,7 +13,7 @@ export const getStocks = async (
   size: number = 20,
   search?: string,
   status?: boolean
-): Promise<{ dataList: Stock[], rowCount: number }> => {
+): Promise<{ dataList: Stock[]; rowCount: number }> => {
   try {
     let query: FirebaseFirestore.Query = adminFirestore
       .collection(STOCKS_COLLECTION)
@@ -47,17 +47,24 @@ export const getStocks = async (
         address: data.address,
         status: data.status,
         // Convert Timestamps, handle potential undefined
-        createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : undefined,
-        updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : undefined,
+        createdAt: data.createdAt?.toDate
+          ? data.createdAt.toDate().toISOString()
+          : undefined,
+        updatedAt: data.updatedAt?.toDate
+          ? data.updatedAt.toDate().toISOString()
+          : undefined,
       } as Stock; // Cast, assuming isDeleted is not part of the client model
     });
 
     return { dataList: stocks, rowCount: rowCount };
   } catch (error) {
     console.error("Get Stocks Error:", error);
-     if ((error as any).code === 5) { // Firestore index error code
-        console.error("Firestore Index Error: A composite index might be needed if search and orderBy are combined.");
-     }
+    if ((error as any).code === 5) {
+      // Firestore index error code
+      console.error(
+        "Firestore Index Error: A composite index might be needed if search and orderBy are combined."
+      );
+    }
     return { dataList: [], rowCount: 0 };
   }
 };
@@ -65,15 +72,22 @@ export const getStocks = async (
 /**
  * Adds a new stock location document.
  */
-export const addStock = async (data: Omit<Stock, 'id' | 'createdAt' | 'updatedAt' | 'isDeleted'>): Promise<Stock> => {
+export const addStock = async (
+  data: Omit<Stock, "id" | "createdAt" | "updatedAt" | "isDeleted">
+): Promise<Stock> => {
   try {
     const id = `stock-${nanoid(8)}`;
-    
-    const newStock: Omit<Stock, 'id'> & { createdAt: FieldValue, updatedAt: FieldValue, tags: string[], isDeleted: boolean } = {
+
+    const newStock: Omit<Stock, "id"> & {
+      createdAt: FieldValue;
+      updatedAt: FieldValue;
+      tags: string[];
+      isDeleted: boolean;
+    } = {
       ...data,
       isDeleted: false,
       createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp()
+      updatedAt: FieldValue.serverTimestamp(),
     };
 
     await adminFirestore.collection(STOCKS_COLLECTION).doc(id).set(newStock);
@@ -91,7 +105,7 @@ export const addStock = async (data: Omit<Stock, 'id' | 'createdAt' | 'updatedAt
  */
 export const updateStock = async (
   id: string,
-  data: Partial<Omit<Stock, 'id' | 'createdAt' | 'updatedAt' | 'isDeleted'>>
+  data: Partial<Omit<Stock, "id" | "createdAt" | "updatedAt" | "isDeleted">>
 ): Promise<boolean> => {
   try {
     const stockRef = adminFirestore.collection(STOCKS_COLLECTION).doc(id);
@@ -99,9 +113,10 @@ export const updateStock = async (
     // Regenerate tags if name or address changed
     let tags: string[] | undefined = undefined;
     if (data.name !== undefined || data.address !== undefined) {
-         // Need current data to generate full tags if only one field changes
-         const currentSnap = await stockRef.get();
-         if (!currentSnap.exists) throw new Error(`Stock location with ID ${id} not found.`);
+      // Need current data to generate full tags if only one field changes
+      const currentSnap = await stockRef.get();
+      if (!currentSnap.exists)
+        throw new Error(`Stock location with ID ${id} not found.`);
     }
 
     const updateData: any = {
@@ -124,8 +139,8 @@ export const deleteStock = async (id: string): Promise<boolean> => {
   try {
     const stockRef = adminFirestore.collection(STOCKS_COLLECTION).doc(id);
     await stockRef.update({
-        isDeleted: true,
-        updatedAt: FieldValue.serverTimestamp()
+      isDeleted: true,
+      updatedAt: FieldValue.serverTimestamp(),
     });
     return true;
   } catch (error) {
@@ -135,7 +150,6 @@ export const deleteStock = async (id: string): Promise<boolean> => {
 };
 
 export const getStockForDropdown = async () => {
-    
   try {
     const snapshot = await adminFirestore
       .collection(STOCKS_COLLECTION)
@@ -152,5 +166,4 @@ export const getStockForDropdown = async () => {
     console.error("Get Stock Dropdown Error:", error);
     return [];
   }
-
-}
+};
