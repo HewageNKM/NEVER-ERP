@@ -85,6 +85,16 @@ const Menuitems = [
     icon: IconCash,
     children: [
       { id: uniqueId(), title: "Petty Cash", href: "/finance/petty-cash" },
+      {
+        id: uniqueId(),
+        title: "Expense Categories",
+        href: "/finance/expense-categories",
+      },
+      {
+        id: uniqueId(),
+        title: "Bank Accounts",
+        href: "/finance/bank-accounts",
+      },
     ],
   },
   {
