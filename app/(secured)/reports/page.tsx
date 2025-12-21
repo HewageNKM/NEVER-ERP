@@ -14,6 +14,16 @@ const Reports = () => {
   const reportSections = [
     {
       id: "01",
+      category: "Financial",
+      icon: <IconCoin size={20} stroke={2} />,
+      reports: [
+        { title: "P&L Statement", link: "/reports/pnl" },
+        { title: "Tax Report", link: "/reports/tax" },
+        { title: "Cashflow Statement", link: "/reports/cash/cashflow" },
+      ],
+    },
+    {
+      id: "02",
       category: "Sales Analysis",
       icon: <IconChartBar size={20} stroke={2} />,
       reports: [
@@ -35,16 +45,6 @@ const Reports = () => {
       ],
     },
     {
-      id: "02",
-      category: "Inventory",
-      icon: <IconPackage size={20} stroke={2} />,
-      reports: [
-        { title: "Live Stock", link: "/reports/stocks/live-stock" },
-        { title: "Low Stock Alerts", link: "/reports/stocks/low-stock" },
-        { title: "Stock Valuation", link: "/reports/stocks/valuation" },
-      ],
-    },
-    {
       id: "03",
       category: "Revenue",
       icon: <IconCoin size={20} stroke={2} />,
@@ -56,11 +56,25 @@ const Reports = () => {
     },
     {
       id: "04",
-      category: "Cashflow",
+      category: "Expenses",
       icon: <IconReceipt size={20} stroke={2} />,
+      reports: [{ title: "Expense Report", link: "/reports/expenses" }],
+    },
+    {
+      id: "05",
+      category: "Inventory",
+      icon: <IconPackage size={20} stroke={2} />,
       reports: [
-        { title: "Cashflow Statement", link: "/reports/cash/cashflow" },
+        { title: "Live Stock", link: "/reports/stocks/live-stock" },
+        { title: "Low Stock Alerts", link: "/reports/stocks/low-stock" },
+        { title: "Stock Valuation", link: "/reports/stocks/valuation" },
       ],
+    },
+    {
+      id: "06",
+      category: "Customer Insights",
+      icon: <IconChartBar size={20} stroke={2} />,
+      reports: [{ title: "Customer Analytics", link: "/reports/customers" }],
     },
   ];
 

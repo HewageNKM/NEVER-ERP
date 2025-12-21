@@ -2303,3 +2303,550 @@ export const getCashFlowReport = async (from: string, to: string) => {
     throw error;
   }
 };
+
+// ============================================================
+// INDUSTRY-STANDARD REPORTS
+// ============================================================
+
+/**
+ * Profit & Loss Statement Interface
+ */
+export interface ProfitLossStatement {
+  period: { from: string; to: string };
+  revenue: {
+    grossSales: number;
+    discounts: number;
+    netSales: number;
+    shippingIncome: number;
+    otherIncome: number;
+    totalRevenue: number;
+  };
+  costOfGoodsSold: {
+    productCost: number;
+    shippingCost: number;
+    totalCOGS: number;
+  };
+  grossProfit: number;
+  grossProfitMargin: number;
+  operatingExpenses: {
+    byCategory: { category: string; amount: number }[];
+    totalExpenses: number;
+  };
+  operatingIncome: number;
+  otherExpenses: {
+    transactionFees: number;
+    otherFees: number;
+    totalOther: number;
+  };
+  netProfit: number;
+  netProfitMargin: number;
+}
+
+/**
+ * Get Profit & Loss Statement
+ */
+export const getProfitLossStatement = async (
+  from: string,
+  to: string
+): Promise<ProfitLossStatement> => {
+  try {
+    console.log(
+      `[ReportService] Generating P&L Statement from ${from} to ${to}`
+    );
+
+    const startTimestamp = Timestamp.fromDate(new Date(from));
+    const endTimestamp = Timestamp.fromDate(new Date(to));
+
+    // Fetch orders
+    const ordersSnapshot = await adminFirestore
+      .collection("orders")
+      .where("createdAt", ">=", startTimestamp)
+      .where("createdAt", "<=", endTimestamp)
+      .where("paymentStatus", "not-in", ["Failed", "Refunded"])
+      .get();
+
+    // Fetch expenses
+    const expensesSnapshot = await adminFirestore
+      .collection("expenses")
+      .where("type", "==", "expense")
+      .where("status", "==", "APPROVED")
+      .where("createdAt", ">=", startTimestamp)
+      .where("createdAt", "<=", endTimestamp)
+      .get();
+
+    // Collect product IDs for COGS
+    const productIds = new Set<string>();
+    ordersSnapshot.docs.forEach((doc) => {
+      const order = doc.data() as Order;
+      order.items?.forEach((item: any) => {
+        if (item.itemId) productIds.add(item.itemId);
+      });
+    });
+
+    // Fetch product costs
+    const productDocs = await Promise.all(
+      Array.from(productIds)
+        .filter((id) => id && id.trim() !== "")
+        .map((id) => adminFirestore.collection("products").doc(id).get())
+    );
+    const productCostMap = new Map<string, number>();
+    productDocs.forEach((doc) => {
+      if (doc.exists) {
+        productCostMap.set(doc.id, doc.data()?.buyingPrice || 0);
+      }
+    });
+
+    // Calculate revenue
+    let grossSales = 0;
+    let totalDiscounts = 0;
+    let shippingIncome = 0;
+    let totalTransactionFees = 0;
+    let totalProductCost = 0;
+
+    ordersSnapshot.docs.forEach((doc) => {
+      const order = doc.data() as Order;
+      const itemsTotal =
+        order.items?.reduce(
+          (sum: number, item: any) =>
+            sum + (item.price || 0) * (item.quantity || 0),
+          0
+        ) || 0;
+
+      grossSales += itemsTotal;
+      totalDiscounts += order.discount || 0;
+      shippingIncome += order.shippingFee || 0;
+      totalTransactionFees += order.transactionFeeCharge || 0;
+
+      // Calculate COGS
+      order.items?.forEach((item: any) => {
+        const cost = item.bPrice || productCostMap.get(item.itemId) || 0;
+        totalProductCost += cost * (item.quantity || 0);
+      });
+    });
+
+    const netSales = grossSales - totalDiscounts;
+    const totalRevenue = netSales + shippingIncome;
+
+    // Calculate expenses by category
+    const expensesByCategory = new Map<string, number>();
+    expensesSnapshot.docs.forEach((doc) => {
+      const expense = doc.data();
+      const category = expense.for || "Other";
+      const amount = Number(expense.amount || 0);
+      expensesByCategory.set(
+        category,
+        (expensesByCategory.get(category) || 0) + amount
+      );
+    });
+
+    const expenseCategoryArray = Array.from(expensesByCategory.entries())
+      .map(([category, amount]) => ({ category, amount }))
+      .sort((a, b) => b.amount - a.amount);
+
+    const totalExpenses = expenseCategoryArray.reduce(
+      (sum, e) => sum + e.amount,
+      0
+    );
+
+    // Calculate profit
+    const grossProfit = totalRevenue - totalProductCost;
+    const grossProfitMargin =
+      totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+    const operatingIncome = grossProfit - totalExpenses;
+    const netProfit = operatingIncome - totalTransactionFees;
+    const netProfitMargin =
+      totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+
+    return {
+      period: { from, to },
+      revenue: {
+        grossSales,
+        discounts: totalDiscounts,
+        netSales,
+        shippingIncome,
+        otherIncome: 0,
+        totalRevenue,
+      },
+      costOfGoodsSold: {
+        productCost: totalProductCost,
+        shippingCost: 0,
+        totalCOGS: totalProductCost,
+      },
+      grossProfit,
+      grossProfitMargin: Math.round(grossProfitMargin * 100) / 100,
+      operatingExpenses: {
+        byCategory: expenseCategoryArray,
+        totalExpenses,
+      },
+      operatingIncome,
+      otherExpenses: {
+        transactionFees: totalTransactionFees,
+        otherFees: 0,
+        totalOther: totalTransactionFees,
+      },
+      netProfit,
+      netProfitMargin: Math.round(netProfitMargin * 100) / 100,
+    };
+  } catch (error) {
+    console.error("[ReportService] P&L Statement error:", error);
+    throw error;
+  }
+};
+
+/**
+ * Expense Report Interface
+ */
+export interface ExpenseReportItem {
+  id: string;
+  date: string;
+  category: string;
+  description: string;
+  amount: number;
+  status: string;
+  createdBy?: string;
+}
+
+export interface ExpenseReport {
+  period: { from: string; to: string };
+  expenses: ExpenseReportItem[];
+  summary: {
+    total: number;
+    byCategory: { category: string; amount: number; percentage: number }[];
+    count: number;
+  };
+}
+
+/**
+ * Get Expense Report
+ */
+export const getExpenseReport = async (
+  from: string,
+  to: string,
+  category?: string
+): Promise<ExpenseReport> => {
+  try {
+    console.log(
+      `[ReportService] Generating Expense Report from ${from} to ${to}`
+    );
+
+    const startTimestamp = Timestamp.fromDate(new Date(from));
+    const endTimestamp = Timestamp.fromDate(new Date(to));
+
+    let query: FirebaseFirestore.Query = adminFirestore
+      .collection("expenses")
+      .where("type", "==", "expense")
+      .where("createdAt", ">=", startTimestamp)
+      .where("createdAt", "<=", endTimestamp);
+
+    if (category && category !== "all") {
+      query = query.where("for", "==", category);
+    }
+
+    const snapshot = await query.get();
+
+    const expenses: ExpenseReportItem[] = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        date: toSafeLocaleString(data.createdAt),
+        category: data.for || "Other",
+        description: data.description || "",
+        amount: Number(data.amount || 0),
+        status: data.status || "PENDING",
+        createdBy: data.createdBy,
+      };
+    });
+
+    // Calculate summary
+    const categoryTotals = new Map<string, number>();
+    let total = 0;
+
+    expenses.forEach((e) => {
+      total += e.amount;
+      categoryTotals.set(
+        e.category,
+        (categoryTotals.get(e.category) || 0) + e.amount
+      );
+    });
+
+    const byCategory = Array.from(categoryTotals.entries())
+      .map(([cat, amount]) => ({
+        category: cat,
+        amount,
+        percentage: total > 0 ? Math.round((amount / total) * 100) : 0,
+      }))
+      .sort((a, b) => b.amount - a.amount);
+
+    return {
+      period: { from, to },
+      expenses: expenses.sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      ),
+      summary: {
+        total,
+        byCategory,
+        count: expenses.length,
+      },
+    };
+  } catch (error) {
+    console.error("[ReportService] Expense Report error:", error);
+    throw error;
+  }
+};
+
+/**
+ * Customer Analytics Interface
+ */
+export interface CustomerAnalytics {
+  period: { from: string; to: string };
+  overview: {
+    totalCustomers: number;
+    newCustomers: number;
+    returningCustomers: number;
+    averageOrderValue: number;
+    ordersPerCustomer: number;
+  };
+  topCustomers: {
+    name: string;
+    email?: string;
+    phone?: string;
+    totalOrders: number;
+    totalSpent: number;
+  }[];
+  acquisitionBySource: { source: string; count: number; percentage: number }[];
+}
+
+/**
+ * Get Customer Analytics
+ */
+export const getCustomerAnalytics = async (
+  from: string,
+  to: string
+): Promise<CustomerAnalytics> => {
+  try {
+    console.log(
+      `[ReportService] Generating Customer Analytics from ${from} to ${to}`
+    );
+
+    const startTimestamp = Timestamp.fromDate(new Date(from));
+    const endTimestamp = Timestamp.fromDate(new Date(to));
+
+    // Fetch orders in period
+    const ordersSnapshot = await adminFirestore
+      .collection("orders")
+      .where("createdAt", ">=", startTimestamp)
+      .where("createdAt", "<=", endTimestamp)
+      .where("paymentStatus", "==", "Paid")
+      .get();
+
+    // Fetch orders before this period to identify returning customers
+    const previousOrdersSnapshot = await adminFirestore
+      .collection("orders")
+      .where("createdAt", "<", startTimestamp)
+      .where("paymentStatus", "==", "Paid")
+      .get();
+
+    const previousCustomers = new Set<string>();
+    previousOrdersSnapshot.docs.forEach((doc) => {
+      const order = doc.data() as Order;
+      const customerId =
+        order.customer?.id || order.customer?.phone || order.customer?.email;
+      if (customerId) previousCustomers.add(customerId);
+    });
+
+    // Analyze current period customers
+    const customerData = new Map<
+      string,
+      {
+        name: string;
+        email?: string;
+        phone?: string;
+        orders: number;
+        spent: number;
+      }
+    >();
+    const sourceCounts = new Map<string, number>();
+    let totalRevenue = 0;
+
+    ordersSnapshot.docs.forEach((doc) => {
+      const order = doc.data() as Order;
+      const customer = order.customer;
+      const customerId =
+        customer?.id || customer?.phone || customer?.email || "guest";
+      const orderTotal = order.total || 0;
+      const source = order.from?.toString().toLowerCase() || "store";
+
+      totalRevenue += orderTotal;
+      sourceCounts.set(source, (sourceCounts.get(source) || 0) + 1);
+
+      if (customerData.has(customerId)) {
+        const existing = customerData.get(customerId)!;
+        existing.orders += 1;
+        existing.spent += orderTotal;
+      } else {
+        customerData.set(customerId, {
+          name: customer?.name || "Guest",
+          email: customer?.email,
+          phone: customer?.phone,
+          orders: 1,
+          spent: orderTotal,
+        });
+      }
+    });
+
+    const totalCustomers = customerData.size;
+    const totalOrders = ordersSnapshot.size;
+
+    // Count new vs returning
+    let newCustomers = 0;
+    let returningCustomers = 0;
+    customerData.forEach((_, customerId) => {
+      if (previousCustomers.has(customerId)) {
+        returningCustomers++;
+      } else {
+        newCustomers++;
+      }
+    });
+
+    // Top customers
+    const topCustomers = Array.from(customerData.values())
+      .sort((a, b) => b.spent - a.spent)
+      .slice(0, 10)
+      .map((c) => ({
+        name: c.name,
+        email: c.email,
+        phone: c.phone,
+        totalOrders: c.orders,
+        totalSpent: c.spent,
+      }));
+
+    // Acquisition by source
+    const totalSourceCount = Array.from(sourceCounts.values()).reduce(
+      (a, b) => a + b,
+      0
+    );
+    const acquisitionBySource = Array.from(sourceCounts.entries())
+      .map(([source, count]) => ({
+        source: source.charAt(0).toUpperCase() + source.slice(1),
+        count,
+        percentage:
+          totalSourceCount > 0
+            ? Math.round((count / totalSourceCount) * 100)
+            : 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    return {
+      period: { from, to },
+      overview: {
+        totalCustomers,
+        newCustomers,
+        returningCustomers,
+        averageOrderValue:
+          totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0,
+        ordersPerCustomer:
+          totalCustomers > 0
+            ? Math.round((totalOrders / totalCustomers) * 100) / 100
+            : 0,
+      },
+      topCustomers,
+      acquisitionBySource,
+    };
+  } catch (error) {
+    console.error("[ReportService] Customer Analytics error:", error);
+    throw error;
+  }
+};
+
+/**
+ * Tax Report Interface
+ */
+export interface TaxReportItem {
+  date: string;
+  orderId: string;
+  orderTotal: number;
+  taxableAmount: number;
+  taxCollected: number;
+}
+
+export interface TaxReport {
+  period: { from: string; to: string };
+  transactions: TaxReportItem[];
+  summary: {
+    totalOrders: number;
+    totalSales: number;
+    totalTaxableAmount: number;
+    totalTaxCollected: number;
+    effectiveTaxRate: number;
+  };
+}
+
+/**
+ * Get Tax Report
+ */
+export const getTaxReport = async (
+  from: string,
+  to: string
+): Promise<TaxReport> => {
+  try {
+    console.log(`[ReportService] Generating Tax Report from ${from} to ${to}`);
+
+    const startTimestamp = Timestamp.fromDate(new Date(from));
+    const endTimestamp = Timestamp.fromDate(new Date(to));
+
+    const ordersSnapshot = await adminFirestore
+      .collection("orders")
+      .where("createdAt", ">=", startTimestamp)
+      .where("createdAt", "<=", endTimestamp)
+      .where("paymentStatus", "==", "Paid")
+      .get();
+
+    const transactions: TaxReportItem[] = [];
+    let totalSales = 0;
+    let totalTaxableAmount = 0;
+    let totalTaxCollected = 0;
+
+    ordersSnapshot.docs.forEach((doc) => {
+      const order = doc.data() as Order;
+      const orderTotal = order.total || 0;
+      // Taxable amount = order total - shipping (shipping often tax-exempt)
+      const taxableAmount = orderTotal - (order.shippingFee || 0);
+      // Tax collected = fee field (if used for tax) or calculate from items
+      const taxCollected = order.fee || 0;
+
+      totalSales += orderTotal;
+      totalTaxableAmount += taxableAmount;
+      totalTaxCollected += taxCollected;
+
+      transactions.push({
+        date: toSafeLocaleString(order.createdAt),
+        orderId: order.orderId || doc.id,
+        orderTotal,
+        taxableAmount,
+        taxCollected,
+      });
+    });
+
+    const effectiveTaxRate =
+      totalTaxableAmount > 0
+        ? (totalTaxCollected / totalTaxableAmount) * 100
+        : 0;
+
+    return {
+      period: { from, to },
+      transactions: transactions.sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      ),
+      summary: {
+        totalOrders: ordersSnapshot.size,
+        totalSales,
+        totalTaxableAmount,
+        totalTaxCollected,
+        effectiveTaxRate: Math.round(effectiveTaxRate * 100) / 100,
+      },
+    };
+  } catch (error) {
+    console.error("[ReportService] Tax Report error:", error);
+    throw error;
+  }
+};
