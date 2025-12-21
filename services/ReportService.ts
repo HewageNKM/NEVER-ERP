@@ -2289,17 +2289,6 @@ export const getCashFlowReport = async (from: string, to: string) => {
     if (from && to) {
       const fromDate = new Date(from);
       const toDate = new Date(to);
-
-      const isNov2025 =
-        fromDate.getFullYear() === 2025 &&
-        toDate.getFullYear() === 2025 &&
-        fromDate.getMonth() === 10 &&
-        toDate.getMonth() === 10;
-
-      if (isNov2025) {
-        totalNetCashFlow -= 9700;
-        totalCashIn -= 9700;
-      }
     }
 
     return {
@@ -2309,7 +2298,7 @@ export const getCashFlowReport = async (from: string, to: string) => {
         totalTransactionFees,
         totalExpenses,
         totalNetCashFlow,
-        // daily,
+        daily,
         from,
         to,
       },
