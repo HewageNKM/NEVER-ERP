@@ -2286,11 +2286,6 @@ export const getCashFlowReport = async (from: string, to: string) => {
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
 
-    if (from && to) {
-      const fromDate = new Date(from);
-      const toDate = new Date(to);
-    }
-
     return {
       summary: {
         totalOrders,
