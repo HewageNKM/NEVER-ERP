@@ -1706,12 +1706,12 @@ export const getDailyRevenueReport = async (
 
       dayOrders.forEach((o) => {
         const sales =
-          (o.total || 0) -
-          (o.shippingFee || 0) +
+          (o.total || 0) +
           (o.discount || 0) -
-          (o.fee || 0);
+          (o.fee || 0) -
+          (o.shippingFee || 0);
         const netSales =
-          sales - (o.discount || 0) - (o.transactionFeeCharge || 0);
+          (o.total || 0) - (o.shippingFee || 0) - (o.transactionFeeCharge || 0);
         const cogs = o.items.reduce(
           (sum, item) => sum + (item.bPrice || 0) * (item.quantity || 0),
           0
@@ -1863,7 +1863,7 @@ export const getMonthlyRevenueReport = async (
       date.getMonth() + 1
     ).padStart(2, "0")}`;
 
-    if (expense.type === "income") {
+    if (expense.type.toLowerCase() === "income") {
       if (!incomeByMonth[monthStr]) incomeByMonth[monthStr] = 0;
       incomeByMonth[monthStr] += Number(expense.amount || 0);
     } else {
@@ -1903,13 +1903,13 @@ export const getMonthlyRevenueReport = async (
 
       monthOrders.forEach((o) => {
         const sales =
-          (Number(o.total) || 0) -
-          (Number(o.shippingFee) || 0) +
+          (Number(o.total) || 0) +
           (Number(o.discount) || 0) -
-          Number(o.fee);
+          (Number(o.fee) || 0) -
+          (Number(o.shippingFee) || 0);
         const netSales =
-          sales -
-          (Number(o.discount) || 0) -
+          (Number(o.total) || 0) -
+          (Number(o.shippingFee) || 0) -
           (Number(o.transactionFeeCharge) || 0);
         const cogs = o.items.reduce(
           (sum, item) =>
@@ -2081,13 +2081,13 @@ export const getYearlyRevenueReport = async (
 
       yearOrders.forEach((o) => {
         const sales =
-          (Number(o.total) || 0) -
-          (Number(o.shippingFee) || 0) +
+          (Number(o.total) || 0) +
           (Number(o.discount) || 0) -
-          Number(o.fee || 0);
+          (Number(o.fee) || 0) -
+          (Number(o.shippingFee) || 0);
         const netSales =
-          sales -
-          (Number(o.discount) || 0) -
+          (Number(o.total) || 0) -
+          (Number(o.shippingFee) || 0) -
           (Number(o.transactionFeeCharge) || 0);
         const cogs = o.items.reduce(
           (sum, item) =>
