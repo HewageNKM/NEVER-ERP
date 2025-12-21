@@ -2787,9 +2787,17 @@ export interface TaxReport {
 export const getTaxReport = async (
   from: string,
   to: string
-): Promise<TaxReport> => {
+): Promise<
+  TaxReport & {
+    taxSettings: { taxEnabled: boolean; taxName: string; taxRate: number };
+  }
+> => {
   try {
     console.log(`[ReportService] Generating Tax Report from ${from} to ${to}`);
+
+    // Import tax settings dynamically to avoid circular dependency
+    const { getTaxSettings } = await import("./TaxService");
+    const taxSettings = await getTaxSettings();
 
     const startTimestamp = Timestamp.fromDate(new Date(from));
     const endTimestamp = Timestamp.fromDate(new Date(to));
@@ -2809,21 +2817,53 @@ export const getTaxReport = async (
     ordersSnapshot.docs.forEach((doc) => {
       const order = doc.data() as Order;
       const orderTotal = order.total || 0;
-      // Taxable amount = order total - shipping (shipping often tax-exempt)
-      const taxableAmount = orderTotal - (order.shippingFee || 0);
-      // Tax collected = fee field (if used for tax) or calculate from items
-      const taxCollected = order.fee || 0;
+      const shippingFee = order.shippingFee || 0;
+
+      // Calculate taxable amount based on settings
+      let taxableAmount = orderTotal - shippingFee;
+      if (taxSettings.applyToShipping) {
+        taxableAmount = orderTotal;
+      }
+
+      // Skip if below minimum threshold
+      if (
+        taxSettings.minimumOrderForTax &&
+        orderTotal < taxSettings.minimumOrderForTax
+      ) {
+        totalSales += orderTotal;
+        transactions.push({
+          date: toSafeLocaleString(order.createdAt),
+          orderId: order.orderId || doc.id,
+          orderTotal,
+          taxableAmount: 0,
+          taxCollected: 0,
+        });
+        return;
+      }
+
+      // Calculate tax based on settings
+      let taxCollected = 0;
+      if (taxSettings.taxEnabled && taxSettings.taxRate > 0) {
+        if (taxSettings.taxIncludedInPrice) {
+          // Tax included: extract from price
+          taxCollected =
+            taxableAmount - taxableAmount / (1 + taxSettings.taxRate / 100);
+        } else {
+          // Tax added on top
+          taxCollected = (taxableAmount * taxSettings.taxRate) / 100;
+        }
+      }
 
       totalSales += orderTotal;
       totalTaxableAmount += taxableAmount;
-      totalTaxCollected += taxCollected;
+      totalTaxCollected += Math.round(taxCollected * 100) / 100;
 
       transactions.push({
         date: toSafeLocaleString(order.createdAt),
         orderId: order.orderId || doc.id,
         orderTotal,
         taxableAmount,
-        taxCollected,
+        taxCollected: Math.round(taxCollected * 100) / 100,
       });
     });
 
@@ -2841,8 +2881,13 @@ export const getTaxReport = async (
         totalOrders: ordersSnapshot.size,
         totalSales,
         totalTaxableAmount,
-        totalTaxCollected,
+        totalTaxCollected: Math.round(totalTaxCollected * 100) / 100,
         effectiveTaxRate: Math.round(effectiveTaxRate * 100) / 100,
+      },
+      taxSettings: {
+        taxEnabled: taxSettings.taxEnabled,
+        taxName: taxSettings.taxName,
+        taxRate: taxSettings.taxRate,
       },
     };
   } catch (error) {
