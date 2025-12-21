@@ -21,7 +21,6 @@ const generatePONumber = async (): Promise<string> => {
     .collection(COLLECTION)
     .where("poNumber", ">=", prefix)
     .where("poNumber", "<", prefix + "\uf8ff")
-    .orderBy("poNumber", "desc")
     .limit(1)
     .get();
 
@@ -52,8 +51,6 @@ export const getPurchaseOrders = async (
     if (supplierId) {
       query = query.where("supplierId", "==", supplierId);
     }
-
-    query = query.orderBy("createdAt", "desc");
 
     const snapshot = await query.get();
     return snapshot.docs.map((doc) => ({
@@ -255,7 +252,6 @@ export const getPendingPurchaseOrders = async (): Promise<PurchaseOrder[]> => {
     const snapshot = await adminFirestore
       .collection(COLLECTION)
       .where("status", "in", ["sent", "partial"])
-      .orderBy("createdAt", "desc")
       .get();
 
     return snapshot.docs.map((doc) => ({

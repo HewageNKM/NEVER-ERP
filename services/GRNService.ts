@@ -22,7 +22,6 @@ const generateGRNNumber = async (): Promise<string> => {
     .collection(COLLECTION)
     .where("grnNumber", ">=", prefix)
     .where("grnNumber", "<", prefix + "\uf8ff")
-    .orderBy("grnNumber", "desc")
     .limit(1)
     .get();
 
@@ -46,8 +45,6 @@ export const getGRNs = async (purchaseOrderId?: string): Promise<GRN[]> => {
     if (purchaseOrderId) {
       query = query.where("purchaseOrderId", "==", purchaseOrderId);
     }
-
-    query = query.orderBy("createdAt", "desc");
 
     const snapshot = await query.get();
     return snapshot.docs.map((doc) => ({
@@ -195,7 +192,6 @@ export const getGRNsBySupplierId = async (
     const snapshot = await adminFirestore
       .collection(COLLECTION)
       .where("supplierId", "==", supplierId)
-      .orderBy("createdAt", "desc")
       .get();
 
     return snapshot.docs.map((doc) => ({

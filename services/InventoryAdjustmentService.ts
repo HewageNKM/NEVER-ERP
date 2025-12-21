@@ -22,7 +22,6 @@ const generateAdjustmentNumber = async (): Promise<string> => {
     .collection(COLLECTION)
     .where("adjustmentNumber", ">=", prefix)
     .where("adjustmentNumber", "<", prefix + "\uf8ff")
-    .orderBy("adjustmentNumber", "desc")
     .limit(1)
     .get();
 
@@ -48,8 +47,6 @@ export const getAdjustments = async (
     if (type) {
       query = query.where("type", "==", type);
     }
-
-    query = query.orderBy("createdAt", "desc");
 
     const snapshot = await query.get();
     return snapshot.docs.map((doc) => ({
