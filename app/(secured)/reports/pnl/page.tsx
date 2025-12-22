@@ -134,6 +134,7 @@ const ProfitLossPage = () => {
     bold = false,
     indent = false,
     negative = false,
+    positive = false,
     highlight = false,
   }: {
     label: string;
@@ -142,6 +143,7 @@ const ProfitLossPage = () => {
     bold?: boolean;
     indent?: boolean;
     negative?: boolean;
+    positive?: boolean;
     highlight?: boolean;
   }) => (
     <div
@@ -160,10 +162,10 @@ const ProfitLossPage = () => {
       {value !== undefined && (
         <span
           className={`${bold ? "font-bold" : ""} ${
-            value < 0
+            value < 0 || negative
               ? "text-red-600"
-              : negative
-              ? "text-red-600"
+              : positive || value > 0
+              ? "text-green-600"
               : "text-gray-900"
           }`}
         >
@@ -281,6 +283,7 @@ const ProfitLossPage = () => {
                   formula="= Σ order.fee"
                   value={report.revenue.otherIncome}
                   indent
+                  positive
                 />
                 <LineItem
                   label="Total Revenue"
@@ -301,12 +304,14 @@ const ProfitLossPage = () => {
                   formula="= Σ (item.bPrice × quantity)"
                   value={report.costOfGoodsSold.productCost}
                   indent
+                  negative
                 />
                 <LineItem
                   label="Total COGS"
                   value={report.costOfGoodsSold.totalCOGS}
                   bold
                   highlight
+                  negative
                 />
 
                 {/* Gross Profit */}
@@ -316,6 +321,7 @@ const ProfitLossPage = () => {
                   value={report.grossProfit}
                   bold
                   highlight
+                  positive
                 />
 
                 {/* Operating Expenses */}
@@ -337,6 +343,7 @@ const ProfitLossPage = () => {
                   value={report.operatingExpenses.totalExpenses}
                   bold
                   highlight
+                  negative
                 />
 
                 {/* Operating Income */}
@@ -346,6 +353,7 @@ const ProfitLossPage = () => {
                   value={report.operatingIncome}
                   bold
                   highlight
+                  positive
                 />
 
                 {/* Other Expenses */}
