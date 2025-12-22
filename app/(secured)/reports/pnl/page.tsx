@@ -233,21 +233,13 @@ const ProfitLossPage = () => {
         {!loading && report && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white border border-gray-200 p-6">
                 <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
-                  Gross Sales
+                  Total Revenue
                 </p>
                 <p className="text-2xl font-black text-gray-900">
-                  Rs {report.revenue.grossSales.toLocaleString()}
-                </p>
-              </div>
-              <div className="bg-white border border-gray-200 p-6">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
-                  Net Sales
-                </p>
-                <p className="text-2xl font-black text-gray-900">
-                  Rs {report.revenue.netSales.toLocaleString()}
+                  Rs {report.revenue.totalRevenue.toLocaleString()}
                 </p>
               </div>
               <div className="bg-white border border-gray-200 p-6">
