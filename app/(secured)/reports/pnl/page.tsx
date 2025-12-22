@@ -251,10 +251,10 @@ const ProfitLossPage = () => {
               </div>
 
               <div className="divide-y divide-gray-100">
-                {/* Revenue Section */}
+                {/* Net Sale Section */}
                 <div className="bg-gray-50 px-4 py-2">
                   <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                    Revenue
+                    Net Sale
                   </span>
                 </div>
                 <LineItem
