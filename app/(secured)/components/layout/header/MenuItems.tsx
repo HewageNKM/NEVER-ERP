@@ -84,6 +84,7 @@ const Menuitems = [
     title: "Finance",
     icon: IconCash,
     children: [
+      { id: uniqueId(), title: "Dashboard", href: "/finance" },
       { id: uniqueId(), title: "Petty Cash", href: "/finance/petty-cash" },
       {
         id: uniqueId(),
@@ -94,6 +95,11 @@ const Menuitems = [
         id: uniqueId(),
         title: "Bank Accounts",
         href: "/finance/bank-accounts",
+      },
+      {
+        id: uniqueId(),
+        title: "Supplier Invoices",
+        href: "/finance/supplier-invoices",
       },
     ],
   },

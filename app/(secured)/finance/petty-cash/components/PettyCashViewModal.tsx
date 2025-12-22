@@ -191,6 +191,11 @@ const PettyCashViewModal: React.FC<PettyCashViewModalProps> = ({
                     <span className={styles.label}>Method</span>
                   </div>
                   <p className={styles.value}>{entry.paymentMethod}</p>
+                  {entry.bankAccountName && (
+                    <p className="text-xs text-gray-500 mt-1 font-medium truncate">
+                      {entry.bankAccountName}
+                    </p>
+                  )}
                 </div>
 
                 <div className="col-span-2 p-6 border-b border-gray-100">

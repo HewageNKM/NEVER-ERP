@@ -9,11 +9,12 @@ import {
   IconCategory,
   IconFileText,
   IconPaperclip,
+  IconBuildingBank,
 } from "@tabler/icons-react";
 import { PettyCash } from "@/model/PettyCash";
-import { EXPENSE_CATEGORIES } from "@/utils/expenseCategories";
 import { getToken } from "@/firebase/firebaseClient";
 import { showNotification } from "@/utils/toast";
+import axios from "axios";
 
 interface PettyCashFormModalProps {
   open: boolean;
@@ -29,6 +30,7 @@ const emptyForm = {
   note: "",
   paymentMethod: "cash",
   type: "expense" as "expense" | "income",
+  bankAccountId: "",
 };
 
 // --- NIKE AESTHETIC STYLES ---
@@ -54,11 +56,23 @@ const PettyCashFormModal: React.FC<PettyCashFormModalProps> = ({
   const [formData, setFormData] = useState(emptyForm);
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Dropdown data
+  const [categories, setCategories] = useState<{ id: string; label: string }[]>(
+    []
+  );
+  const [bankAccounts, setBankAccounts] = useState<
+    { id: string; label: string }[]
+  >([]);
+  const [fetchingDropdowns, setFetchingDropdowns] = useState(false);
+
   const isEditing = !!entry;
   const isDisabled = isEditing && entry?.status === "APPROVED";
 
   useEffect(() => {
     if (open) {
+      fetchDropdowns();
+
       if (entry) {
         setFormData({
           amount: String(entry.amount),
@@ -67,6 +81,7 @@ const PettyCashFormModal: React.FC<PettyCashFormModalProps> = ({
           note: entry.note || "",
           paymentMethod: entry.paymentMethod || "cash",
           type: entry.type || "expense",
+          bankAccountId: entry.bankAccountId || "",
         });
       } else {
         setFormData(emptyForm);
@@ -76,6 +91,27 @@ const PettyCashFormModal: React.FC<PettyCashFormModalProps> = ({
     }
   }, [entry, open]);
 
+  const fetchDropdowns = async () => {
+    setFetchingDropdowns(true);
+    try {
+      const token = await getToken();
+      const [catsRes, banksRes] = await Promise.all([
+        axios.get("/api/v2/finance/expense-categories?dropdown=true", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get("/api/v2/finance/bank-accounts?dropdown=true", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+      setCategories(catsRes.data);
+      setBankAccounts(banksRes.data);
+    } catch (error) {
+      console.error("Error fetching dropdowns", error);
+    } finally {
+      setFetchingDropdowns(false);
+    }
+  };
+
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -83,14 +119,6 @@ const PettyCashFormModal: React.FC<PettyCashFormModalProps> = ({
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      category: e.target.value,
-      subCategory: "", // Reset subcategory
-    }));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,6 +133,11 @@ const PettyCashFormModal: React.FC<PettyCashFormModalProps> = ({
       return;
     }
 
+    if (formData.paymentMethod === "transfer" && !formData.bankAccountId) {
+      showNotification("PLEASE SELECT BANK ACCOUNT", "warning");
+      return;
+    }
+
     setSaving(true);
     try {
       const token = await getToken();
@@ -114,8 +147,18 @@ const PettyCashFormModal: React.FC<PettyCashFormModalProps> = ({
       formPayload.append("subCategory", formData.subCategory);
       formPayload.append("note", formData.note);
       formPayload.append("paymentMethod", formData.paymentMethod);
+      if (formData.bankAccountId) {
+        formPayload.append("bankAccountId", formData.bankAccountId);
+        const bank = bankAccounts.find((b) => b.id === formData.bankAccountId);
+        if (bank) formPayload.append("bankAccountName", bank.label);
+      }
       formPayload.append("type", formData.type);
-      formPayload.append("status", "PENDING");
+
+      // If creating new, set status PENDING. If editing, keep existing or reset?
+      // Usually reset to PENDING if changing critical info, but existing logic forced PENDING
+      if (!isEditing) {
+        formPayload.append("status", "PENDING");
+      }
 
       if (file) {
         formPayload.append("attachment", file);
@@ -149,10 +192,6 @@ const PettyCashFormModal: React.FC<PettyCashFormModalProps> = ({
       setSaving(false);
     }
   };
-
-  const selectedCategory = EXPENSE_CATEGORIES.find(
-    (c) => c.name === formData.category
-  );
 
   return (
     <AnimatePresence>
@@ -256,14 +295,16 @@ const PettyCashFormModal: React.FC<PettyCashFormModalProps> = ({
                     <select
                       name="category"
                       value={formData.category}
-                      onChange={handleCategoryChange}
-                      disabled={saving || isDisabled}
+                      onChange={handleChange}
+                      disabled={saving || isDisabled || fetchingDropdowns}
                       className={styles.select}
                     >
-                      <option value="">SELECT...</option>
-                      {EXPENSE_CATEGORIES.map((cat) => (
-                        <option key={cat.name} value={cat.name}>
-                          {cat.name.toUpperCase()}
+                      <option value="">
+                        {fetchingDropdowns ? "LOADING..." : "SELECT..."}
+                      </option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.label}>
+                          {cat.label.toUpperCase()}
                         </option>
                       ))}
                     </select>
@@ -271,20 +312,15 @@ const PettyCashFormModal: React.FC<PettyCashFormModalProps> = ({
 
                   <div>
                     <label className={styles.label}>Sub Category</label>
-                    <select
+                    <input
+                      type="text"
                       name="subCategory"
                       value={formData.subCategory}
                       onChange={handleChange}
-                      disabled={saving || isDisabled || !formData.category}
-                      className={styles.select}
-                    >
-                      <option value="">SELECT...</option>
-                      {selectedCategory?.subCategories.map((sub) => (
-                        <option key={sub} value={sub}>
-                          {sub.toUpperCase()}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="OPTIONAL"
+                      disabled={saving || isDisabled}
+                      className={styles.input}
+                    />
                   </div>
                 </div>
               </div>
@@ -324,10 +360,38 @@ const PettyCashFormModal: React.FC<PettyCashFormModalProps> = ({
                         className={styles.select}
                       >
                         <option value="cash">CASH</option>
-                        <option value="card">CARD</option>
-                        <option value="transfer">TRANSFER</option>
+                        <option value="card">CARD / ONLINE</option>
+                        <option value="transfer">BANK TRANSFER</option>
                       </select>
                     </div>
+
+                    {(formData.paymentMethod === "transfer" ||
+                      formData.paymentMethod === "card") && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                      >
+                        <label className={styles.label}>
+                          <IconBuildingBank size={14} className="inline mr-1" />
+                          Bank Account <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          name="bankAccountId"
+                          value={formData.bankAccountId}
+                          onChange={handleChange}
+                          disabled={saving || isDisabled || fetchingDropdowns}
+                          className={styles.select}
+                        >
+                          <option value="">SELECT BANK...</option>
+                          {bankAccounts.map((acc) => (
+                            <option key={acc.id} value={acc.id}>
+                              {acc.label}
+                            </option>
+                          ))}
+                        </select>
+                      </motion.div>
+                    )}
 
                     <div>
                       <label className={styles.label}>Attachment</label>

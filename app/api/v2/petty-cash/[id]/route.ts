@@ -60,15 +60,19 @@ export const PUT = async (
 
     if (data.amount) data.amount = parseFloat(data.amount);
 
-    // Update user tracking
+    // Check if this is a review action (status change to APPROVED/REJECTED)
+    if (data.status === "APPROVED" || data.status === "REJECTED") {
+      const updatedEntry = await reviewPettyCash(
+        id,
+        data.status,
+        user.userId || "system"
+      );
+      return NextResponse.json(updatedEntry);
+    }
+
+    // Regular update
     if (user.userId) {
       data.updatedBy = user.userId;
-
-      // If status is being changed to APPROVED or REJECTED, record reviewer
-      if (data.status === "APPROVED" || data.status === "REJECTED") {
-        data.reviewedBy = user.userId;
-        data.reviewedAt = Timestamp.now();
-      }
     }
 
     const updatedEntry = await updatePettyCash(id, data, file || undefined);

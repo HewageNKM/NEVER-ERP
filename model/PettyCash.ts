@@ -9,7 +9,9 @@ export interface PettyCash {
   subCategoryId: string;
 
   note: string;
-  paymentMethod: string; // e.g. "cash"
+  paymentMethod: string; // e.g. "cash", "bank_transfer"
+  bankAccountId?: string; // If paymentMethod is bank_transfer
+  bankAccountName?: string;
 
   type: "expense" | "income";
   status: "PENDING" | "APPROVED" | "REJECTED";

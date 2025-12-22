@@ -169,9 +169,76 @@ export const getPettyCashById = async (
   } as PettyCash;
 };
 
+// ... (previous code)
+
 export const deletePettyCash = async (id: string): Promise<void> => {
   await adminFirestore.collection(COLLECTION_NAME).doc(id).update({
     isDeleted: true,
     updatedAt: Timestamp.now(),
   });
+};
+
+/**
+ * Review petty cash entry (Approve/Reject)
+ * Updates bank balance if approved and bank account is linked
+ */
+import { updateBankAccountBalance } from "./BankAccountService";
+
+export const reviewPettyCash = async (
+  id: string,
+  status: "APPROVED" | "REJECTED",
+  reviewerId: string
+): Promise<PettyCash> => {
+  const docRef = adminFirestore.collection(COLLECTION_NAME).doc(id);
+  const doc = await docRef.get();
+
+  if (!doc.exists) {
+    throw new Error(`Petty Cash entry with ID ${id} not found`);
+  }
+
+  const currentData = doc.data() as PettyCash;
+  if (currentData.status !== "PENDING") {
+    throw new Error(`Entry is already ${currentData.status}`);
+  }
+
+  // If approving and bank account is linked, update balance
+  if (status === "APPROVED" && currentData.bankAccountId) {
+    // For expense: subtract from bank
+    // For income: add to bank
+    const balanceType = currentData.type === "expense" ? "subtract" : "add";
+
+    await updateBankAccountBalance(
+      currentData.bankAccountId,
+      currentData.amount,
+      balanceType
+    );
+  }
+
+  const updates = {
+    status,
+    reviewedBy: reviewerId,
+    reviewedAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  };
+
+  await docRef.update(updates);
+
+  const updatedDoc = await docRef.get();
+  const d = updatedDoc.data();
+
+  return {
+    ...d,
+    createdAt:
+      d?.createdAt instanceof Timestamp
+        ? d.createdAt.toDate().toISOString()
+        : d?.createdAt,
+    updatedAt:
+      d?.updatedAt instanceof Timestamp
+        ? d.updatedAt.toDate().toISOString()
+        : d?.updatedAt,
+    reviewedAt:
+      d?.reviewedAt instanceof Timestamp
+        ? d.reviewedAt.toDate().toISOString()
+        : d?.reviewedAt,
+  } as PettyCash;
 };
