@@ -26,7 +26,6 @@ interface PettyCashFormModalProps {
 const emptyForm = {
   amount: "",
   category: "",
-  subCategory: "",
   note: "",
   paymentMethod: "cash",
   type: "expense" as "expense" | "income",
@@ -77,7 +76,6 @@ const PettyCashFormModal: React.FC<PettyCashFormModalProps> = ({
         setFormData({
           amount: String(entry.amount),
           category: entry.category || "",
-          subCategory: entry.subCategory || "",
           note: entry.note || "",
           paymentMethod: entry.paymentMethod || "cash",
           type: entry.type || "expense",
@@ -144,7 +142,6 @@ const PettyCashFormModal: React.FC<PettyCashFormModalProps> = ({
       const formPayload = new FormData();
       formPayload.append("amount", formData.amount);
       formPayload.append("category", formData.category);
-      formPayload.append("subCategory", formData.subCategory);
       formPayload.append("note", formData.note);
       formPayload.append("paymentMethod", formData.paymentMethod);
       if (formData.bankAccountId) {
@@ -287,7 +284,7 @@ const PettyCashFormModal: React.FC<PettyCashFormModalProps> = ({
                   </span>
                   Classification
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-6">
                   <div>
                     <label className={styles.label}>
                       Category <span className="text-red-500">*</span>
@@ -308,19 +305,6 @@ const PettyCashFormModal: React.FC<PettyCashFormModalProps> = ({
                         </option>
                       ))}
                     </select>
-                  </div>
-
-                  <div>
-                    <label className={styles.label}>Sub Category</label>
-                    <input
-                      type="text"
-                      name="subCategory"
-                      value={formData.subCategory}
-                      onChange={handleChange}
-                      placeholder="OPTIONAL"
-                      disabled={saving || isDisabled}
-                      className={styles.input}
-                    />
                   </div>
                 </div>
               </div>
