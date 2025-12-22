@@ -130,6 +130,7 @@ const ProfitLossPage = () => {
   const LineItem = ({
     label,
     value,
+    formula,
     bold = false,
     indent = false,
     negative = false,
@@ -137,6 +138,7 @@ const ProfitLossPage = () => {
   }: {
     label: string;
     value?: number;
+    formula?: string;
     bold?: boolean;
     indent?: boolean;
     negative?: boolean;
@@ -147,9 +149,14 @@ const ProfitLossPage = () => {
         highlight ? "bg-gray-100 border-t border-b border-gray-200" : ""
       } ${indent ? "pl-8" : ""}`}
     >
-      <span className={`${bold ? "font-bold" : ""} text-gray-900`}>
-        {label}
-      </span>
+      <div className="flex flex-col">
+        <span className={`${bold ? "font-bold" : ""} text-gray-900`}>
+          {label}
+        </span>
+        {formula && (
+          <span className="text-[10px] text-gray-400 font-mono">{formula}</span>
+        )}
+      </div>
       {value !== undefined && (
         <span
           className={`${bold ? "font-bold" : ""} ${
@@ -252,6 +259,7 @@ const ProfitLossPage = () => {
                 </div>
                 <LineItem
                   label="Gross Sales"
+                  formula="= order.total - shippingFee - fee + discount"
                   value={report.revenue.grossSales}
                   indent
                 />
@@ -263,17 +271,20 @@ const ProfitLossPage = () => {
                 />
                 <LineItem
                   label="Net Sales"
+                  formula="= order.total - shippingFee - fee"
                   value={report.revenue.netSales}
                   indent
                   bold
                 />
                 <LineItem
                   label="Order Fees"
+                  formula="= Σ order.fee"
                   value={report.revenue.otherIncome}
                   indent
                 />
                 <LineItem
                   label="Total Revenue"
+                  formula="= Net Sales"
                   value={report.revenue.totalRevenue}
                   bold
                   highlight
@@ -287,6 +298,7 @@ const ProfitLossPage = () => {
                 </div>
                 <LineItem
                   label="Product Cost"
+                  formula="= Σ (item.bPrice × quantity)"
                   value={report.costOfGoodsSold.productCost}
                   indent
                 />
@@ -300,6 +312,7 @@ const ProfitLossPage = () => {
                 {/* Gross Profit */}
                 <LineItem
                   label={`Gross Profit (${report.grossProfitMargin}% margin)`}
+                  formula="= Total Revenue - Total COGS"
                   value={report.grossProfit}
                   bold
                   highlight
@@ -329,6 +342,7 @@ const ProfitLossPage = () => {
                 {/* Operating Income */}
                 <LineItem
                   label="Operating Income"
+                  formula="= Gross Profit - Operating Expenses"
                   value={report.operatingIncome}
                   bold
                   highlight
@@ -342,6 +356,7 @@ const ProfitLossPage = () => {
                 </div>
                 <LineItem
                   label="Transaction Fees"
+                  formula="= Σ order.transactionFeeCharge"
                   value={report.otherExpenses.transactionFees}
                   indent
                 />
@@ -352,16 +367,23 @@ const ProfitLossPage = () => {
                 />
 
                 {/* Net Profit */}
-                <div className="bg-black text-white px-4 py-4 flex justify-between">
-                  <span className="font-bold text-lg">
-                    Net Profit ({report.netProfitMargin}% margin)
-                  </span>
-                  <span
-                    className={`font-black text-lg ${
-                      report.netProfit >= 0 ? "text-green-400" : "text-red-400"
-                    }`}
-                  >
-                    Rs {report.netProfit.toLocaleString()}
+                <div className="bg-black text-white px-4 py-4 flex flex-col gap-1">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-lg">
+                      Net Profit ({report.netProfitMargin}% margin)
+                    </span>
+                    <span
+                      className={`font-black text-lg ${
+                        report.netProfit >= 0
+                          ? "text-green-400"
+                          : "text-red-400"
+                      }`}
+                    >
+                      Rs {report.netProfit.toLocaleString()}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-gray-400 font-mono">
+                    = Operating Income - Transaction Fees + Order Fees
                   </span>
                 </div>
               </div>
