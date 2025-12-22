@@ -134,8 +134,8 @@ const ProfitLossPage = () => {
     bold = false,
     indent = false,
     negative = false,
-    positive = false,
     highlight = false,
+    positive = false,
   }: {
     label: string;
     value?: number;
@@ -164,12 +164,13 @@ const ProfitLossPage = () => {
           className={`${bold ? "font-bold" : ""} ${
             value < 0 || negative
               ? "text-red-600"
-              : positive || value > 0
+              : positive
               ? "text-green-600"
               : "text-gray-900"
           }`}
         >
-          {negative ? "-" : ""}Rs {Math.abs(value).toLocaleString()}
+          {negative ? "-" : positive ? "+" : ""}Rs{" "}
+          {Math.abs(value).toLocaleString()}
         </span>
       )}
     </div>
@@ -261,33 +262,23 @@ const ProfitLossPage = () => {
                 </div>
                 <LineItem
                   label="Gross Sales"
-                  formula="= order.total - shippingFee - fee + discount"
                   value={report.revenue.grossSales}
                   indent
                 />
                 <LineItem
-                  label="Less: Discounts"
+                  label="Discounts"
                   value={report.revenue.discounts}
                   indent
                   negative
                 />
                 <LineItem
                   label="Net Sales"
-                  formula="= order.total - shippingFee - fee"
                   value={report.revenue.netSales}
                   indent
                   bold
                 />
                 <LineItem
-                  label="Order Fees"
-                  formula="= Σ order.fee"
-                  value={report.revenue.otherIncome}
-                  indent
-                  positive
-                />
-                <LineItem
                   label="Total Revenue"
-                  formula="= Net Sales"
                   value={report.revenue.totalRevenue}
                   bold
                   highlight
@@ -301,10 +292,8 @@ const ProfitLossPage = () => {
                 </div>
                 <LineItem
                   label="Product Cost"
-                  formula="= Σ (item.bPrice × quantity)"
                   value={report.costOfGoodsSold.productCost}
                   indent
-                  negative
                 />
                 <LineItem
                   label="Total COGS"
@@ -317,11 +306,9 @@ const ProfitLossPage = () => {
                 {/* Gross Profit */}
                 <LineItem
                   label={`Gross Profit (${report.grossProfitMargin}% margin)`}
-                  formula="= Total Revenue - Total COGS"
                   value={report.grossProfit}
                   bold
                   highlight
-                  positive
                 />
 
                 {/* Operating Expenses */}
@@ -349,11 +336,9 @@ const ProfitLossPage = () => {
                 {/* Operating Income */}
                 <LineItem
                   label="Operating Income"
-                  formula="= Gross Profit - Operating Expenses"
                   value={report.operatingIncome}
                   bold
                   highlight
-                  positive
                 />
 
                 {/* Other Expenses */}
@@ -364,7 +349,6 @@ const ProfitLossPage = () => {
                 </div>
                 <LineItem
                   label="Transaction Fees"
-                  formula="= Σ order.transactionFeeCharge"
                   value={report.otherExpenses.transactionFees}
                   indent
                 />
@@ -372,26 +356,28 @@ const ProfitLossPage = () => {
                   label="Total Other Expenses"
                   value={report.otherExpenses.totalOther}
                   bold
+                  negative
+                />
+
+                {/* Order Fees added to profit */}
+                <LineItem
+                  label="Order Fees"
+                  value={report.revenue.otherIncome}
+                  bold
+                  positive
                 />
 
                 {/* Net Profit */}
-                <div className="bg-black text-white px-4 py-4 flex flex-col gap-1">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-lg">
-                      Net Profit ({report.netProfitMargin}% margin)
-                    </span>
-                    <span
-                      className={`font-black text-lg ${
-                        report.netProfit >= 0
-                          ? "text-green-400"
-                          : "text-red-400"
-                      }`}
-                    >
-                      Rs {report.netProfit.toLocaleString()}
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-gray-400 font-mono">
-                    = Operating Income - Transaction Fees + Order Fees
+                <div className="bg-black text-white px-4 py-4 flex justify-between items-center">
+                  <span className="font-bold text-lg">
+                    Net Profit ({report.netProfitMargin}% margin)
+                  </span>
+                  <span
+                    className={`font-black text-lg ${
+                      report.netProfit >= 0 ? "text-green-400" : "text-red-400"
+                    }`}
+                  >
+                    Rs {report.netProfit.toLocaleString()}
                   </span>
                 </div>
               </div>
