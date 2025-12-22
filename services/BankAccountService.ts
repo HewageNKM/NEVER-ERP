@@ -20,8 +20,6 @@ export const getBankAccounts = async (
       query = query.where("status", "==", status);
     }
 
-    query = query.orderBy("accountName", "asc");
-
     const snapshot = await query.get();
     return snapshot.docs.map((doc) => ({
       id: doc.id,

@@ -25,8 +25,6 @@ export const getExpenseCategories = async (
       query = query.where("status", "==", status);
     }
 
-    query = query.orderBy("name", "asc");
-
     const snapshot = await query.get();
     return snapshot.docs.map((doc) => ({
       id: doc.id,

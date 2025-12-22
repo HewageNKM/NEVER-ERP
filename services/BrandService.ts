@@ -137,7 +137,7 @@ export const updateBrand = async (
   const updatedData = {
     ...updates,
     logoUrl,
-    updatedAt:FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
   };
 
   await ref.update(updatedData);
@@ -162,10 +162,11 @@ export const deleteBrand = async (id: string) => {
 
 export const getBrandDropdown = async () => {
   try {
-    const snapshot = await adminFirestore.collection(COLLECTION)
-    .where("isDeleted", "==", false)
-    .where("status", "==", true)
-    .get();
+    const snapshot = await adminFirestore
+      .collection(COLLECTION)
+      .where("isDeleted", "==", false)
+      .where("status", "==", true)
+      .get();
 
     const brands = snapshot.docs.map((doc) => ({
       id: doc.id,
