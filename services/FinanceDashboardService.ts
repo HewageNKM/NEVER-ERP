@@ -109,13 +109,11 @@ export const getFinanceDashboardData =
       // Fetch separate recent queries
       const recentPetty = await adminFirestore
         .collection("petty_cash")
-        .orderBy("createdAt", "desc")
         .limit(5)
         .get();
 
       const recentPayments = await adminFirestore
         .collection("payment_records")
-        .orderBy("date", "desc")
         .limit(5)
         .get();
 
