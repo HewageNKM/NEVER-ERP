@@ -2397,25 +2397,31 @@ export const getProfitLossStatement = async (
     });
 
     // Calculate revenue
+    // gross sale = order.total - shippingFee - fee + discount
+    // net sale = order.total - shippingFee - fee
     let grossSales = 0;
+    let netSales = 0;
     let totalDiscounts = 0;
-    let shippingIncome = 0;
     let totalTransactionFees = 0;
     let totalProductCost = 0;
+    let totalOrderFee = 0;
 
     ordersSnapshot.docs.forEach((doc) => {
       const order = doc.data() as Order;
-      const itemsTotal =
-        order.items?.reduce(
-          (sum: number, item: any) =>
-            sum + (item.price || 0) * (item.quantity || 0),
-          0
-        ) || 0;
+      const orderTotal = order.total || 0;
+      const shippingFee = order.shippingFee || 0;
+      const orderFee = (order as any).fee || 0;
+      const discount = order.discount || 0;
 
-      grossSales += itemsTotal;
-      totalDiscounts += order.discount || 0;
-      shippingIncome += order.shippingFee || 0;
+      // Per order calculations
+      const orderNetSale = orderTotal - shippingFee - orderFee;
+      const orderGrossSale = orderTotal - shippingFee - orderFee + discount;
+
+      netSales += orderNetSale;
+      grossSales += orderGrossSale;
+      totalDiscounts += discount;
       totalTransactionFees += order.transactionFeeCharge || 0;
+      totalOrderFee += orderFee;
 
       // Calculate COGS
       order.items?.forEach((item: any) => {
@@ -2424,8 +2430,7 @@ export const getProfitLossStatement = async (
       });
     });
 
-    const netSales = grossSales - totalDiscounts;
-    const totalRevenue = netSales + shippingIncome;
+    const totalRevenue = netSales;
 
     // Calculate expenses by category
     const expensesByCategory = new Map<string, number>();
@@ -2453,7 +2458,8 @@ export const getProfitLossStatement = async (
     const grossProfitMargin =
       totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
     const operatingIncome = grossProfit - totalExpenses;
-    const netProfit = operatingIncome - totalTransactionFees;
+    // Net profit includes fee as income (fee was deducted from net sales, so add it back)
+    const netProfit = operatingIncome - totalTransactionFees + totalOrderFee;
     const netProfitMargin =
       totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
@@ -2463,8 +2469,8 @@ export const getProfitLossStatement = async (
         grossSales,
         discounts: totalDiscounts,
         netSales,
-        shippingIncome,
-        otherIncome: 0,
+        shippingIncome: 0, // Removed from calculation
+        otherIncome: totalOrderFee, // Order fees as income
         totalRevenue,
       },
       costOfGoodsSold: {

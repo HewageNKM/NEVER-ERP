@@ -232,52 +232,6 @@ const ProfitLossPage = () => {
         {/* Content */}
         {!loading && report && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white border border-gray-200 p-6">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
-                  Total Revenue
-                </p>
-                <p className="text-2xl font-black text-gray-900">
-                  Rs {report.revenue.totalRevenue.toLocaleString()}
-                </p>
-              </div>
-              <div className="bg-white border border-gray-200 p-6">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
-                  Gross Profit
-                </p>
-                <p className="text-2xl font-black text-green-600">
-                  Rs {report.grossProfit.toLocaleString()}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {report.grossProfitMargin}% margin
-                </p>
-              </div>
-              <div className="bg-white border border-gray-200 p-6">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
-                  Operating Expenses
-                </p>
-                <p className="text-2xl font-black text-red-600">
-                  Rs {report.operatingExpenses.totalExpenses.toLocaleString()}
-                </p>
-              </div>
-              <div className="bg-black p-6">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-                  Net Profit
-                </p>
-                <p
-                  className={`text-2xl font-black ${
-                    report.netProfit >= 0 ? "text-green-400" : "text-red-400"
-                  }`}
-                >
-                  Rs {report.netProfit.toLocaleString()}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {report.netProfitMargin}% margin
-                </p>
-              </div>
-            </div>
-
             {/* P&L Statement */}
             <div className="bg-white border border-gray-200 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
@@ -314,8 +268,8 @@ const ProfitLossPage = () => {
                   bold
                 />
                 <LineItem
-                  label="Shipping Income"
-                  value={report.revenue.shippingIncome}
+                  label="Order Fees"
+                  value={report.revenue.otherIncome}
                   indent
                 />
                 <LineItem
