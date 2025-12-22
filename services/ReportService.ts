@@ -2399,9 +2399,9 @@ export const getProfitLossStatement = async (
     // Calculate revenue
     let grossSales = 0;
     let totalDiscounts = 0;
-    let shippingIncome = 0;
     let totalTransactionFees = 0;
     let totalProductCost = 0;
+    let totalOrderFee = 0;
 
     ordersSnapshot.docs.forEach((doc) => {
       const order = doc.data() as Order;
@@ -2414,8 +2414,8 @@ export const getProfitLossStatement = async (
 
       grossSales += itemsTotal;
       totalDiscounts += order.discount || 0;
-      shippingIncome += order.shippingFee || 0;
       totalTransactionFees += order.transactionFeeCharge || 0;
+      totalOrderFee += (order as any).fee || 0;
 
       // Calculate COGS
       order.items?.forEach((item: any) => {
@@ -2425,7 +2425,7 @@ export const getProfitLossStatement = async (
     });
 
     const netSales = grossSales - totalDiscounts;
-    const totalRevenue = netSales + shippingIncome;
+    const totalRevenue = netSales + totalOrderFee; // Includes order fee as income
 
     // Calculate expenses by category
     const expensesByCategory = new Map<string, number>();
@@ -2463,8 +2463,8 @@ export const getProfitLossStatement = async (
         grossSales,
         discounts: totalDiscounts,
         netSales,
-        shippingIncome,
-        otherIncome: 0,
+        shippingIncome: 0, // Removed: shipping excluded from revenue to align with other reports
+        otherIncome: totalOrderFee, // Order fee income
         totalRevenue,
       },
       costOfGoodsSold: {
