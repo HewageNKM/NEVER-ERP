@@ -2396,36 +2396,50 @@ export const getProfitLossStatement = async (
       }
     });
 
-    // Calculate revenue
-    let grossSales = 0;
+    // Calculate revenue per user specification:
+    // Gross Sale = order.total - shippingFee - fee + discount
+    // Net Sale = order.total - shippingFee - fee
+    // Gross Profit = Gross Sale - COGS
+    // Net Profit = Net Sale - COGS - transactionFeeCharge + fee
+    let totalNetSales = 0;
+    let totalGrossSales = 0;
     let totalDiscounts = 0;
     let totalTransactionFees = 0;
     let totalProductCost = 0;
+    let totalShippingFee = 0;
     let totalOrderFee = 0;
 
     ordersSnapshot.docs.forEach((doc) => {
       const order = doc.data() as Order;
-      const itemsTotal =
-        order.items?.reduce(
-          (sum: number, item: any) =>
-            sum + (item.price || 0) * (item.quantity || 0),
-          0
-        ) || 0;
+      const orderTotal = order.total || 0;
+      const shippingFee = order.shippingFee || 0;
+      const orderFee = (order as any).fee || 0;
+      const discount = order.discount || 0;
+      const transactionFee = order.transactionFeeCharge || 0;
 
-      grossSales += itemsTotal;
-      totalDiscounts += order.discount || 0;
-      totalTransactionFees += order.transactionFeeCharge || 0;
-      totalOrderFee += (order as any).fee || 0;
+      // Per order calculations
+      const orderNetSale = orderTotal - shippingFee - orderFee;
+      const orderGrossSale = orderTotal - shippingFee - orderFee + discount;
 
-      // Calculate COGS
+      // Accumulate totals
+      totalNetSales += orderNetSale;
+      totalGrossSales += orderGrossSale;
+      totalDiscounts += discount;
+      totalTransactionFees += transactionFee;
+      totalShippingFee += shippingFee;
+      totalOrderFee += orderFee;
+
+      // Calculate COGS per order
       order.items?.forEach((item: any) => {
         const cost = item.bPrice || productCostMap.get(item.itemId) || 0;
         totalProductCost += cost * (item.quantity || 0);
       });
     });
 
-    const netSales = grossSales - totalDiscounts;
-    const totalRevenue = netSales + totalOrderFee; // Includes order fee as income
+    // Final values
+    const grossSales = totalGrossSales;
+    const netSales = totalNetSales;
+    const totalRevenue = netSales;
 
     // Calculate expenses by category
     const expensesByCategory = new Map<string, number>();
@@ -2448,23 +2462,25 @@ export const getProfitLossStatement = async (
       0
     );
 
-    // Calculate profit
-    const grossProfit = totalRevenue - totalProductCost;
+    // Calculate profit per user specification:
+    // Gross Profit = Gross Sale - COGS
+    // Net Profit = Net Sale - COGS - transactionFeeCharge + fee
+    const grossProfit = grossSales - totalProductCost;
     const grossProfitMargin =
-      totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+      grossSales > 0 ? (grossProfit / grossSales) * 100 : 0;
     const operatingIncome = grossProfit - totalExpenses;
-    const netProfit = operatingIncome - totalTransactionFees;
-    const netProfitMargin =
-      totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+    const netProfit =
+      netSales - totalProductCost - totalTransactionFees + totalOrderFee;
+    const netProfitMargin = netSales > 0 ? (netProfit / netSales) * 100 : 0;
 
     return {
       period: { from, to },
       revenue: {
-        grossSales,
+        grossSales, // order.total - shippingFee - fee (actual product sales)
         discounts: totalDiscounts,
         netSales,
-        shippingIncome: 0, // Removed: shipping excluded from revenue to align with other reports
-        otherIncome: totalOrderFee, // Order fee income
+        shippingIncome: 0, // Excluded from revenue
+        otherIncome: 0, // Fees deducted from sales
         totalRevenue,
       },
       costOfGoodsSold: {
