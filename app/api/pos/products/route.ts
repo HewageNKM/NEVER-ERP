@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getProductsByStock,
   searchProductsByStock,
-} from "@/services/POSProductService";
-import { verifyPosAuth, handleAuthError } from "@/services/POSAuthService";
+} from "@/services/POSService";
+import { verifyPosAuth, handleAuthError } from "@/services/AuthService";
 
 // GET - Fetch products by stock ID, with optional search
 export async function GET(request: NextRequest) {

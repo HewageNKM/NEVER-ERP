@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  getPettyCash,
-  addPettyCashTransaction,
-} from "@/firebase/firebaseAdmin";
-import { verifyPosAuth, handleAuthError } from "@/services/POSAuthService";
+import { getPettyCash, addPettyCashTransaction } from "@/services/POSService";
+import { verifyPosAuth, handleAuthError } from "@/services/AuthService";
 
 // GET - Fetch transactions
 export async function GET(request: NextRequest) {

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getStockInventory,
   getProductInventoryByStock,
-} from "@/services/POSProductService";
-import { verifyPosAuth, handleAuthError } from "@/services/POSAuthService";
+} from "@/services/POSService";
+import { verifyPosAuth, handleAuthError } from "@/services/AuthService";
 
 // GET - Fetch inventory for specific product/variant/size or all inventory for product
 export async function GET(request: NextRequest) {

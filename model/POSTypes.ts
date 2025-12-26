@@ -27,6 +27,7 @@ export interface POSOrderItem {
   variantName: string;
   size: string;
   quantity: number;
+  thumbnail: string;
   price: number;
   bPrice: number;
   discount: number;

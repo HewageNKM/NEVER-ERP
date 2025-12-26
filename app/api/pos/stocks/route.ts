@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getAvailableStocks } from "@/services/POSProductService";
-import { verifyPosAuth, handleAuthError } from "@/services/POSAuthService";
+import { getAvailableStocks } from "@/services/POSService";
+import { verifyPosAuth, handleAuthError } from "@/services/AuthService";
 
 // GET - Fetch all available stocks
 export async function GET() {

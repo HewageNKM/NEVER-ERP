@@ -129,7 +129,7 @@ export default function POSVariantDialog({
           variantId: selectedVariant.id,
           name: product.name,
           variantName:
-            selectedVariant.name || selectedVariant.color || "Default",
+            selectedVariant.variantName || selectedVariant.color || "Default",
           thumbnail: selectedVariant.images[0].url || product.thumbnail || "",
           size: selectedSize,
           discount: discount,

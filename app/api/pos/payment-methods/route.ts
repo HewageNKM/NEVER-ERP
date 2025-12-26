@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getPaymentMethods } from "@/firebase/firebaseAdmin";
-import { verifyPosAuth, handleAuthError } from "@/services/POSAuthService";
+import { getPaymentMethods } from "@/services/POSService";
+import { verifyPosAuth, handleAuthError } from "@/services/AuthService";
 
 // GET - Fetch payment methods for POS
 export async function GET() {

@@ -4,8 +4,8 @@ import {
   addItemToPosCart,
   removeFromPosCart,
   clearPosCart,
-} from "@/services/POSCartService";
-import { verifyPosAuth, handleAuthError } from "@/services/POSAuthService";
+} from "@/services/POSService";
+import { verifyPosAuth, handleAuthError } from "@/services/AuthService";
 
 // GET - Fetch all cart items
 export async function GET() {
