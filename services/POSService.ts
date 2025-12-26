@@ -2,6 +2,7 @@ import { adminFirestore } from "@/firebase/firebaseAdmin";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { Product } from "@/model/Product";
 import { POSOrder } from "@/model/POSTypes";
+import { Order } from "@/model/Order";
 
 // ================================
 // 🔹 DATA TYPES
@@ -492,7 +493,8 @@ export const getPaymentMethods = async () => {
   try {
     const snapshot = await adminFirestore
       .collection("payment_methods")
-      .where("status", "==", "ACTIVE")
+      .where("status", "==", "Active")
+      .where("available", "array-contains", "Store")
       .get();
 
     if (snapshot.empty) return [];
@@ -500,9 +502,34 @@ export const getPaymentMethods = async () => {
     return snapshot.docs.map((doc) => ({
       paymentId: doc.id,
       ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate().toISOString(),
+      updatedAt: doc.data().updatedAt?.toDate().toISOString(),
     }));
   } catch (error) {
     console.error("Error fetching payment methods:", error);
+    throw error;
+  }
+};
+
+export const getOrderByOrderId = async (orderId: string) => {
+  try {
+    const snapshot = await adminFirestore
+      .collection("orders")
+      .where("orderId", "==", orderId)
+      .where("from", "==", "Store")
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) return null;
+
+    return {
+      orderId: snapshot.docs[0].id,
+      ...snapshot.docs[0].data(),
+      createdAt: snapshot.docs[0].data().createdAt?.toDate().toISOString(),
+      updatedAt: snapshot.docs[0].data().updatedAt?.toDate().toISOString(),
+    };
+  } catch (error) {
+    console.error("Error fetching order by order ID:", error);
     throw error;
   }
 };

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getPaymentMethods } from "@/services/POSService";
-import { verifyPosAuth, handleAuthError } from "@/services/AuthService";
+import { handleAuthError, verifyPosAuth } from "@/services/AuthService";
 
 // GET - Fetch payment methods for POS
 export async function GET() {
