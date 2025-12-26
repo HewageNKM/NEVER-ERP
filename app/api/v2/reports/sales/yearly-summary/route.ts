@@ -1,4 +1,4 @@
-import { authorizeRequest } from "@/firebase/firebaseAdmin";
+import { authorizeRequest } from "@/services/AuthService";
 import { getYearlySummary } from "@/services/ReportService";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -17,6 +17,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(data);
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ message: "Failed to fetch monthly summary" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to fetch monthly summary" },
+      { status: 500 }
+    );
   }
 }

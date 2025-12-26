@@ -1,4 +1,4 @@
-import { authorizeRequest } from "@/firebase/firebaseAdmin";
+import { authorizeRequest } from "@/services/AuthService";
 import { getDailySaleReport } from "@/services/ReportService";
 import { NextRequest } from "next/server";
 

@@ -1,4 +1,4 @@
-import { authorizeRequest } from "@/firebase/firebaseAdmin";
+import { authorizeRequest } from "@/services/AuthService";
 import { getInventoryQuantity } from "@/services/InventoryService";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -18,6 +18,9 @@ export const GET = async (req: NextRequest) => {
     return NextResponse.json(res);
   } catch (error) {
     console.log(error);
-    return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 };

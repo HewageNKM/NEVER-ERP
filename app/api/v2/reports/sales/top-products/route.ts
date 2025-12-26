@@ -1,4 +1,4 @@
-import { authorizeRequest } from "@/firebase/firebaseAdmin";
+import { authorizeRequest } from "@/services/AuthService";
 import { getTopSellingProducts } from "@/services/ReportService";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -12,7 +12,9 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const from = url.searchParams.get("from") || "";
     const to = url.searchParams.get("to") || "";
-    const threshold =  Number.parseInt(url.searchParams.get("threshold") || "10");
+    const threshold = Number.parseInt(
+      url.searchParams.get("threshold") || "10"
+    );
 
     const data = await getTopSellingProducts(from, to, threshold);
     return NextResponse.json(data);

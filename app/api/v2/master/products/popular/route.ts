@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authorizeRequest } from "@/firebase/firebaseAdmin";
+import { authorizeRequest } from "@/services/AuthService";
 import { getPopularProducts } from "@/services/ProductService"; // Import your service
 
 export const GET = async (req: NextRequest) => {

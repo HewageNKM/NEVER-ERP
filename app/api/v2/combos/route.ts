@@ -1,4 +1,4 @@
-import { authorizeRequest } from "@/firebase/firebaseAdmin";
+import { authorizeRequest } from "@/services/AuthService";
 import { getCombos, createCombo } from "@/services/ComboService";
 import { NextRequest, NextResponse } from "next/server";
 

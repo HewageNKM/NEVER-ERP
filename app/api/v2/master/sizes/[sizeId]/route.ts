@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { updateSize, deleteSize, getSizes } from "@/services/SizeService";
-import { authorizeRequest } from "@/firebase/firebaseAdmin";
+import { authorizeRequest } from "@/services/AuthService";
 
 export const GET = async (
   _req: Request,

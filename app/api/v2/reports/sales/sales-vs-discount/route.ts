@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authorizeRequest } from "@/firebase/firebaseAdmin";
+import { authorizeRequest } from "@/services/AuthService";
 import { getSalesVsDiscount } from "@/services/ReportService";
 
 export async function GET(req: NextRequest) {
@@ -12,12 +12,16 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const from = url.searchParams.get("from") || "";
     const to = url.searchParams.get("to") || "";
-    const groupBy = (url.searchParams.get("groupBy") as "day" | "month") || "day";
+    const groupBy =
+      (url.searchParams.get("groupBy") as "day" | "month") || "day";
 
     const data = await getSalesVsDiscount(from, to, groupBy);
     return NextResponse.json(data);
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ message: "Failed to fetch Sales vs Discount" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed to fetch Sales vs Discount" },
+      { status: 500 }
+    );
   }
 }

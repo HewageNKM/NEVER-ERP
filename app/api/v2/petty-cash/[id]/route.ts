@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authorizeAndGetUser } from "@/firebase/firebaseAdmin";
+import { authorizeAndGetUser } from "@/services/AuthService";
 import { Timestamp } from "firebase-admin/firestore";
 import {
   getPettyCashById,
   updatePettyCash,
   deletePettyCash,
+  reviewPettyCash,
 } from "@/services/PettyCashService";
 
 export const GET = async (

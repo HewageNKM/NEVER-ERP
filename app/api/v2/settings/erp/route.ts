@@ -1,4 +1,4 @@
-import { authorizeRequest } from "@/firebase/firebaseAdmin";
+import { authorizeRequest } from "@/services/AuthService";
 import { getERPSettings, updateERPSettings } from "@/services/SettingService";
 import { NextRequest, NextResponse } from "next/server";
 

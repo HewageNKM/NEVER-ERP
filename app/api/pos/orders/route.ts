@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPOSOrder } from "@/services/POSService";
-import { getOrder, getOrders } from "@/firebase/firebaseAdmin"; // Generic getOrder stays in admin for now or move? User said "all pos backend". But getOrder is generic. I will leave getOrder in admin if it's reused, or import from POSService if I had moved it. I didn't move getOrder/getOrders because they are generic admin functions. I only moved POS specific createPOSOrder.
+import { getOrder, getOrders } from "@/services/OrderService";
 import { verifyPosAuth, handleAuthError } from "@/services/AuthService";
 
 // GET - Fetch/Search POS orders

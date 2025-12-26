@@ -63,8 +63,8 @@ export const getBrands = async ({
       .where("isDeleted", "==", false);
 
     // 2️⃣ Status filter
-    if (status === "active") query = query.where("active", "==", true);
-    if (status === "inactive") query = query.where("active", "==", false);
+    if (status === "active") query = query.where("status", "==", true);
+    if (status === "inactive") query = query.where("status", "==", false);
 
     // 3️⃣ Search filter (case-insensitive)
     if (search.trim()) {
@@ -86,9 +86,9 @@ export const getBrands = async ({
       .collection(COLLECTION)
       .where("isDeleted", "==", false);
     if (status === "active")
-      totalQuery = totalQuery.where("active", "==", true);
+      totalQuery = totalQuery.where("status", "==", true);
     if (status === "inactive")
-      totalQuery = totalQuery.where("active", "==", false);
+      totalQuery = totalQuery.where("status", "==", false);
     if (search.trim()) {
       const s = search.trim();
       totalQuery = totalQuery

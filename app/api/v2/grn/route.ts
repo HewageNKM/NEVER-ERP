@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { authorizeRequest } from "@/firebase/firebaseAdmin";
+import { authorizeRequest } from "@/services/AuthService";
 import { getGRNs, createGRN } from "@/services/GRNService";
 
 export const GET = async (req: Request) => {

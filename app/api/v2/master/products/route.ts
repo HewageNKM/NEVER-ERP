@@ -1,7 +1,7 @@
 // app/api/v2/master/products/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { authorizeRequest } from "@/firebase/firebaseAdmin";
+import { authorizeRequest } from "@/services/AuthService";
 import { getProducts, addProducts } from "@/services/ProductService"; // Import your service
 import { Product } from "@/model/Product";
 

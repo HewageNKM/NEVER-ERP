@@ -1,4 +1,4 @@
-import { authorizeRequest } from "@/firebase/firebaseAdmin";
+import { authorizeRequest } from "@/services/AuthService";
 import { updateVariant, deleteVariant } from "@/services/VariantService";
 import { ProductVariant } from "@/model/ProductVariant";
 import { NextRequest, NextResponse } from "next/server";

@@ -1,4 +1,4 @@
-import { authorizeRequest } from "@/firebase/firebaseAdmin";
+import { authorizeRequest } from "@/services/AuthService";
 import { getStocks, addStock } from "@/services/StockService"; // Use StockService
 import { NextRequest, NextResponse } from "next/server";
 
@@ -17,9 +17,11 @@ export const GET = async (req: NextRequest) => {
     const statusParam = searchParams.get("status");
 
     let status: boolean | undefined;
-    if (statusParam === "active" || statusParam === 'true') { // Allow 'true' as well
+    if (statusParam === "active" || statusParam === "true") {
+      // Allow 'true' as well
       status = true;
-    } else if (statusParam === "inactive" || statusParam === 'false') { // Allow 'false'
+    } else if (statusParam === "inactive" || statusParam === "false") {
+      // Allow 'false'
       status = false;
     }
 
@@ -46,29 +48,32 @@ export const POST = async (req: NextRequest) => {
     const data = await req.json();
 
     // Basic Validation
-    if (!data.name || typeof data.name !== 'string' || data.name.trim() === '') {
+    if (
+      !data.name ||
+      typeof data.name !== "string" ||
+      data.name.trim() === ""
+    ) {
       return NextResponse.json(
         { message: "Stock location name is required" },
         { status: 400 }
       );
     }
-     if (typeof data.status !== 'boolean') {
-        return NextResponse.json(
-            { message: "Status (true/false) is required" },
-            { status: 400 }
-        );
-     }
+    if (typeof data.status !== "boolean") {
+      return NextResponse.json(
+        { message: "Status (true/false) is required" },
+        { status: 400 }
+      );
+    }
 
     // Ensure only expected fields are passed
     const stockData = {
-        name: data.name.trim(),
-        address: data.address?.trim() || "", // Handle optional address
-        status: data.status,
+      name: data.name.trim(),
+      address: data.address?.trim() || "", // Handle optional address
+      status: data.status,
     };
 
     const newStock = await addStock(stockData);
     return NextResponse.json(newStock, { status: 201 }); // Return the created object
-
   } catch (error) {
     console.error("POST /api/v2/master/stocks Error:", error);
     return NextResponse.json(

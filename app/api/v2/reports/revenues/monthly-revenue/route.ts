@@ -1,5 +1,8 @@
-import { authorizeRequest } from "@/firebase/firebaseAdmin";
-import { getDailyRevenueReport, getMonthlyRevenueReport } from "@/services/ReportService";
+import { authorizeRequest } from "@/services/AuthService";
+import {
+  getDailyRevenueReport,
+  getMonthlyRevenueReport,
+} from "@/services/ReportService";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {

@@ -111,3 +111,11 @@ export const addABanner = async (data: any) => {
     throw e;
   }
 };
+export const deleteBanner = async (id: string) => {
+  try {
+    await adminFirestore.collection("website_banners").doc(id).delete();
+  } catch (e) {
+    console.error("Error deleting banner:", e);
+    throw e;
+  }
+};

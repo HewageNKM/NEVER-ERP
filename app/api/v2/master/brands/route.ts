@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createBrand, getBrands } from "@/services/BrandService";
-import { authorizeRequest } from "@/firebase/firebaseAdmin";
+import { authorizeRequest } from "@/services/AuthService";
 
 export const GET = async (req: Request) => {
   try {
@@ -35,7 +35,7 @@ export const POST = async (req: Request) => {
     const logo = formData.get("logo") as File | null;
 
     const result = await createBrand(
-      { name, description, active },
+      { name, description, status: active },
       logo || undefined
     );
     return NextResponse.json(result);

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { authorizeRequest } from "@/firebase/firebaseAdmin";
+import { authorizeAndGetUser } from "@/services/AuthService";
 import {
   getSupplierInvoices,
   createSupplierInvoice,
@@ -8,7 +8,7 @@ import {
 
 export const GET = async (req: Request) => {
   try {
-    const response = await authorizeRequest(req);
+    const response = await authorizeAndGetUser(req);
     if (!response) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
@@ -38,7 +38,7 @@ export const GET = async (req: Request) => {
 
 export const POST = async (req: Request) => {
   try {
-    const response = await authorizeRequest(req);
+    const response = await authorizeAndGetUser(req);
     if (!response) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }

@@ -1,4 +1,4 @@
-import { authorizeRequest } from "@/firebase/firebaseAdmin";
+import { authorizeRequest } from "@/services/AuthService";
 import { updateStock, deleteStock } from "@/services/StockService"; // Use StockService
 import { NextRequest, NextResponse } from "next/server";
 

@@ -4,7 +4,7 @@ import {
   updateBrand,
   deleteBrand,
 } from "@/services/BrandService";
-import { authorizeRequest } from "@/firebase/firebaseAdmin";
+import { authorizeRequest } from "@/services/AuthService";
 
 export const GET = async (
   _req: Request,

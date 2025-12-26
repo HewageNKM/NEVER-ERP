@@ -1,5 +1,5 @@
-import { authorizeRequest, getOrder } from "@/firebase/firebaseAdmin";
-import { updateOrder } from "@/services/OrderService";
+import { authorizeRequest } from "@/services/AuthService";
+import { getOrder, updateOrder } from "@/services/OrderService";
 import { NextResponse } from "next/server";
 
 export const PUT = async (
