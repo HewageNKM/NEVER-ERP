@@ -114,9 +114,11 @@ export default function POSVariantDialog({
     }
 
     const stockQty = getSelectedStock();
+    // Allow proceeding even if quantity > stockQty, but maybe show a toast or UI warning
     if (quantity > stockQty) {
-      toast.error(`Only ${stockQty} items available`);
-      return;
+      toast("Warning: Quantity exceeds available stock", {
+        icon: "⚠️",
+      });
     }
 
     setAdding(true);
@@ -176,9 +178,25 @@ export default function POSVariantDialog({
           >
             {product.name}
           </Typography>
-          <Typography variant="body2" color="grey.500" fontWeight={700}>
-            Rs. {product.sellingPrice?.toLocaleString()}
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="body2" color="grey.500" fontWeight={700}>
+              Rs. {product.sellingPrice?.toLocaleString()}
+            </Typography>
+            {product.discount > 0 && (
+              <Box
+                sx={{
+                  bgcolor: "black",
+                  color: "white",
+                  px: 0.5,
+                  py: 0,
+                  fontSize: 10,
+                  fontWeight: 900,
+                }}
+              >
+                {product.discount}% OFF
+              </Box>
+            )}
+          </Box>
         </Box>
         <IconButton
           onClick={onClose}
@@ -257,13 +275,33 @@ export default function POSVariantDialog({
                           border: "1px solid white",
                         }}
                       />
-                      <Typography
-                        variant="body2"
-                        fontWeight={700}
-                        sx={{ textTransform: "uppercase" }}
-                      >
-                        {variant.variantName || variant.color || "Default"}
-                      </Typography>
+                      <Box>
+                        <Typography
+                          variant="body2"
+                          fontWeight={700}
+                          sx={{ textTransform: "uppercase", lineHeight: 1.2 }}
+                        >
+                          {variant.variantName || variant.color || "Default"}
+                        </Typography>
+                        {(variant.discount > 0 || product.discount > 0) && (
+                          <Typography
+                            variant="caption"
+                            color="white"
+                            fontWeight={800}
+                            sx={{
+                              mt: 0.5,
+                              display: "block",
+                              bgcolor: "error.main",
+                              px: 0.5,
+                              borderRadius: 0.5,
+                              textAlign: "center",
+                            }}
+                          >
+                            {(variant.discount || 0) + (product.discount || 0)}%
+                            OFF
+                          </Typography>
+                        )}
+                      </Box>
                     </Box>
                   ))}
                 </Box>
@@ -398,6 +436,16 @@ export default function POSVariantDialog({
                 >
                   AVAILABLE STOCK: {getSelectedStock()}
                 </Typography>
+                {quantity > getSelectedStock() && (
+                  <Typography
+                    variant="caption"
+                    color="warning.main"
+                    fontWeight={700}
+                    sx={{ ml: 2, textTransform: "uppercase" }}
+                  >
+                    (EXCEEDS STOCK)
+                  </Typography>
+                )}
               </Box>
             </Box>
 

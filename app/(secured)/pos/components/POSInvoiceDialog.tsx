@@ -21,8 +21,11 @@ import {
   CircularProgress,
   InputAdornment,
 } from "@mui/material";
-import { IconSearch, IconX, IconEye } from "@tabler/icons-react";
+import { IconSearch, IconX, IconEye, IconPrinter } from "@tabler/icons-react";
 import { auth } from "@/firebase/firebaseClient";
+import { pdf } from "@react-pdf/renderer";
+import POSInvoicePDF from "./POSInvoicePDF";
+import { Order } from "@/model/Order";
 
 interface POSInvoiceDialogProps {
   open: boolean;
@@ -71,6 +74,24 @@ export default function POSInvoiceDialog({
     setInvoices([]);
     setSearched(false);
     onClose();
+  };
+
+  const printInvoice = async (order: Order) => {
+    try {
+      const blob = await pdf(<POSInvoicePDF order={order} />).toBlob();
+      const blobUrl = URL.createObjectURL(blob);
+      const printWindow = window.open(blobUrl, "_blank");
+      if (!printWindow) return alert("Failed to open print window.");
+      printWindow.onload = () => printWindow.focus();
+      // Optional: Auto-print and close
+      // setTimeout(() => {
+      //   printWindow.print();
+      //   setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      // }, 500);
+    } catch (err) {
+      console.error("Printing failed", err);
+      alert("Printing failed. See console for details.");
+    }
   };
 
   return (
@@ -192,9 +213,24 @@ export default function POSInvoiceDialog({
                         </Typography>
                       </TableCell>
                       <TableCell align="center">
-                        <IconButton size="small">
-                          <IconEye size={18} />
-                        </IconButton>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "center",
+                            gap: 1,
+                          }}
+                        >
+                          <IconButton
+                            size="small"
+                            onClick={() => printInvoice(inv)}
+                            title="Print Invoice"
+                          >
+                            <IconPrinter size={18} />
+                          </IconButton>
+                          {/* <IconButton size="small">
+                            <IconEye size={18} />
+                          </IconButton> */}
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))}

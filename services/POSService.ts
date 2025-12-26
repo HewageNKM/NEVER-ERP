@@ -423,9 +423,13 @@ export const getAvailableStocks = async (): Promise<
 // ================================
 
 // ✅ Create a new POS Order and Update Stock
-export const createPOSOrder = async (orderData: Partial<Order>) => {
+export const createPOSOrder = async (
+  orderData: Partial<Order>,
+  userId: string
+) => {
   try {
     const res = await addOrder(orderData);
+    await clearPosCart(orderData.stockId!, userId);
     return res;
   } catch (error) {
     console.error("Error creating POS order:", error);
@@ -484,7 +488,7 @@ export const getPaymentMethods = async () => {
     const snapshot = await adminFirestore
       .collection("paymentMethods")
       .where("status", "==", "Active")
-      .where("available", "in", ["Store", "POS"])
+      .where("available", "array-contains", "Store")
       .get();
 
     if (snapshot.empty) return [];

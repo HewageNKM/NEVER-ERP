@@ -30,6 +30,9 @@ import { usePOS } from "../context/POSContext";
 import { POSPayment, POSPaymentMethod } from "@/model/POSTypes";
 import toast from "react-hot-toast";
 import { auth } from "@/firebase/firebaseClient";
+import { pdf } from "@react-pdf/renderer";
+import POSInvoicePDF from "./POSInvoicePDF";
+import { Order } from "@/model/Order";
 
 export default function POSPaymentForm() {
   const {
@@ -88,8 +91,10 @@ export default function POSPaymentForm() {
   };
 
   useEffect(() => {
-    if (auth.currentUser) fetchPaymentMethods();
-  }, [auth.currentUser]);
+    if (showPaymentDialog && auth.currentUser) {
+      fetchPaymentMethods();
+    }
+  }, [showPaymentDialog, auth.currentUser]);
 
   const handleAddPayment = () => {
     const amount = parseFloat(paymentAmount);
@@ -199,13 +204,36 @@ export default function POSPaymentForm() {
         throw new Error(error.error || "Failed to place order");
       }
 
-      toast.success("Order placed successfully!");
+      const data = await res.json();
 
-      // Clear state and regenerate invoice ID
-      setPayments([]);
-      loadCart();
+      const printInvoice = async (order: Order) => {
+        try {
+          const blob = await pdf(<POSInvoicePDF order={order} />).toBlob();
+          const blobUrl = URL.createObjectURL(blob);
+          const printWindow = window.open(blobUrl, "_blank");
+          if (!printWindow) {
+            toast.error("Allowed popups to print invoice automatically");
+            return;
+          }
+          printWindow.onload = () => printWindow.focus();
+        } catch (err) {
+          console.error("Printing failed", err);
+          toast.error("Failed to generate print");
+        }
+      };
+
+      if (data.order) {
+        toast.success("Order created successfully!");
+        // Auto print
+        await printInvoice(data.order);
+      }
+
       regenerateInvoiceId();
       closePaymentDialog();
+      setPayments([]);
+      setPaymentAmount("");
+      setCardNumber("");
+      loadCart(); // Refresh cart (should be empty now)
     } catch (error: any) {
       toast.error(error.message || "Failed to place order");
     } finally {
