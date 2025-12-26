@@ -74,7 +74,7 @@ const POSInvoicePDF: React.FC<InvoicePDFProps> = ({ order }) => {
 
   return (
     <Document>
-      <Page size={{ width: "48mm", height: "auto" }} style={styles.page}>
+      <Page size={{ width: "48mm", height: "274mm" }} style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
           <Text style={{ fontSize: 9, fontWeight: "bold" }}>NEVERBE</Text>

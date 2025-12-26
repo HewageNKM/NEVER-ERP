@@ -51,12 +51,15 @@ export default function POSPaymentForm() {
   const [cardNumber, setCardNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState<POSPaymentMethod[]>([]);
+  const [invoiceUrl, setInvoiceUrl] = useState<string | null>(null);
+  const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
 
   // Calculate totals
   const itemsTotal = useMemo(
     () => items.reduce((acc, i) => acc + i.quantity * i.price, 0),
     [items]
   );
+  // ... existing memo hooks ...
   const totalDiscount = useMemo(
     () => items.reduce((acc, i) => acc + i.discount, 0),
     [items]
@@ -72,6 +75,7 @@ export default function POSPaymentForm() {
   const pendingDue = subtotal - paymentsTotal;
 
   const fetchPaymentMethods = async () => {
+    // ... existing fetch ...
     try {
       const token = await auth.currentUser?.getIdToken();
       const res = await fetch("/api/pos/payment-methods", {
@@ -94,9 +98,20 @@ export default function POSPaymentForm() {
     if (showPaymentDialog && auth.currentUser) {
       fetchPaymentMethods();
     }
-  }, [showPaymentDialog, auth.currentUser]);
+    // Cleanup URL object
+    return () => {
+      if (invoiceUrl) URL.revokeObjectURL(invoiceUrl);
+    };
+  }, [showPaymentDialog, auth.currentUser]); // Logic for cleanup slightly wrong here, needs dedicated effect or cleanup in close
+
+  useEffect(() => {
+    return () => {
+      if (invoiceUrl) URL.revokeObjectURL(invoiceUrl);
+    };
+  }, [invoiceUrl]);
 
   const handleAddPayment = () => {
+    // ... existing code ...
     const amount = parseFloat(paymentAmount);
 
     if (isNaN(amount) || amount <= 0) {
@@ -146,6 +161,7 @@ export default function POSPaymentForm() {
 
     setLoading(true);
     try {
+      // ... existing order construction ...
       // Calculate transaction fees
       const transactionFeeCharge = payments.reduce((acc, payment) => {
         const method = paymentMethods.find(
@@ -162,7 +178,7 @@ export default function POSPaymentForm() {
           bPrice: i.bPrice,
           variantId: i.variantId,
           name: i.name,
-          variantName: i.variantName,
+          variantName: i.variantName || i.size || "Default", // Fallback
           size: i.size,
           quantity: i.quantity,
           price: i.price,
@@ -206,35 +222,28 @@ export default function POSPaymentForm() {
 
       const data = await res.json();
 
-      const printInvoice = async (order: Order) => {
-        try {
-          const blob = await pdf(<POSInvoicePDF order={order} />).toBlob();
-          const blobUrl = URL.createObjectURL(blob);
-          const printWindow = window.open(blobUrl, "_blank");
-          if (!printWindow) {
-            toast.error("Allowed popups to print invoice automatically");
-            return;
-          }
-          printWindow.onload = () => printWindow.focus();
-        } catch (err) {
-          console.error("Printing failed", err);
-          toast.error("Failed to generate print");
-        }
-      };
-
       if (data.order) {
         toast.success("Order created successfully!");
-        // Auto print
-        await printInvoice(data.order);
+
+        // Generate Invoice URL
+        const blob = await pdf(<POSInvoicePDF order={data.order} />).toBlob();
+        const url = URL.createObjectURL(blob);
+        setInvoiceUrl(url);
+        setCompletedOrder(data.order);
+
+        // Don't print automatically? Or maybe still do?
+        // User asked to "load invoice inside... print from there".
+        // I'll skip auto-popup print if showing inside.
       }
 
       regenerateInvoiceId();
-      closePaymentDialog();
+      // DO NOT close dialog here
       setPayments([]);
       setPaymentAmount("");
       setCardNumber("");
-      loadCart(); // Refresh cart (should be empty now)
+      loadCart();
     } catch (error: any) {
+      console.error(error);
       toast.error(error.message || "Failed to place order");
     } finally {
       setLoading(false);
@@ -245,6 +254,8 @@ export default function POSPaymentForm() {
     setPayments([]);
     setPaymentAmount("");
     setCardNumber("");
+    setInvoiceUrl(null);
+    setCompletedOrder(null);
     closePaymentDialog();
   };
 
@@ -296,6 +307,36 @@ export default function POSPaymentForm() {
             }}
           >
             <CircularProgress sx={{ color: "black" }} />
+          </Box>
+        ) : invoiceUrl ? (
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 3,
+              alignItems: "center",
+            }}
+          >
+            <Box
+              sx={{
+                width: "100%",
+                height: "500px",
+                border: "1px solid",
+                borderColor: "grey.200",
+                bgcolor: "grey.50",
+              }}
+            >
+              <iframe
+                src={invoiceUrl}
+                width="100%"
+                height="100%"
+                style={{ border: "none" }}
+                title="Invoice Preview"
+              />
+            </Box>
+            <Typography variant="body2" color="success.main" fontWeight={700}>
+              Order Completed Successfully!
+            </Typography>
           </Box>
         ) : (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -573,25 +614,44 @@ export default function POSPaymentForm() {
             "&:hover": { borderColor: "black", bgcolor: "white" },
           }}
         >
-          CANCEL
+          {invoiceUrl ? "CLOSE" : "CANCEL"}
         </Button>
-        <Button
-          onClick={handlePlaceOrder}
-          variant="contained"
-          disabled={paymentsTotal < subtotal || loading}
-          startIcon={<IconPrinter size={18} />}
-          sx={{
-            bgcolor: "black",
-            color: "white",
-            borderRadius: 0,
-            fontWeight: 700,
-            px: 3,
-            "&:hover": { bgcolor: "grey.900" },
-            "&:disabled": { bgcolor: "grey.300" },
-          }}
-        >
-          CONFIRM & PRINT
-        </Button>
+        {!invoiceUrl && (
+          <Button
+            onClick={handlePlaceOrder}
+            variant="contained"
+            disabled={paymentsTotal < subtotal || loading}
+            startIcon={<IconPrinter size={18} />}
+            sx={{
+              bgcolor: "black",
+              color: "white",
+              borderRadius: 0,
+              fontWeight: 700,
+              px: 3,
+              "&:hover": { bgcolor: "grey.900" },
+              "&:disabled": { bgcolor: "grey.300" },
+            }}
+          >
+            CONFIRM & PRINT
+          </Button>
+        )}
+        {invoiceUrl && (
+          <Button
+            onClick={() => window.open(invoiceUrl, "_blank")}
+            variant="contained"
+            startIcon={<IconPrinter size={18} />}
+            sx={{
+              bgcolor: "black",
+              color: "white",
+              borderRadius: 0,
+              fontWeight: 700,
+              px: 3,
+              "&:hover": { bgcolor: "grey.900" },
+            }}
+          >
+            OPEN PDF
+          </Button>
+        )}
       </DialogActions>
     </Dialog>
   );

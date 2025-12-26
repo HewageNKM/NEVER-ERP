@@ -50,11 +50,24 @@ export default function POSInvoiceDialog({
       const token = await auth.currentUser?.getIdToken();
       if (!token) throw new Error("Unauthorized");
 
-      const res = await fetch(`/api/pos/orders?orderId=${searchQuery}`, {
+      const res = await fetch(`/api/pos/orders/${searchQuery}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      if (!res.ok) {
+        throw new Error("Order not found");
+      }
+
       const data = await res.json();
-      setInvoices(data.dataList || []);
+
+      // API returns single order object, wrap in array for table display
+      if (data && data.orderId) {
+        setInvoices([data]);
+      } else if (Array.isArray(data)) {
+        setInvoices(data);
+      } else {
+        setInvoices([]);
+      }
     } catch (error) {
       console.error("Failed to search invoices:", error);
       setInvoices([]);
@@ -78,16 +91,22 @@ export default function POSInvoiceDialog({
 
   const printInvoice = async (order: Order) => {
     try {
+      console.log("Printing order:", order); // Debug log
+      if (!order || !order.items) {
+        alert("Invalid order data for printing.");
+        return;
+      }
+
       const blob = await pdf(<POSInvoicePDF order={order} />).toBlob();
       const blobUrl = URL.createObjectURL(blob);
       const printWindow = window.open(blobUrl, "_blank");
-      if (!printWindow) return alert("Failed to open print window.");
+
+      if (!printWindow) {
+        alert("Popup blocked! Please allow popups to print invoices.");
+        return;
+      }
+
       printWindow.onload = () => printWindow.focus();
-      // Optional: Auto-print and close
-      // setTimeout(() => {
-      //   printWindow.print();
-      //   setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-      // }, 500);
     } catch (err) {
       console.error("Printing failed", err);
       alert("Printing failed. See console for details.");
