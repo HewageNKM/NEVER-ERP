@@ -82,3 +82,32 @@ export const deletePromotion = async (id: string) => {
     throw e;
   }
 };
+// ... existing exports
+
+// ============ BANNERS LOGIC ============
+
+export const getAllBanners = async () => {
+  try {
+    const snapshot = await adminFirestore
+      .collection("website_banners")
+      .orderBy("createdAt", "desc")
+      .get();
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  } catch (e) {
+    console.error("Error getting banners:", e);
+    throw e;
+  }
+};
+
+export const addABanner = async (data: any) => {
+  try {
+    const docRef = await adminFirestore.collection("website_banners").add({
+      ...data,
+      createdAt: new Date(),
+    });
+    return { id: docRef.id, ...data };
+  } catch (e) {
+    console.error("Error adding banner:", e);
+    throw e;
+  }
+};

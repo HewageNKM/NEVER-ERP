@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { authorizeRequest, uploadFile } from "@/firebase/firebaseAdmin";
+import { authorizeRequest } from "@/services/AuthService";
+import { uploadFile } from "@/services/StorageService";
 import { addPromotion, getAllPromotions } from "@/services/WebsiteService";
 
 export const GET = async (req: Request) => {
@@ -37,8 +38,8 @@ export const POST = async (req: Request) => {
       );
     }
 
-    const { file: fileName, url } = await uploadFile(file, "promotions");
-    const id = await addPromotion({ file: fileName, url, title, link });
+    const { url } = await uploadFile(file, "promotions");
+    const id = await addPromotion({ file: file.name, url, title, link });
     return NextResponse.json({ id });
   } catch (error: any) {
     console.error(error);
