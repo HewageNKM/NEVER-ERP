@@ -46,13 +46,26 @@ export interface StockInventoryItem {
 // ================================
 
 // ✅ Get all items in POS cart
-export const getPosCart = async (): Promise<POSCartItem[]> => {
-  const snap = await adminFirestore.collection("posCart").get();
+// ✅ Get all items in POS cart (scoped to user mandatory)
+export const getPosCart = async (
+  stockId: string,
+  userId: string
+): Promise<POSCartItem[]> => {
+  let query = adminFirestore.collection("posCart").orderBy("createdAt", "desc");
+
+  if (stockId) {
+    query = query.where("stockId", "==", stockId);
+  }
+  if (userId) {
+    query = query.where("userId", "==", userId);
+  }
+
+  const snap = await query.get();
   return snap.docs.map((d) => d.data() as POSCartItem);
 };
 
 // ✅ Add item to POS cart using InventoryItem info
-export const addItemToPosCart = async (item: POSCartItem) => {
+export const addItemToPosCart = async (item: POSCartItem, userId: string) => {
   const posCart = adminFirestore.collection("posCart");
 
   await adminFirestore.runTransaction(async (tx) => {
@@ -84,12 +97,16 @@ export const addItemToPosCart = async (item: POSCartItem) => {
     });
 
     // 4️⃣ Add to POS cart
-    tx.set(posCart.doc(), { ...item, createdAt: FieldValue.serverTimestamp() });
+    tx.set(posCart.doc(), {
+      ...item,
+      userId: userId || "anonymous",
+      createdAt: FieldValue.serverTimestamp(),
+    });
   });
 };
 
 // ✅ Remove item from POS cart and restock
-export const removeFromPosCart = async (item: POSCartItem) => {
+export const removeFromPosCart = async (item: POSCartItem, userId: string) => {
   const posCart = adminFirestore.collection("posCart");
 
   await adminFirestore.runTransaction(async (tx) => {
@@ -114,29 +131,43 @@ export const removeFromPosCart = async (item: POSCartItem) => {
     });
 
     // 3️⃣ Delete item from POS cart
-    const cartQuery = await posCart
+    let cartQuery = posCart
       .where("itemId", "==", item.itemId)
       .where("variantId", "==", item.variantId)
       .where("size", "==", item.size)
-      .where("stockId", "==", item.stockId)
-      .limit(1)
-      .get();
+      .where("stockId", "==", item.stockId);
 
-    if (!cartQuery.empty) {
-      tx.delete(cartQuery.docs[0].ref);
+    if (userId) {
+      cartQuery = cartQuery.where("userId", "==", userId);
+    }
+
+    const cartSnapshot = await cartQuery.limit(1).get();
+
+    if (!cartSnapshot.empty) {
+      tx.delete(cartSnapshot.docs[0].ref);
     }
   });
 };
 
-// ✅ Clear entire POS cart
-export const clearPosCart = async () => {
+// ✅ Clear entire POS cart (scoped to user/stock mandatory)
+export const clearPosCart = async (stockId: string, userId: string) => {
   try {
-    const snap = await adminFirestore.collection("posCart").get();
+    let query = adminFirestore.collection("posCart").limit(500); // Batch limit
+
+    if (stockId) {
+      query = query.where("stockId", "==", stockId);
+    }
+    if (userId) {
+      query = query.where("userId", "==", userId);
+    }
+
+    const snap = await query.get();
     if (snap.empty) return;
+
     const batch = adminFirestore.batch();
     snap.docs.forEach((doc) => batch.delete(doc.ref));
     await batch.commit();
-    console.log("POS cart cleared");
+    console.log("POS cart cleared for user:", userId, "stock:", stockId);
   } catch (error) {
     console.error("clearPosCart failed:", error);
     throw error;

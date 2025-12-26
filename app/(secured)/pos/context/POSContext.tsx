@@ -183,18 +183,21 @@ export const POSProvider = ({ children }: { children: ReactNode }) => {
   // ================================
 
   const loadCart = useCallback(async () => {
+    if (!state.selectedStockId) return; // Don't load if no stock selected
+
     dispatch({ type: "SET_INVOICE_LOADING", payload: true });
     try {
       // Wait for auth
       const currentUser = auth.currentUser;
       if (!currentUser) {
-        // Retry or wait?
-        // We'll rely on the caller or auth state listener
         dispatch({ type: "SET_INVOICE_LOADING", payload: false });
         return;
       }
       const headers = await getAuthHeaders();
-      const res = await fetch("/api/pos/cart", { headers });
+      const res = await fetch(
+        `/api/pos/cart?stockId=${state.selectedStockId}`,
+        { headers }
+      );
       if (!res.ok) throw new Error("Failed to load cart");
       const data = await res.json();
       dispatch({ type: "SET_ITEMS", payload: data });
@@ -204,7 +207,7 @@ export const POSProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       dispatch({ type: "SET_INVOICE_LOADING", payload: false });
     }
-  }, []);
+  }, [state.selectedStockId]);
 
   const addItemToCart = useCallback(
     async (item: POSCartItem) => {

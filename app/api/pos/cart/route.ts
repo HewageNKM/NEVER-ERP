@@ -8,10 +8,20 @@ import {
 import { verifyPosAuth, handleAuthError } from "@/services/AuthService";
 
 // GET - Fetch all cart items
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    await verifyPosAuth();
-    const items = await getPosCart();
+    const decodedToken = await verifyPosAuth();
+    const stockId = request.nextUrl.searchParams.get("stockId");
+
+    if (!stockId) {
+      return NextResponse.json(
+        { error: "Stock ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const userId = decodedToken.uid;
+    const items = await getPosCart(stockId, userId);
     return NextResponse.json(items);
   } catch (error: any) {
     return handleAuthError(error);
@@ -21,9 +31,9 @@ export async function GET() {
 // POST - Add item to cart
 export async function POST(request: NextRequest) {
   try {
-    await verifyPosAuth();
+    const decodedToken = await verifyPosAuth();
     const item = await request.json();
-    await addItemToPosCart(item);
+    await addItemToPosCart(item, decodedToken.uid);
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return handleAuthError(error);
@@ -33,17 +43,23 @@ export async function POST(request: NextRequest) {
 // DELETE - Remove item from cart or clear cart
 export async function DELETE(request: NextRequest) {
   try {
-    await verifyPosAuth();
+    const decodedToken = await verifyPosAuth();
     const body = await request.json();
 
     // If clearAll flag is set, clear entire cart
     if (body.clearAll) {
-      await clearPosCart();
+      if (!body.stockId) {
+        return NextResponse.json(
+          { error: "Stock ID is required to clear cart" },
+          { status: 400 }
+        );
+      }
+      await clearPosCart(body.stockId, decodedToken.uid);
       return NextResponse.json({ success: true, message: "Cart cleared" });
     }
 
     // Otherwise, remove specific item
-    await removeFromPosCart(body);
+    await removeFromPosCart(body, decodedToken.uid);
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return handleAuthError(error);
