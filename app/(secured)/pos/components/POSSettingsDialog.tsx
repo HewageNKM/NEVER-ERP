@@ -29,10 +29,9 @@ import {
   fetchPosCart,
   fetchPosProducts,
 } from "@/lib/posSlice/posSlice";
-import { auth } from "@/firebase/firebaseClient";
-import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { logoutUserAction } from "@/actions/authActions";
 
 interface POSSettingsDialogProps {
   open: boolean;
@@ -66,7 +65,7 @@ export default function POSSettingsDialog({
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      await logoutUserAction();
       if (typeof window !== "undefined") {
         window.localStorage.removeItem("neverbePOSStockId");
         window.localStorage.removeItem("posInvoiceId");

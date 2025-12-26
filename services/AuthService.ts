@@ -1,6 +1,7 @@
 import { adminAuth, adminFirestore } from "@/firebase/firebaseAdmin";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
+import { User } from "@/model/User";
 
 export const authorizeOrderRequest = async (req: Request) => {
   try {
@@ -58,4 +59,128 @@ export const handleAuthError = (error: any) => {
     { error: error.message || "Internal Server Error" },
     { status }
   );
+};
+
+export const authorizeRequest = async (req: any) => {
+  try {
+    const authHeader = req.headers.get("authorization");
+    const token = authHeader?.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : null;
+
+    if (token && token !== "undefined") {
+      const decodedIdToken = await adminAuth.verifyIdToken(token);
+      const userDoc = await adminFirestore
+        .collection("users")
+        .doc(decodedIdToken.uid)
+        .get();
+
+      if (!userDoc.exists) {
+        console.warn("User not found!");
+        return false;
+      }
+
+      const userData = userDoc.data();
+      if (userData?.status === "Inactive") {
+        console.warn("User is inactive!");
+        return false;
+      }
+
+      if (userData?.role === "ADMIN" || userData?.role === "OWNER") {
+        return true;
+      } else {
+        console.warn("User is not Admin!");
+        return false;
+      }
+    } else {
+      console.warn("Authorization Failed! No token.");
+      return false;
+    }
+  } catch (e) {
+    console.error(e);
+    return false;
+  }
+};
+
+export const authorizeAndGetUser = async (req: any): Promise<User | null> => {
+  try {
+    const authHeader = req.headers.get("authorization");
+    const token = authHeader?.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : null;
+
+    if (token && token !== "undefined") {
+      const decodedIdToken = await adminAuth.verifyIdToken(token);
+      const userDoc = await adminFirestore
+        .collection("users")
+        .doc(decodedIdToken.uid)
+        .get();
+
+      if (!userDoc.exists) {
+        console.warn("User not found!");
+        return null;
+      }
+
+      const userData = userDoc.data() as User;
+      if (userData.status === "Inactive") {
+        console.warn("User is inactive!");
+        return null;
+      }
+
+      if (userData.role === "ADMIN" || userData.role === "OWNER") {
+        return {
+          ...userData,
+          createdAt:
+            (userData.createdAt as any)?.toDate?.()?.toLocaleString() ||
+            userData.createdAt,
+          updatedAt:
+            (userData.updatedAt as any)?.toDate?.()?.toLocaleString() ||
+            userData.updatedAt,
+        } as User;
+      } else {
+        console.warn("User is not Admin!");
+        return null;
+      }
+    } else {
+      console.warn("Authorization Failed! No token.");
+      return null;
+    }
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+};
+
+export const loginUser = async (userId: string) => {
+  try {
+    console.log(`Logging in user with ID: ${userId}`);
+    // Check if user exists in Auth
+    await adminAuth.getUser(userId);
+
+    const userDoc = await adminFirestore.collection("users").doc(userId).get();
+
+    if (!userDoc.exists) {
+      console.warn(`User with ID ${userId} not found`);
+      throw new Error(`User with ID ${userId} not found`);
+    }
+
+    const userData = userDoc.data() as User;
+
+    if (userData.status !== "Active") {
+      throw new Error(`User with ID ${userId} is not active`);
+    }
+
+    return {
+      ...userData,
+      createdAt:
+        (userData.createdAt as any)?.toDate?.()?.toLocaleString() ||
+        userData.createdAt,
+      updatedAt:
+        (userData.updatedAt as any)?.toDate?.()?.toLocaleString() ||
+        userData.updatedAt,
+    } as User;
+  } catch (e) {
+    console.error(e);
+    throw e;
+  }
 };

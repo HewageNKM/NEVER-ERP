@@ -18,6 +18,8 @@ import {
   IconAlertTriangle,
 } from "@tabler/icons-react";
 import { useConfirmationDialog } from "@/contexts/ConfirmationDialogContext"; // Add import
+import { logoutUserAction } from "@/actions/authActions";
+import { showNotification } from "@/utils/toast";
 
 const ProfilePage = () => {
   const { currentUser } = useAppSelector((state) => state.authSlice);
@@ -134,11 +136,13 @@ const ProfilePage = () => {
 
   // 4. Logout
   const handleLogout = async () => {
-    const auth = getAuth();
-    await signOut(auth);
-    // Clear Redux state if needed, usually handled by an auth listener
-    router.push("/");
-    showNotification("LOGGED OUT SUCCESSFULLY", "success");
+    try {
+      await logoutUserAction();
+      router.push("/");
+      showNotification("LOGGED OUT SUCCESSFULLY", "success");
+    } catch (error) {
+      showNotification("FAILED TO LOGOUT", "error");
+    }
   };
 
   // 5. Delete Account (DELETE /api/v2/users/[id])
@@ -159,8 +163,7 @@ const ProfilePage = () => {
           if (!response.ok) throw new Error("Failed to delete account");
 
           // Sign out from Firebase immediately after DB deletion
-          const auth = getAuth();
-          await signOut(auth);
+          await logoutUserAction();
 
           router.push("/");
           showNotification("ACCOUNT DELETED", "success");

@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
-import { authorizeRequest, adminFirestore } from "@/firebase/firebaseAdmin";
+import { adminFirestore } from "@/firebase/firebaseAdmin";
+import { authorizeRequest } from "@/services/AuthService";
+import { addNewUser } from "@/services/UserService";
 import { User } from "@/model/User";
 import admin from "firebase-admin";
 
 export const GET = async (req: Request) => {
   try {
     // Verify the ID token
-    const response = await authorizeRequest(req);
-    if (!response) {
+    const isAuthorized = await authorizeRequest(req);
+    if (!isAuthorized) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
@@ -78,8 +80,8 @@ export const GET = async (req: Request) => {
       const searchLower = search.toLowerCase();
       filteredUsers = users.filter(
         (user) =>
-          user.username.toLowerCase().includes(searchLower) ||
-          user.email.toLowerCase().includes(searchLower)
+          user.username?.toLowerCase().includes(searchLower) ||
+          user.email?.toLowerCase().includes(searchLower)
       );
     }
 
@@ -102,6 +104,33 @@ export const GET = async (req: Request) => {
     console.error(error);
     return NextResponse.json(
       { message: "Error fetching users", error: error.message },
+      { status: 500 }
+    );
+  }
+};
+
+export const POST = async (req: Request) => {
+  try {
+    // Verify the ID token
+    const isAuthorized = await authorizeRequest(req);
+    if (!isAuthorized) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const body: User = await req.json();
+    if (!body) {
+      return NextResponse.json(
+        { message: "Invalid request body" },
+        { status: 400 }
+      );
+    }
+
+    const userId = await addNewUser(body);
+    return NextResponse.json({ userId }, { status: 201 });
+  } catch (error: any) {
+    console.error(error);
+    return NextResponse.json(
+      { message: "Error creating user", error: error.message },
       { status: 500 }
     );
   }
