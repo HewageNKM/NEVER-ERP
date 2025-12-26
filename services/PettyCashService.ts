@@ -2,7 +2,7 @@ import { adminFirestore } from "@/firebase/firebaseAdmin";
 import { PettyCash } from "@/model/PettyCash";
 import { nanoid } from "nanoid";
 import { Timestamp } from "firebase-admin/firestore";
-import { uploadFile } from "@/firebase/firebaseAdmin"; // Reusing existing upload function
+import { uploadFile } from "@/services/StorageService";
 
 const COLLECTION_NAME = "expenses";
 

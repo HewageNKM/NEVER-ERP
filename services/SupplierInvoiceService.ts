@@ -1,4 +1,5 @@
-import { adminFirestore, uploadFile } from "@/firebase/firebaseAdmin";
+import { adminFirestore } from "@/firebase/firebaseAdmin";
+import { uploadFile } from "@/services/StorageService";
 import { SupplierInvoice } from "@/model/SupplierInvoice";
 import { updateBankAccountBalance } from "./BankAccountService";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
