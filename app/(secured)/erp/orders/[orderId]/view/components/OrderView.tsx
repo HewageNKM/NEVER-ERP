@@ -57,7 +57,7 @@ const OrderView = ({ orderId }: { orderId: string }) => {
     try {
       setLoadingOrder(true);
       const token = await getToken();
-      const res = await axios.get(`/api/v1/orders/${orderId}`, {
+      const res = await axios.get(`/api/v2/orders/${orderId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setOrder(res.data || null);

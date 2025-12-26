@@ -331,7 +331,9 @@ const OrdersPage = () => {
                         <div className="flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200">
                           <button
                             onClick={() =>
-                              router.push(`/orders/${order.orderId}/invoice`)
+                              router.push(
+                                `/erp/orders/${order.orderId}/invoice`
+                              )
                             }
                             className={styles.iconBtn}
                             title="Invoice"
@@ -340,7 +342,7 @@ const OrdersPage = () => {
                           </button>
                           <button
                             onClick={() =>
-                              router.push(`/orders/${order.orderId}/view`)
+                              router.push(`/erp/orders/${order.orderId}/view`)
                             }
                             className={styles.iconBtn}
                             title="View"
@@ -349,7 +351,7 @@ const OrdersPage = () => {
                           </button>
                           <button
                             onClick={() =>
-                              router.push(`/orders/${order.orderId}`)
+                              router.push(`/erp/orders/${order.orderId}`)
                             }
                             className={`${styles.iconBtn} bg-black text-white hover:bg-gray-800 border-black`}
                             title="Edit"

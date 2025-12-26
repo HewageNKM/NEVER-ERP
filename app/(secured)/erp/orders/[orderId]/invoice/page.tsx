@@ -25,7 +25,7 @@ const OrderInvoice = () => {
     try {
       setLoading(true);
       const token = await getToken();
-      const response = await axios.get(`/api/v1/orders/${orderId}`, {
+      const response = await axios.get(`/api/v2/orders/${orderId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setOrder(response.data);

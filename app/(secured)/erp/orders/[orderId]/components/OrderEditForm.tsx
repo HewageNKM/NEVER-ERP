@@ -91,7 +91,7 @@ export const OrderEditForm: React.FC<OrderEditFormProps> = ({
           setIsSubmitting(true);
           const token = await getToken();
 
-          await axios.put(`/api/v1/orders/${order.orderId}`, formData, {
+          await axios.put(`/api/v2/orders/${order.orderId}`, formData, {
             headers: { Authorization: `Bearer ${token}` },
           });
 

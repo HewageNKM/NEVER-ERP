@@ -51,26 +51,14 @@ const POSInvoicePDF: React.FC<InvoicePDFProps> = ({ order }) => {
     order.total ||
     order.items.reduce((acc, i) => acc + i.price * i.quantity, 0);
 
-  // order.discount might be a total number or we sum item discounts
   const totalDiscount =
     order.discount ||
     order.items.reduce((acc, i) => acc + (i.discount || 0), 0);
 
-  // Grand total is usually total - discount + fee + shipping etc.
-  // Assuming order.total is the final amount to pay?
-  // Let's stick to standard logic: Subtotal - Discount + Fees
   const subtotal = order.items.reduce(
     (acc, i) => acc + i.price * i.quantity,
     0
   );
-
-  // Check if we have payment info. In NEVER-PANEL Order model, we might need to check how payments are stored.
-  // The POSTypes has POSPayment, but Order model is generic.
-  // Assuming order.paymentInfo or similar tracks payments for POS.
-  // If not available, we might need to rely on order.total as paid amount for now or check 'status'.
-
-  // For POS, we usually have a 'payments' array in the order object if it was a POS order.
-  // Let's assume order matches strict Order interface.
 
   return (
     <Document>
@@ -95,29 +83,39 @@ const POSInvoicePDF: React.FC<InvoicePDFProps> = ({ order }) => {
           {new Date(order.createdAt as any).toLocaleString()}
         </Text>
 
-        {/* Items Table */}
+        {/* Items List */}
         <View>
-          <View style={styles.tableHeader}>
-            <Text style={styles.left}>Item</Text>
-            <Text style={styles.right}>Qty</Text>
-            <Text style={styles.right}>Price</Text>
-          </View>
+          <View style={styles.hr} />
           {order.items.map((item: any, idx: number) => (
-            <View key={idx} style={styles.tableRow}>
-              <View style={styles.left}>
-                <Text style={{ fontSize: 7 }}>{item.name}</Text>
-                {item.variantName && (
-                  <Text style={{ fontSize: 6 }}>
-                    {item.variantName} ({item.size})
+            <View key={idx} style={{ marginBottom: 3 }}>
+              <View style={styles.tableRow}>
+                <View style={styles.left}>
+                  <Text style={{ fontSize: 7 }}>
+                    {item.quantity} x {item.name}
                   </Text>
-                )}
+                  {item.variantName && (
+                    <Text style={{ fontSize: 6, color: "#666" }}>
+                      {item.variantName} | {item.size}
+                    </Text>
+                  )}
+                  <Text style={{ fontSize: 6, color: "#666" }}>
+                    @ Rs. {Number(item.price).toFixed(2)} each
+                  </Text>
+                </View>
+                <Text style={styles.right}>
+                  {(item.price * item.quantity).toFixed(2)}
+                </Text>
               </View>
-              <Text style={styles.right}>{item.quantity}</Text>
-              <Text style={styles.right}>
-                {(item.price * item.quantity).toFixed(2)}
-              </Text>
+              {(item.discount || 0) > 0 && (
+                <Text
+                  style={{ fontSize: 6, color: "#666", textAlign: "right" }}
+                >
+                  Disc: -{Number(item.discount).toFixed(2)}
+                </Text>
+              )}
             </View>
           ))}
+          <View style={styles.hr} />
         </View>
 
         <View style={styles.hr} />

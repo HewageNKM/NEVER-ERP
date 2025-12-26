@@ -31,7 +31,7 @@ const OrderEditPage = () => {
     try {
       setLoading(true);
       const token = await getToken();
-      const response = await axios.get(`/api/v1/orders/${param.orderId}`, {
+      const response = await axios.get(`/api/v2/orders/${param.orderId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setOrder(response.data);
