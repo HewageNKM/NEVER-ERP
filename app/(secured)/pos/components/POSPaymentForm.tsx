@@ -69,29 +69,29 @@ export default function POSPaymentForm() {
 
   // Fetch payment methods on mount
   useEffect(() => {
-    fetchPaymentMethods();
-  }, []);
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        try {
+          const token = await user.getIdToken();
+          const res = await fetch("/api/pos/payment-methods", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
 
-  const fetchPaymentMethods = async () => {
-    try {
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) return;
+          if (!res.ok) throw new Error("Failed to fetch payment methods");
 
-      const res = await fetch("/api/pos/payment-methods", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!res.ok) throw new Error("Failed to fetch payment methods");
-
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setPaymentMethods(data);
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setPaymentMethods(data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch payment methods:", error);
+          toast.error("Could not load payment methods");
+        }
       }
-    } catch (error) {
-      console.error("Failed to fetch payment methods:", error);
-      toast.error("Could not load payment methods");
-    }
-  };
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const handleAddPayment = () => {
     const amount = parseFloat(paymentAmount);

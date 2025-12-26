@@ -3,6 +3,7 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { Product } from "@/model/Product";
 import { POSOrder } from "@/model/POSTypes";
 import { Order } from "@/model/Order";
+import { addOrder } from "./OrderService";
 
 // ================================
 // 🔹 DATA TYPES
@@ -389,54 +390,10 @@ export const getAvailableStocks = async (): Promise<
 // ================================
 
 // ✅ Create a new POS Order and Update Stock
-export const createPOSOrder = async (orderData: POSOrder) => {
+export const createPOSOrder = async (orderData: Partial<Order>) => {
   try {
-    const orderRef = adminFirestore.collection("orders").doc();
-    const batch = adminFirestore.batch();
-
-    // 1️⃣ Prepare Order Data
-    const timestamp = Timestamp.now();
-    const finalOrder = {
-      ...orderData,
-      orderId: orderData.orderId || orderRef.id,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      from: "POS",
-    };
-
-    batch.set(orderRef, finalOrder);
-
-    // 2️⃣ Update Stock Inventory (Decrement)
-    if (orderData.stockId) {
-      for (const item of orderData.items) {
-        // Find specific inventory item
-        const inventorySnapshot = await adminFirestore
-          .collection("stock_inventory")
-          .where("stockId", "==", orderData.stockId)
-          .where("productId", "==", item.itemId)
-          .where("variantId", "==", item.variantId)
-          .where("size", "==", item.size)
-          .limit(1)
-          .get();
-
-        if (!inventorySnapshot.empty) {
-          const doc = inventorySnapshot.docs[0];
-          const currentQty = doc.data().quantity || 0;
-          const newQty = Math.max(0, currentQty - item.quantity);
-
-          batch.update(doc.ref, {
-            quantity: newQty,
-            updatedAt: timestamp,
-          });
-        }
-      }
-    }
-
-    // 3️⃣ Commit Batch
-    await batch.commit();
-
-    console.log(`POS Order created: ${finalOrder.orderId}`);
-    return finalOrder;
+    const res = await addOrder(orderData);
+    return res;
   } catch (error) {
     console.error("Error creating POS order:", error);
     throw error;
