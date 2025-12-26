@@ -42,6 +42,15 @@ export default function POSVariantDialog({
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
 
+  // Calculate automatic discount and rounded price
+  const basePrice = product?.sellingPrice || 0;
+  const discountPercent =
+    (product?.discount || 0) + (selectedVariant?.discount || 0);
+  const priceAfterPercent = basePrice * (1 - discountPercent / 100);
+  // Round to nearest 10
+  const roundedPrice = Math.round(priceAfterPercent / 10) * 10;
+  const autoDiscountPerUnit = basePrice - roundedPrice;
+
   // Fetch inventory when product changes
   useEffect(() => {
     if (open && product && selectedStockId) {
@@ -131,7 +140,9 @@ export default function POSVariantDialog({
           selectedVariant.variantName || selectedVariant.color || "Default",
         thumbnail: selectedVariant.images[0].url || product.thumbnail || "",
         size: selectedSize,
-        discount: discount,
+        discount:
+          (autoDiscountPerUnit + parseFloat(discount.toString() || "0")) *
+          quantity,
         type: "product",
         quantity: quantity,
         price: product.sellingPrice,
@@ -478,6 +489,75 @@ export default function POSVariantDialog({
                 }}
                 inputProps={{ min: 0 }}
               />
+
+              {/* Price Summary */}
+              <Box sx={{ p: 2, bgcolor: "grey.100", borderRadius: 1, mt: 2 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    mb: 0.5,
+                  }}
+                >
+                  <Typography variant="body2" color="text.secondary">
+                    Original Price:
+                  </Typography>
+                  <Typography variant="body2">
+                    Rs. {basePrice.toLocaleString()}
+                  </Typography>
+                </Box>
+                {autoDiscountPerUnit > 0 && (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      mb: 0.5,
+                    }}
+                  >
+                    <Typography variant="body2" color="success.main">
+                      Auto Discount ({discountPercent}%):
+                    </Typography>
+                    <Typography variant="body2" color="success.main">
+                      -Rs. {autoDiscountPerUnit.toLocaleString()}
+                    </Typography>
+                  </Box>
+                )}
+                {discount > 0 && (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      mb: 0.5,
+                    }}
+                  >
+                    <Typography variant="body2" color="warning.dark">
+                      Manual Discount:
+                    </Typography>
+                    <Typography variant="body2" color="warning.dark">
+                      -Rs. {parseFloat(discount.toString()).toLocaleString()}
+                    </Typography>
+                  </Box>
+                )}
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    mt: 1,
+                    pt: 1,
+                    borderTop: "1px dashed grey",
+                  }}
+                >
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    Last Price (Unit):
+                  </Typography>
+                  <Typography variant="subtitle1" fontWeight={800}>
+                    Rs.{" "}
+                    {(
+                      roundedPrice - parseFloat(discount.toString() || "0")
+                    ).toLocaleString()}
+                  </Typography>
+                </Box>
+              </Box>
             </Box>
 
             {/* Summary */}
@@ -497,7 +577,7 @@ export default function POSVariantDialog({
                   Rs. {(product.sellingPrice * quantity).toLocaleString()}
                 </Typography>
               </Box>
-              {discount > 0 && (
+              {(discount > 0 || autoDiscountPerUnit > 0) && (
                 <Box
                   sx={{
                     display: "flex",
@@ -509,7 +589,12 @@ export default function POSVariantDialog({
                     Discount:
                   </Typography>
                   <Typography variant="body2" fontWeight={700}>
-                    -Rs. {discount.toLocaleString()}
+                    -Rs.{" "}
+                    {(
+                      (autoDiscountPerUnit +
+                        parseFloat(discount.toString() || "0")) *
+                      quantity
+                    ).toLocaleString()}
                   </Typography>
                 </Box>
               )}
@@ -518,27 +603,19 @@ export default function POSVariantDialog({
                   display: "flex",
                   justifyContent: "space-between",
                   mt: 2,
-                  pt: 2,
+                  pt: 1,
                   borderTop: "2px solid",
-                  borderColor: "grey.200",
+                  borderColor: "grey.300",
                 }}
               >
-                <Typography
-                  variant="subtitle1"
-                  fontWeight={900}
-                  sx={{ textTransform: "uppercase" }}
-                >
+                <Typography variant="subtitle1" fontWeight={700}>
                   Total:
                 </Typography>
-                <Typography
-                  variant="subtitle1"
-                  fontWeight={900}
-                  sx={{ color: "black" }}
-                >
+                <Typography variant="subtitle1" fontWeight={800}>
                   Rs.{" "}
                   {(
-                    product.sellingPrice * quantity -
-                    discount
+                    (roundedPrice - parseFloat(discount.toString() || "0")) *
+                    quantity
                   ).toLocaleString()}
                 </Typography>
               </Box>

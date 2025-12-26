@@ -52,7 +52,9 @@ const POSInvoicePDF: React.FC<InvoicePDFProps> = ({ order }) => {
     order.items.reduce((acc, i) => acc + i.price * i.quantity, 0);
 
   // order.discount might be a total number or we sum item discounts
-  const totalDiscount = order.discount || 0;
+  const totalDiscount =
+    order.discount ||
+    order.items.reduce((acc, i) => acc + (i.discount || 0), 0);
 
   // Grand total is usually total - discount + fee + shipping etc.
   // Assuming order.total is the final amount to pay?
