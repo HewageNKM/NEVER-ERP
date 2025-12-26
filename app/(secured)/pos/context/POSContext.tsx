@@ -8,6 +8,7 @@ import React, {
   ReactNode,
   useCallback,
 } from "react";
+import { onAuthStateChanged } from "firebase/auth";
 import { POSCartItem, POSProduct, POSStock, POSOrder } from "@/model/POSTypes";
 import { auth } from "@/firebase/firebaseClient";
 import toast from "react-hot-toast";
@@ -157,57 +158,78 @@ const POSContext = createContext<POSContextType | undefined>(undefined);
 export const POSProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(posReducer, initialState);
 
-  // Initialize Invoice ID & Stock from LocalStorage
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      // Invoice ID
-      let invId = window.localStorage.getItem("posInvoiceId");
-      if (!invId) {
-        invId = generateInvoiceId();
-        window.localStorage.setItem("posInvoiceId", invId);
-      }
-      dispatch({ type: "SET_INVOICE_ID", payload: invId });
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // 1. Initialize Invoice ID
+        if (typeof window !== "undefined") {
+          let invId = window.localStorage.getItem("posInvoiceId");
+          if (!invId) {
+            invId = generateInvoiceId();
+            window.localStorage.setItem("posInvoiceId", invId);
+          }
+          dispatch({ type: "SET_INVOICE_ID", payload: invId });
 
-      // Stock ID
-      const stockId = window.localStorage.getItem("neverbePOSStockId");
-      if (stockId) {
-        dispatch({ type: "SET_SELECTED_STOCK_ID", payload: stockId });
+          // 2. Load Stocks (now guaranteed to have auth)
+          loadStocks();
+
+          // 3. Restore Stock Selection
+          const stockId = window.localStorage.getItem("neverbePOSStockId");
+          if (stockId) {
+            dispatch({ type: "SET_SELECTED_STOCK_ID", payload: stockId });
+            // Load data for selected stock
+            loadProducts(stockId);
+            loadCart(stockId);
+          } else {
+            dispatch({ type: "SET_SHOW_STOCK_DIALOG", payload: true });
+          }
+        }
       } else {
-        dispatch({ type: "SET_SHOW_STOCK_DIALOG", payload: true });
+        // Handle logout / no user
+        dispatch({ type: "CLEAR_ITEMS" });
+        dispatch({ type: "SET_PRODUCTS", payload: [] });
       }
-    }
-  }, []);
+    });
+
+    return () => unsubscribe();
+  }, []); // Empty dependency array, run once on mount
+
+  // ... (rest of the file)
 
   // ================================
   // Async Actions
   // ================================
 
-  const loadCart = useCallback(async () => {
-    if (!state.selectedStockId) return; // Don't load if no stock selected
+  const loadCart = useCallback(
+    async (stockIdOverride?: string) => {
+      const targetStockId = stockIdOverride || state.selectedStockId;
+      if (!targetStockId) return; // Don't load if no stock selected
 
-    dispatch({ type: "SET_INVOICE_LOADING", payload: true });
-    try {
-      // Wait for auth
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
+      dispatch({ type: "SET_INVOICE_LOADING", payload: true });
+      try {
+        // Wait for auth
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          dispatch({ type: "SET_INVOICE_LOADING", payload: false });
+          // Optionally retry or handle logic elsewhere, but likely we ignore if not logged in
+          return;
+        }
+        const headers = await getAuthHeaders();
+        const res = await fetch(`/api/pos/cart?stockId=${targetStockId}`, {
+          headers,
+        });
+        if (!res.ok) throw new Error("Failed to load cart");
+        const data = await res.json();
+        dispatch({ type: "SET_ITEMS", payload: data });
+      } catch (error) {
+        console.error("Load Cart Error:", error);
+        toast.error("Failed to load cart");
+      } finally {
         dispatch({ type: "SET_INVOICE_LOADING", payload: false });
-        return;
       }
-      const headers = await getAuthHeaders();
-      const res = await fetch(
-        `/api/pos/cart?stockId=${state.selectedStockId}`,
-        { headers }
-      );
-      if (!res.ok) throw new Error("Failed to load cart");
-      const data = await res.json();
-      dispatch({ type: "SET_ITEMS", payload: data });
-    } catch (error) {
-      console.error("Load Cart Error:", error);
-      toast.error("Failed to load cart");
-    } finally {
-      dispatch({ type: "SET_INVOICE_LOADING", payload: false });
-    }
-  }, [state.selectedStockId]);
+    },
+    [state.selectedStockId]
+  );
 
   const addItemToCart = useCallback(
     async (item: POSCartItem) => {
@@ -274,12 +296,18 @@ export const POSProvider = ({ children }: { children: ReactNode }) => {
     dispatch({ type: "SET_SHOW_STOCK_DIALOG", payload: false });
     // Clear products when stock changes
     dispatch({ type: "SET_PRODUCTS", payload: [] });
+    // Load new products
+    loadProducts(stockId);
+    // Reload cart for new stock
+    loadCart(stockId);
   }, []);
 
   const loadProducts = useCallback(async (stockId: string) => {
     dispatch({ type: "SET_PRODUCTS_LOADING", payload: true });
     try {
-      const headers = await getAuthHeaders(); // Might need to ensure user is logged in
+      const currentUser = auth.currentUser;
+      if (!currentUser) return; // Wait for auth
+      const headers = await getAuthHeaders();
       const res = await fetch(`/api/pos/products?stockId=${stockId}`, {
         headers,
       });

@@ -8,6 +8,7 @@ import POSProducts from "./components/POSProducts";
 import POSInvoiceDetails from "./components/POSInvoiceDetails";
 import POSPaymentForm from "./components/POSPaymentForm";
 import POSStockDialog from "./components/POSStockDialog";
+import { auth } from "@/firebase/firebaseClient";
 
 export default function POSPage() {
   const {
@@ -18,18 +19,7 @@ export default function POSPage() {
     loadStocks,
   } = usePOS();
 
-  // Initialize on mount
-  useEffect(() => {
-    loadCart();
-    loadStocks();
-  }, [loadCart, loadStocks]);
-
-  // Fetch products when stock is selected
-  useEffect(() => {
-    if (selectedStockId) {
-      loadProducts(selectedStockId);
-    }
-  }, [selectedStockId, loadProducts]);
+  // Initialization is now handled by POSContext
 
   return (
     <Box

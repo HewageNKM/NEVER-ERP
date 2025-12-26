@@ -51,7 +51,9 @@ export const getPosCart = async (
   stockId: string,
   userId: string
 ): Promise<POSCartItem[]> => {
-  let query = adminFirestore.collection("posCart").orderBy("createdAt", "desc");
+  let query = adminFirestore
+    .collection("pos_cart")
+    .orderBy("createdAt", "desc");
 
   if (stockId) {
     query = query.where("stockId", "==", stockId);
@@ -66,7 +68,7 @@ export const getPosCart = async (
 
 // ✅ Add item to POS cart using InventoryItem info
 export const addItemToPosCart = async (item: POSCartItem, userId: string) => {
-  const posCart = adminFirestore.collection("posCart");
+  const posCart = adminFirestore.collection("pos_cart");
 
   await adminFirestore.runTransaction(async (tx) => {
     // 1️⃣ Fetch inventory item using productId, variantId, size, stockId
@@ -107,7 +109,7 @@ export const addItemToPosCart = async (item: POSCartItem, userId: string) => {
 
 // ✅ Remove item from POS cart and restock
 export const removeFromPosCart = async (item: POSCartItem, userId: string) => {
-  const posCart = adminFirestore.collection("posCart");
+  const posCart = adminFirestore.collection("pos_cart");
 
   await adminFirestore.runTransaction(async (tx) => {
     // 1️⃣ Fetch inventory item
@@ -152,7 +154,7 @@ export const removeFromPosCart = async (item: POSCartItem, userId: string) => {
 // ✅ Clear entire POS cart (scoped to user/stock mandatory)
 export const clearPosCart = async (stockId: string, userId: string) => {
   try {
-    let query = adminFirestore.collection("posCart").limit(500); // Batch limit
+    let query = adminFirestore.collection("pos_cart").limit(500); // Batch limit
 
     if (stockId) {
       query = query.where("stockId", "==", stockId);
@@ -179,7 +181,7 @@ export const updatePosCartItemQuantity = async (
   item: POSCartItem,
   newQuantity: number
 ) => {
-  const posCart = adminFirestore.collection("posCart");
+  const posCart = adminFirestore.collection("pos_cart");
 
   await adminFirestore.runTransaction(async (tx) => {
     // 1️⃣ Find the cart item
