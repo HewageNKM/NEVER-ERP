@@ -1,25 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createPOSOrder } from "@/firebase/firebaseAdmin";
+import { createPOSOrder, getOrder, getOrders } from "@/firebase/firebaseAdmin";
 import { verifyPosAuth, handleAuthError } from "@/services/POSAuthService";
 
-// POST - Create a new POS order
-export async function POST(request: NextRequest) {
+// GET - Fetch/Search POS orders
+export async function GET(request: NextRequest) {
   try {
     await verifyPosAuth();
+    const { searchParams } = new URL(request.url);
+    const orderId = searchParams.get("orderId");
 
-    const orderData = await request.json();
-
-    // Validations
-    if (!orderData.items || orderData.items.length === 0) {
-      return NextResponse.json(
-        { error: "Order must have items" },
-        { status: 400 }
-      );
+    if (orderId) {
+      const order = await getOrder(orderId);
+      return NextResponse.json({ dataList: order ? [order] : [] });
     }
 
-    const createdOrder = await createPOSOrder(orderData);
-
-    return NextResponse.json(createdOrder, { status: 201 });
+    // Default fetch (can add pagination later if needed)
+    const orders = await getOrders(1, 10);
+    return NextResponse.json({ dataList: orders });
   } catch (error: any) {
     return handleAuthError(error);
   }

@@ -27,6 +27,7 @@ import {
 } from "@mui/material";
 import { IconX, IconPlus, IconCash } from "@tabler/icons-react";
 import toast from "react-hot-toast";
+import { auth } from "@/firebase/firebaseClient";
 
 interface POSPettyCashDialogProps {
   open: boolean;
@@ -55,7 +56,12 @@ export default function POSPettyCashDialog({
   const fetchTransactions = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/v1/petty-cash?limit=10");
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) return;
+
+      const res = await fetch("/api/pos/petty-cash?limit=10", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const data = await res.json();
       setTransactions(data.dataList || []);
     } catch (error) {
@@ -78,9 +84,15 @@ export default function POSPettyCashDialog({
 
     setAdding(true);
     try {
-      const res = await fetch("/api/v1/petty-cash", {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error("Unauthorized");
+
+      const res = await fetch("/api/pos/petty-cash", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           type,
           amount: amountNum,

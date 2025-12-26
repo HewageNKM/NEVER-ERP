@@ -1915,9 +1915,9 @@ export const createPOSOrder = async (orderData: Order) => {
           const currentQty = doc.data().quantity || 0;
           const newQty = Math.max(0, currentQty - item.quantity); // Prevent negative? Or allow? Assuming >= 0
 
-          batch.update(doc.ref, { 
+          batch.update(doc.ref, {
             quantity: newQty,
-            updatedAt: timestamp 
+            updatedAt: timestamp,
           });
         }
       }
@@ -1952,6 +1952,44 @@ export const getPaymentMethods = async () => {
     }));
   } catch (error) {
     console.error("Error fetching payment methods:", error);
+    throw error;
+  }
+};
+
+// ================================
+// ✅ Petty Cash Management
+// ================================
+export const getPettyCash = async (limit: number = 10) => {
+  try {
+    const snapshot = await adminFirestore
+      .collection("petty_cash")
+      .orderBy("createdAt", "desc")
+      .limit(limit)
+      .get();
+
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate().toISOString(),
+    }));
+  } catch (error) {
+    console.error("Error fetching petty cash:", error);
+    throw error;
+  }
+};
+
+export const addPettyCashTransaction = async (data: any) => {
+  try {
+    const ref = adminFirestore.collection("petty_cash").doc();
+    const transaction = {
+      ...data,
+      id: ref.id,
+      createdAt: Timestamp.now(),
+    };
+    await ref.set(transaction);
+    return transaction;
+  } catch (error) {
+    console.error("Error adding petty cash transaction:", error);
     throw error;
   }
 };

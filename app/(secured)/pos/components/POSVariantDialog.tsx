@@ -20,6 +20,7 @@ import { IconX, IconMinus, IconPlus } from "@tabler/icons-react";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { addItemToCart } from "@/lib/posSlice/posSlice";
 import toast from "react-hot-toast";
+import { auth } from "@/firebase/firebaseClient";
 
 interface POSVariantDialogProps {
   open: boolean;
@@ -64,8 +65,12 @@ export default function POSVariantDialog({
     if (!product || !selectedStockId) return;
     setLoading(true);
     try {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error("Unauthorized");
+
       const res = await fetch(
-        `/api/pos/inventory?stockId=${selectedStockId}&productId=${product.id}`
+        `/api/pos/inventory?stockId=${selectedStockId}&productId=${product.id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       const data = await res.json();
       setInventory(Array.isArray(data) ? data : []);

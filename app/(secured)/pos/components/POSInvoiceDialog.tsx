@@ -22,6 +22,7 @@ import {
   InputAdornment,
 } from "@mui/material";
 import { IconSearch, IconX, IconEye } from "@tabler/icons-react";
+import { auth } from "@/firebase/firebaseClient";
 
 interface POSInvoiceDialogProps {
   open: boolean;
@@ -43,9 +44,12 @@ export default function POSInvoiceDialog({
     setLoading(true);
     setSearched(true);
     try {
-      const res = await fetch(
-        `/api/v1/orders?orderId=${searchQuery}&from=Store`
-      );
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error("Unauthorized");
+
+      const res = await fetch(`/api/pos/orders?orderId=${searchQuery}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const data = await res.json();
       setInvoices(data.dataList || []);
     } catch (error) {
