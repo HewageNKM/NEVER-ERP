@@ -13,13 +13,11 @@ import {
 import {
   IconSearch,
   IconReceipt,
-  IconCash,
   IconSettings,
   IconRefresh,
 } from "@tabler/icons-react";
 import { usePOS } from "../context/POSContext";
 import POSInvoiceDialog from "./POSInvoiceDialog";
-import POSPettyCashDialog from "./POSPettyCashDialog";
 import POSSettingsDialog from "./POSSettingsDialog";
 
 export default function POSHero() {
@@ -35,7 +33,6 @@ export default function POSHero() {
 
   const [query, setQuery] = useState("");
   const [showInvoicesForm, setShowInvoicesForm] = useState(false);
-  const [showCashDialog, setShowCashDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -135,27 +132,6 @@ export default function POSHero() {
                 }}
               >
                 <IconReceipt size={20} />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Petty Cash">
-              <IconButton
-                onClick={() => setShowCashDialog(true)}
-                sx={{
-                  bgcolor: "white",
-                  color: "black",
-                  border: "2px solid",
-                  borderColor: "grey.200",
-                  borderRadius: 0,
-                  width: 40,
-                  height: 40,
-                  "&:hover": {
-                    borderColor: "black",
-                    bgcolor: "black",
-                    color: "white",
-                  },
-                }}
-              >
-                <IconCash size={20} />
               </IconButton>
             </Tooltip>
             <Tooltip title="Settings">
@@ -267,10 +243,6 @@ export default function POSHero() {
       <POSInvoiceDialog
         open={showInvoicesForm}
         onClose={() => setShowInvoicesForm(false)}
-      />
-      <POSPettyCashDialog
-        open={showCashDialog}
-        onClose={() => setShowCashDialog(false)}
       />
       <POSSettingsDialog
         open={showSettingsDialog}
