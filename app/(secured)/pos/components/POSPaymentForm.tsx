@@ -34,6 +34,7 @@ import {
 } from "@/lib/posSlice/posSlice";
 import { POSPayment, POSPaymentMethod } from "@/model/POSTypes";
 import toast from "react-hot-toast";
+import { auth } from "@/firebase/firebaseClient";
 
 export default function POSPaymentForm() {
   const dispatch = useAppDispatch();
@@ -73,16 +74,22 @@ export default function POSPaymentForm() {
 
   const fetchPaymentMethods = async () => {
     try {
-      const res = await fetch("/api/v1/payment-methods");
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) return;
+
+      const res = await fetch("/api/pos/payment-methods", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch payment methods");
+
       const data = await res.json();
       if (Array.isArray(data)) {
-        // Filter to only POS-available methods
-        setPaymentMethods(
-          data.filter((m: any) => m.available?.includes("POS"))
-        );
+        setPaymentMethods(data);
       }
     } catch (error) {
       console.error("Failed to fetch payment methods:", error);
+      toast.error("Could not load payment methods");
     }
   };
 
@@ -177,9 +184,15 @@ export default function POSPaymentForm() {
         transactionFeeCharge: Math.round(transactionFeeCharge * 100) / 100,
       };
 
-      const res = await fetch("/api/v1/orders", {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error("Unauthorized");
+
+      const res = await fetch("/api/pos/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(order),
       });
 

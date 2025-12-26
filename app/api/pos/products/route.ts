@@ -3,10 +3,13 @@ import {
   getProductsByStock,
   searchProductsByStock,
 } from "@/services/POSProductService";
+import { verifyPosAuth, handleAuthError } from "@/services/POSAuthService";
 
 // GET - Fetch products by stock ID, with optional search
 export async function GET(request: NextRequest) {
   try {
+    await verifyPosAuth();
+
     const { searchParams } = new URL(request.url);
     const stockId = searchParams.get("stockId");
     const query = searchParams.get("query");
@@ -31,10 +34,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(products);
   } catch (error: any) {
-    console.error("Error fetching POS products:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to fetch products" },
-      { status: 500 }
-    );
+    return handleAuthError(error);
   }
 }

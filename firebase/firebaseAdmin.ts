@@ -1876,3 +1876,82 @@ export const authorizeAndGetUser = async (req: any): Promise<User | null> => {
     return null;
   }
 };
+
+// ================================
+// ✅ Create a new POS Order and Update Stock
+// ================================
+export const createPOSOrder = async (orderData: Order) => {
+  try {
+    const orderRef = adminFirestore.collection("orders").doc();
+    const batch = adminFirestore.batch();
+
+    // 1️⃣ Prepare Order Data
+    const timestamp = Timestamp.now();
+    const finalOrder = {
+      ...orderData,
+      orderId: orderData.orderId || orderRef.id,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      from: "POS",
+    };
+
+    batch.set(orderRef, finalOrder);
+
+    // 2️⃣ Update Stock Inventory (Decrement)
+    if (orderData.stockId) {
+      for (const item of orderData.items) {
+        // Find specific inventory item
+        const inventorySnapshot = await adminFirestore
+          .collection("stock_inventory")
+          .where("stockId", "==", orderData.stockId)
+          .where("productId", "==", item.itemId)
+          .where("variantId", "==", item.variantId)
+          .where("size", "==", item.size)
+          .limit(1)
+          .get();
+
+        if (!inventorySnapshot.empty) {
+          const doc = inventorySnapshot.docs[0];
+          const currentQty = doc.data().quantity || 0;
+          const newQty = Math.max(0, currentQty - item.quantity); // Prevent negative? Or allow? Assuming >= 0
+
+          batch.update(doc.ref, { 
+            quantity: newQty,
+            updatedAt: timestamp 
+          });
+        }
+      }
+    }
+
+    // 3️⃣ Commit Batch
+    await batch.commit();
+
+    console.log(`POS Order created: ${finalOrder.orderId}`);
+    return finalOrder;
+  } catch (error) {
+    console.error("Error creating POS order:", error);
+    throw error;
+  }
+};
+
+// ================================
+// ✅ Get Payment Methods
+// ================================
+export const getPaymentMethods = async () => {
+  try {
+    const snapshot = await adminFirestore
+      .collection("payment_methods")
+      .where("status", "==", "ACTIVE")
+      .get();
+
+    if (snapshot.empty) return [];
+
+    return snapshot.docs.map((doc) => ({
+      paymentId: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error("Error fetching payment methods:", error);
+    throw error;
+  }
+};

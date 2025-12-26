@@ -3,10 +3,13 @@ import {
   getStockInventory,
   getProductInventoryByStock,
 } from "@/services/POSProductService";
+import { verifyPosAuth, handleAuthError } from "@/services/POSAuthService";
 
 // GET - Fetch inventory for specific product/variant/size or all inventory for product
 export async function GET(request: NextRequest) {
   try {
+    await verifyPosAuth();
+
     const { searchParams } = new URL(request.url);
     const stockId = searchParams.get("stockId");
     const productId = searchParams.get("productId");
@@ -35,10 +38,6 @@ export async function GET(request: NextRequest) {
     const inventory = await getProductInventoryByStock(stockId, productId);
     return NextResponse.json(inventory);
   } catch (error: any) {
-    console.error("Error fetching inventory:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to fetch inventory" },
-      { status: 500 }
-    );
+    return handleAuthError(error);
   }
 }

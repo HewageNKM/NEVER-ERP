@@ -68,11 +68,26 @@ const generateInvoiceId = () => {
 // ================================
 // Async Thunks
 // ================================
+// ================================
+// Async Thunks
+// ================================
+import { auth } from "@/firebase/firebaseClient";
+
+const getAuthHeaders = async () => {
+  if (!auth.currentUser) throw new Error("Unauthorized: No user logged in");
+  const token = await auth.currentUser.getIdToken();
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+};
+
 export const fetchPosCart = createAsyncThunk(
   "pos/fetchCart",
   async (_, thunkAPI) => {
     try {
-      const response = await fetch("/api/pos/cart");
+      const headers = await getAuthHeaders();
+      const response = await fetch("/api/pos/cart", { headers });
       if (!response.ok) throw new Error("Failed to fetch cart");
       return await response.json();
     } catch (error: any) {
@@ -85,7 +100,8 @@ export const fetchPosStocks = createAsyncThunk(
   "pos/fetchStocks",
   async (_, thunkAPI) => {
     try {
-      const response = await fetch("/api/pos/stocks");
+      const headers = await getAuthHeaders();
+      const response = await fetch("/api/pos/stocks", { headers });
       if (!response.ok) throw new Error("Failed to fetch stocks");
       return await response.json();
     } catch (error: any) {
@@ -98,7 +114,10 @@ export const fetchPosProducts = createAsyncThunk(
   "pos/fetchProducts",
   async (stockId: string, thunkAPI) => {
     try {
-      const response = await fetch(`/api/pos/products?stockId=${stockId}`);
+      const headers = await getAuthHeaders();
+      const response = await fetch(`/api/pos/products?stockId=${stockId}`, {
+        headers,
+      });
       if (!response.ok) throw new Error("Failed to fetch products");
       return await response.json();
     } catch (error: any) {
@@ -111,10 +130,12 @@ export const searchPosProducts = createAsyncThunk(
   "pos/searchProducts",
   async ({ stockId, query }: { stockId: string; query: string }, thunkAPI) => {
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch(
         `/api/pos/products?stockId=${stockId}&query=${encodeURIComponent(
           query
-        )}`
+        )}`,
+        { headers }
       );
       if (!response.ok) throw new Error("Failed to search products");
       return await response.json();
@@ -128,9 +149,10 @@ export const addItemToCart = createAsyncThunk(
   "pos/addItemToCart",
   async (item: POSCartItem, thunkAPI) => {
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch("/api/pos/cart", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(item),
       });
       if (!response.ok) throw new Error("Failed to add item to cart");
@@ -147,9 +169,10 @@ export const removeItemFromCart = createAsyncThunk(
   "pos/removeItemFromCart",
   async (item: POSCartItem, thunkAPI) => {
     try {
+      const headers = await getAuthHeaders();
       const response = await fetch("/api/pos/cart", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(item),
       });
       if (!response.ok) throw new Error("Failed to remove item from cart");
