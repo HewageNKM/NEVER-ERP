@@ -218,7 +218,14 @@ export const POSProvider = ({ children }: { children: ReactNode }) => {
         const res = await fetch(`/api/pos/cart?stockId=${targetStockId}`, {
           headers,
         });
-        if (!res.ok) throw new Error("Failed to load cart");
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error(
+            `Failed to load cart. Status: ${res.status} ${res.statusText}`,
+            errorText
+          );
+          throw new Error(`Failed to load cart: ${res.status} ${errorText}`);
+        }
         const data = await res.json();
         dispatch({ type: "SET_ITEMS", payload: data });
       } catch (error) {
