@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import GlobalProvider from "@/components/GlobalProvider";
-import TopNav from "./components/layout/header/TopNav";
+import TopNav from "./erp/components/layout/header/TopNav";
 
 export default function RootLayout({
   children,

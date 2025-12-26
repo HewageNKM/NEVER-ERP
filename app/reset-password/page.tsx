@@ -8,8 +8,8 @@ import {
   IconRobot,
   IconCheck,
 } from "@tabler/icons-react";
-import PageContainer from "@/app/(secured)/components/container/PageContainer";
-import Logo from "@/app/(secured)/components/layout/shared/logo/Logo";
+import PageContainer from "@/app/(secured)/erp/components/container/PageContainer";
+import Logo from "@/app/(secured)/erp/components/layout/shared/logo/Logo";
 import { showNotification } from "@/utils/toast";
 import ComponentsLoader from "@/app/components/ComponentsLoader";
 import { sendPasswordResetLinkAction } from "@/actions/authActions";

@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { IconEye, IconEyeOff, IconLock, IconUser } from "@tabler/icons-react";
-import PageContainer from "@/app/(secured)/components/container/PageContainer";
-import Logo from "@/app/(secured)/components/layout/shared/logo/Logo";
+import PageContainer from "@/app/(secured)/erp/components/container/PageContainer";
+import Logo from "@/app/(secured)/erp/components/layout/shared/logo/Logo";
 import { authenticateUserAction } from "@/actions/authActions";
 import { setUser } from "@/lib/authSlice/authSlice";
 import { User } from "@/model/User";
@@ -33,6 +33,19 @@ const Login = () => {
 
   const [showPassword, setShowPassword] = useState(false);
 
+  const handleRedirect = (user: User) => {
+    if (
+      user.role.toUpperCase() === "ADMIN" ||
+      user.role.toUpperCase() === "OWNER"
+    ) {
+      router.replace("/portal-select");
+    } else if (user.role.toUpperCase() === "POS") {
+      router.replace("/pos");
+    } else {
+      router.replace("/erp/dashboard");
+    }
+  };
+
   const onFormSubmit = async (evt: any) => {
     evt.preventDefault();
     setIsLoading(true);
@@ -42,7 +55,7 @@ const Login = () => {
       const user: User = await authenticateUserAction(email, password);
       dispatch(setUser(user));
       window.localStorage.setItem("nvrUser", JSON.stringify(user));
-      router.replace("/dashboard");
+      handleRedirect(user);
     } catch (e: any) {
       console.log(e);
       showNotification(e.message, "error");
@@ -53,9 +66,10 @@ const Login = () => {
 
   useEffect(() => {
     try {
-      const user = window.localStorage.getItem("nvrUser");
-      if (user) {
-        router.replace("/dashboard");
+      const userStr = window.localStorage.getItem("nvrUser");
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        handleRedirect(user);
       }
     } catch (e: any) {
       console.log(e);
