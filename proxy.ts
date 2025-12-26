@@ -2,12 +2,7 @@ import { NextResponse } from "next/server";
 
 export default async function proxy(req: Request) {
   const origin = req.headers.get("origin");
-  const allowedOrigins = [
-    "https://admin.neverbe.lk",
-    "https://erp.neverbe.lk",
-    "http://neverbe.lk",
-    "https://pos.neverbe.lk",
-  ];
+  const allowedOrigins = ["https://erp.neverbe.lk", "http://neverbe.lk"];
 
   const isAllowedOrigin = origin && allowedOrigins.includes(origin);
   const corsHeaders = {
