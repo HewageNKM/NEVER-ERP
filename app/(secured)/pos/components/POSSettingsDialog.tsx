@@ -23,15 +23,12 @@ import {
   IconUser,
   IconRefresh,
 } from "@tabler/icons-react";
-import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import {
-  setShowStockDialog,
-  fetchPosCart,
-  fetchPosProducts,
-} from "@/lib/posSlice/posSlice";
+import { usePOS } from "../context/POSContext";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { logoutUserAction } from "@/actions/authActions";
+import { auth } from "@/firebase/firebaseClient";
+import { useAppSelector } from "@/lib/hooks";
 
 interface POSSettingsDialogProps {
   open: boolean;
@@ -42,22 +39,26 @@ export default function POSSettingsDialog({
   open,
   onClose,
 }: POSSettingsDialogProps) {
-  const dispatch = useAppDispatch();
   const router = useRouter();
-  const { selectedStockId, stocks } = useAppSelector((state) => state.pos);
+  const { selectedStockId, stocks, openStockDialog, loadCart, loadProducts } =
+    usePOS();
+
+  // We still use redux for global auth state or we can use firebase directly.
+  // Using redux here for consistency with other parts of the app if needed,
+  // but let's try to stick to what's available or use firebase auth.
   const currentUser = useAppSelector((state) => state.authSlice.currentUser);
 
   const currentStock = stocks.find((s) => s.id === selectedStockId);
 
   const handleChangeStock = () => {
-    dispatch(setShowStockDialog(true));
+    openStockDialog();
     onClose();
   };
 
   const handleRefreshData = () => {
     if (selectedStockId) {
-      dispatch(fetchPosCart());
-      dispatch(fetchPosProducts(selectedStockId));
+      loadCart();
+      loadProducts(selectedStockId);
       toast.success("Data refreshed");
     }
     onClose();
@@ -135,7 +136,9 @@ export default function POSSettingsDialog({
                 fontSize: "0.9rem",
               }}
               primary="Logged in as"
-              secondary={currentUser?.email || "Unknown"}
+              secondary={
+                currentUser?.email || auth.currentUser?.email || "Unknown"
+              }
             />
           </ListItem>
 

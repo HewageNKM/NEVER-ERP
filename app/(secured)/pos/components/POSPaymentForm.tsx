@@ -26,20 +26,21 @@ import {
   Paper,
 } from "@mui/material";
 import { IconX, IconPlus, IconTrash, IconPrinter } from "@tabler/icons-react";
-import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import {
-  setShowPaymentDialog,
-  fetchPosCart,
-  regenerateInvoiceId,
-} from "@/lib/posSlice/posSlice";
+import { usePOS } from "../context/POSContext";
 import { POSPayment, POSPaymentMethod } from "@/model/POSTypes";
 import toast from "react-hot-toast";
 import { auth } from "@/firebase/firebaseClient";
 
 export default function POSPaymentForm() {
-  const dispatch = useAppDispatch();
-  const { items, invoiceId, showPaymentDialog, selectedStockId } =
-    useAppSelector((state) => state.pos);
+  const {
+    items,
+    invoiceId,
+    showPaymentDialog,
+    selectedStockId,
+    closePaymentDialog,
+    loadCart,
+    regenerateInvoiceId,
+  } = usePOS();
 
   const [payments, setPayments] = useState<POSPayment[]>([]);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("cash");
@@ -67,31 +68,28 @@ export default function POSPaymentForm() {
   );
   const pendingDue = subtotal - paymentsTotal;
 
-  // Fetch payment methods on mount
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        try {
-          const token = await user.getIdToken();
-          const res = await fetch("/api/pos/payment-methods", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
+  const fetchPaymentMethods = async () => {
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      const res = await fetch("/api/pos/payment-methods", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-          if (!res.ok) throw new Error("Failed to fetch payment methods");
+      if (!res.ok) throw new Error("Failed to fetch payment methods");
 
-          const data = await res.json();
-          if (Array.isArray(data)) {
-            setPaymentMethods(data);
-          }
-        } catch (error) {
-          console.error("Failed to fetch payment methods:", error);
-          toast.error("Could not load payment methods");
-        }
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setPaymentMethods(data);
       }
-    });
+    } catch (error) {
+      console.error("Failed to fetch payment methods:", error);
+      toast.error("Could not load payment methods");
+    }
+  };
 
-    return () => unsubscribe();
-  }, []);
+  useEffect(() => {
+    if (auth.currentUser) fetchPaymentMethods();
+  }, [auth.currentUser]);
 
   const handleAddPayment = () => {
     const amount = parseFloat(paymentAmount);
@@ -205,9 +203,9 @@ export default function POSPaymentForm() {
 
       // Clear state and regenerate invoice ID
       setPayments([]);
-      dispatch(fetchPosCart());
-      dispatch(regenerateInvoiceId());
-      dispatch(setShowPaymentDialog(false));
+      loadCart();
+      regenerateInvoiceId();
+      closePaymentDialog();
     } catch (error: any) {
       toast.error(error.message || "Failed to place order");
     } finally {
@@ -219,7 +217,7 @@ export default function POSPaymentForm() {
     setPayments([]);
     setPaymentAmount("");
     setCardNumber("");
-    dispatch(setShowPaymentDialog(false));
+    closePaymentDialog();
   };
 
   return (

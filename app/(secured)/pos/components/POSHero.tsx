@@ -17,19 +17,20 @@ import {
   IconSettings,
   IconRefresh,
 } from "@tabler/icons-react";
-import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import {
-  searchPosProducts,
-  fetchPosProducts,
-  setShowStockDialog,
-} from "@/lib/posSlice/posSlice";
+import { usePOS } from "../context/POSContext";
 import POSInvoiceDialog from "./POSInvoiceDialog";
 import POSPettyCashDialog from "./POSPettyCashDialog";
 import POSSettingsDialog from "./POSSettingsDialog";
 
 export default function POSHero() {
-  const dispatch = useAppDispatch();
-  const { selectedStockId, stocks } = useAppSelector((state) => state.pos);
+  const {
+    selectedStockId,
+    stocks,
+    openStockDialog,
+    searchProducts,
+    loadProducts,
+  } = usePOS();
+
   const currentStock = stocks.find((s) => s.id === selectedStockId);
 
   const [query, setQuery] = useState("");
@@ -42,15 +43,15 @@ export default function POSHero() {
     if (!selectedStockId) return;
 
     if (query.trim()) {
-      dispatch(searchPosProducts({ stockId: selectedStockId, query }));
+      searchProducts(query);
     } else {
-      dispatch(fetchPosProducts(selectedStockId));
+      loadProducts(selectedStockId);
     }
   };
 
   const handleRefresh = () => {
     if (selectedStockId) {
-      dispatch(fetchPosProducts(selectedStockId));
+      loadProducts(selectedStockId);
       setQuery("");
     }
   };
@@ -90,7 +91,7 @@ export default function POSHero() {
               "&:hover .stock-label": { color: "white" },
               flex: 1,
             }}
-            onClick={() => dispatch(setShowStockDialog(true))}
+            onClick={openStockDialog}
           >
             <Typography
               className="stock-label"

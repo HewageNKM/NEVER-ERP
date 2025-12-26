@@ -17,8 +17,7 @@ import {
   IconButton,
 } from "@mui/material";
 import { IconX, IconMinus, IconPlus } from "@tabler/icons-react";
-import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import { addItemToCart } from "@/lib/posSlice/posSlice";
+import { usePOS } from "../context/POSContext";
 import toast from "react-hot-toast";
 import { auth } from "@/firebase/firebaseClient";
 
@@ -33,8 +32,7 @@ export default function POSVariantDialog({
   onClose,
   product,
 }: POSVariantDialogProps) {
-  const dispatch = useAppDispatch();
-  const { selectedStockId } = useAppSelector((state) => state.pos);
+  const { selectedStockId, addItemToCart } = usePOS();
 
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
   const [selectedSize, setSelectedSize] = useState<string>("");
@@ -123,28 +121,26 @@ export default function POSVariantDialog({
 
     setAdding(true);
     try {
-      await dispatch(
-        addItemToCart({
-          itemId: product.id,
-          variantId: selectedVariant.id,
-          name: product.name,
-          variantName:
-            selectedVariant.variantName || selectedVariant.color || "Default",
-          thumbnail: selectedVariant.images[0].url || product.thumbnail || "",
-          size: selectedSize,
-          discount: discount,
-          type: "product",
-          quantity: quantity,
-          price: product.sellingPrice,
-          bPrice: product.buyingPrice,
-          stockId: selectedStockId!,
-        })
-      ).unwrap();
+      await addItemToCart({
+        itemId: product.id,
+        variantId: selectedVariant.id,
+        name: product.name,
+        variantName:
+          selectedVariant.variantName || selectedVariant.color || "Default",
+        thumbnail: selectedVariant.images[0].url || product.thumbnail || "",
+        size: selectedSize,
+        discount: discount,
+        type: "product",
+        quantity: quantity,
+        price: product.sellingPrice,
+        bPrice: product.buyingPrice,
+        stockId: selectedStockId!,
+      });
 
       toast.success("Added to cart");
       onClose();
     } catch (error: any) {
-      toast.error(error || "Failed to add to cart");
+      toast.error(error.message || "Failed to add to cart");
     } finally {
       setAdding(false);
     }

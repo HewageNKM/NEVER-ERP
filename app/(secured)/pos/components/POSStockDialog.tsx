@@ -15,24 +15,25 @@ import {
   MenuItem,
   CircularProgress,
 } from "@mui/material";
-import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import {
-  setSelectedStockId,
-  setShowStockDialog,
-  fetchPosStocks,
-  fetchPosProducts,
-} from "@/lib/posSlice/posSlice";
+import { usePOS } from "../context/POSContext";
 import toast from "react-hot-toast";
 
 export default function POSStockDialog() {
-  const dispatch = useAppDispatch();
-  const { stocks, selectedStockId, showStockDialog, isStocksLoading } =
-    useAppSelector((state) => state.pos);
+  const {
+    stocks,
+    selectedStockId,
+    showStockDialog,
+    isStocksLoading,
+    loadStocks,
+    selectStock,
+    loadProducts,
+    closeStockDialog,
+  } = usePOS();
 
   // Fetch stocks on mount
   useEffect(() => {
-    dispatch(fetchPosStocks());
-  }, [dispatch]);
+    loadStocks();
+  }, [loadStocks]);
 
   const handleConfirm = () => {
     if (!selectedStockId) {
@@ -46,13 +47,13 @@ export default function POSStockDialog() {
     }
 
     // Fetch products for selected stock
-    dispatch(fetchPosProducts(selectedStockId));
-    dispatch(setShowStockDialog(false));
+    loadProducts(selectedStockId);
+    closeStockDialog();
     toast.success("Stock location selected");
   };
 
   const handleChange = (value: string) => {
-    dispatch(setSelectedStockId(value));
+    selectStock(value);
   };
 
   return (
@@ -64,7 +65,7 @@ export default function POSStockDialog() {
       // Prevent closing without selection
       onClose={(_, reason) => {
         if (reason !== "backdropClick" && reason !== "escapeKeyDown") {
-          dispatch(setShowStockDialog(false));
+          closeStockDialog();
         }
       }}
     >
@@ -154,7 +155,7 @@ export default function POSStockDialog() {
       >
         {selectedStockId && (
           <Button
-            onClick={() => dispatch(setShowStockDialog(false))}
+            onClick={closeStockDialog}
             variant="outlined"
             sx={{
               color: "black",

@@ -1,14 +1,8 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { Box, CircularProgress, Typography } from "@mui/material";
-import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import {
-  loadStockFromStorage,
-  initializeInvoiceId,
-  fetchPosCart,
-  fetchPosProducts,
-} from "@/lib/posSlice/posSlice";
+import { Box, CircularProgress } from "@mui/material";
+import { usePOS } from "./context/POSContext";
 import POSHero from "./components/POSHero";
 import POSProducts from "./components/POSProducts";
 import POSInvoiceDetails from "./components/POSInvoiceDetails";
@@ -16,23 +10,20 @@ import POSPaymentForm from "./components/POSPaymentForm";
 import POSStockDialog from "./components/POSStockDialog";
 
 export default function POSPage() {
-  const dispatch = useAppDispatch();
-  const { selectedStockId, showStockDialog, isProductsLoading } =
-    useAppSelector((state) => state.pos);
+  const { loadCart, loadProducts, selectedStockId, isProductsLoading } =
+    usePOS();
 
   // Initialize on mount
   useEffect(() => {
-    dispatch(loadStockFromStorage());
-    dispatch(initializeInvoiceId());
-    dispatch(fetchPosCart());
-  }, [dispatch]);
+    loadCart();
+  }, [loadCart]);
 
   // Fetch products when stock is selected
   useEffect(() => {
     if (selectedStockId) {
-      dispatch(fetchPosProducts(selectedStockId));
+      loadProducts(selectedStockId);
     }
-  }, [selectedStockId, dispatch]);
+  }, [selectedStockId, loadProducts]);
 
   return (
     <Box

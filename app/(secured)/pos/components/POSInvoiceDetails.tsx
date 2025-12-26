@@ -11,24 +11,18 @@ import {
   Avatar,
   CircularProgress,
 } from "@mui/material";
-import {
-  IconTrash,
-  IconMinus,
-  IconPlus,
-  IconReceipt,
-} from "@tabler/icons-react";
-import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import {
-  removeItemFromCart,
-  setShowPaymentDialog,
-} from "@/lib/posSlice/posSlice";
+import { IconTrash, IconReceipt } from "@tabler/icons-react";
+import { usePOS } from "../context/POSContext";
 import toast from "react-hot-toast";
 
 export default function POSInvoiceDetails() {
-  const dispatch = useAppDispatch();
-  const { items, invoiceId, isInvoiceLoading } = useAppSelector(
-    (state) => state.pos
-  );
+  const {
+    items,
+    invoiceId,
+    isInvoiceLoading,
+    removeItemFromCart,
+    openPaymentDialog,
+  } = usePOS();
 
   // Calculate totals
   const { subtotal, totalDiscount, grandTotal } = useMemo(() => {
@@ -43,10 +37,10 @@ export default function POSInvoiceDetails() {
 
   const handleRemoveItem = async (item: any) => {
     try {
-      await dispatch(removeItemFromCart(item)).unwrap();
+      await removeItemFromCart(item);
       toast.success("Item removed");
     } catch (error: any) {
-      toast.error(error || "Failed to remove item");
+      toast.error(error.message || "Failed to remove item");
     }
   };
 
@@ -55,7 +49,7 @@ export default function POSInvoiceDetails() {
       toast.error("Cart is empty");
       return;
     }
-    dispatch(setShowPaymentDialog(true));
+    openPaymentDialog();
   };
 
   return (
@@ -208,7 +202,7 @@ export default function POSInvoiceDetails() {
                       Rs.{" "}
                       {(
                         item.price * item.quantity -
-                        item.discount
+                        (item.discount || 0)
                       ).toLocaleString()}
                     </Typography>
                   </Box>

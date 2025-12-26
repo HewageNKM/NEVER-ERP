@@ -8,13 +8,12 @@ import {
   CardMedia,
   Typography,
   Grid,
-  Chip,
 } from "@mui/material";
-import { useAppSelector } from "@/lib/hooks";
+import { usePOS } from "../context/POSContext";
 import POSVariantDialog from "./POSVariantDialog";
 
 export default function POSProducts() {
-  const { products, selectedStockId } = useAppSelector((state) => state.pos);
+  const { products, selectedStockId } = usePOS();
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [variantDialogOpen, setVariantDialogOpen] = useState(false);
 
