@@ -119,16 +119,25 @@ export default function POSInvoiceDialog({
               variant="contained"
               onClick={handleSearch}
               disabled={loading}
-              sx={{ minWidth: 100 }}
+              sx={{
+                minWidth: 100,
+                bgcolor: "black",
+                color: "white",
+                "&:hover": { bgcolor: "grey.900" },
+              }}
             >
-              {loading ? <CircularProgress size={20} /> : "Search"}
+              {loading ? (
+                <CircularProgress size={20} sx={{ color: "white" }} />
+              ) : (
+                "Search"
+              )}
             </Button>
           </Box>
 
           {/* Results */}
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-              <CircularProgress />
+              <CircularProgress sx={{ color: "black" }} />
             </Box>
           ) : searched && invoices.length === 0 ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>

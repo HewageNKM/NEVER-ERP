@@ -10,13 +10,19 @@ import POSPaymentForm from "./components/POSPaymentForm";
 import POSStockDialog from "./components/POSStockDialog";
 
 export default function POSPage() {
-  const { loadCart, loadProducts, selectedStockId, isProductsLoading } =
-    usePOS();
+  const {
+    loadCart,
+    loadProducts,
+    selectedStockId,
+    isProductsLoading,
+    loadStocks,
+  } = usePOS();
 
   // Initialize on mount
   useEffect(() => {
     loadCart();
-  }, [loadCart]);
+    loadStocks();
+  }, [loadCart, loadStocks]);
 
   // Fetch products when stock is selected
   useEffect(() => {
@@ -55,7 +61,7 @@ export default function POSPage() {
               flex: 1,
             }}
           >
-            <CircularProgress />
+            <CircularProgress sx={{ color: "black" }} />
           </Box>
         ) : (
           <POSProducts />
