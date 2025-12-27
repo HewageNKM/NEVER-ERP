@@ -467,9 +467,9 @@ const OrderView = ({ orderId }: { orderId: string }) => {
                 </span>
               </div>
               <div className="flex justify-between items-center text-gray-500 font-bold uppercase text-xs border-b border-gray-200 pb-3">
-                <span>Fees</span>
+                <span>Processing Fee</span>
                 <span className="font-mono text-gray-800">
-                  {(fee + transactionFeeCharge).toLocaleString()} LKR
+                  {fee.toLocaleString()} LKR
                 </span>
               </div>
               <div className="flex justify-between items-end pt-2">
