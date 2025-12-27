@@ -54,6 +54,8 @@ export interface Promotion {
   createdAt: Timestamp | string;
   updatedAt: Timestamp | string;
 
+  // Status flags
+  isActive?: boolean;
   // Soft delete
   isDeleted?: boolean;
 }

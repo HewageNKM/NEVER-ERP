@@ -39,6 +39,7 @@ export interface POSPayment {
   paymentMethodId: string;
   cardNumber: string;
   paymentMethod: string;
+  referenceId?: string; // Payment reference ID entered by cashier (for KOKO, etc.)
 }
 
 export interface POSPaymentMethod {

@@ -49,6 +49,7 @@ export default function POSPaymentForm() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("cash");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [cardNumber, setCardNumber] = useState("");
+  const [referenceId, setReferenceId] = useState(""); // For KOKO payment reference
   const [loading, setLoading] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState<POSPaymentMethod[]>([]);
   const [invoiceUrl, setInvoiceUrl] = useState<string | null>(null);
@@ -72,7 +73,67 @@ export default function POSPaymentForm() {
     () => itemsTotal - totalDiscount,
     [itemsTotal, totalDiscount]
   );
-  const pendingDue = subtotal - paymentsTotal;
+
+  // Calculate customer fee for pm-006 (KOKO) payment method (80% of the fee)
+  // The payment.amount already includes the fee, so we need to back-calculate the base amount
+  const customerFee = useMemo(() => {
+    return payments.reduce((acc, payment) => {
+      // Only apply 80% fee to customer for pm-006 (KOKO)
+      if (payment.paymentMethodId === "pm-006") {
+        const method = paymentMethods.find((m) => m.paymentId === "pm-006");
+        if (method && method.fee > 0) {
+          const feeMultiplier = 1 + (method.fee / 100) * 0.8; // e.g., 1 + 0.096 = 1.096
+          const baseAmount = payment.amount / feeMultiplier; // Back-calculate base amount
+          const feeAmount = payment.amount - baseAmount; // The fee portion
+          return acc + Math.round(feeAmount * 100) / 100;
+        }
+      }
+      return acc;
+    }, 0);
+  }, [payments, paymentMethods]);
+
+  // Calculate pending due for non-KOKO (base subtotal minus non-KOKO payments)
+  const nonKokoPaymentsTotal = useMemo(() => {
+    return payments
+      .filter((p) => p.paymentMethodId !== "pm-006")
+      .reduce((acc, p) => acc + p.amount, 0);
+  }, [payments]);
+
+  // For KOKO, we need to calculate the pending base amount (not including KOKO fees)
+  const pendingBaseAmount =
+    subtotal -
+    nonKokoPaymentsTotal -
+    payments
+      .filter((p) => p.paymentMethodId === "pm-006")
+      .reduce((acc, payment) => {
+        const method = paymentMethods.find((m) => m.paymentId === "pm-006");
+        if (method && method.fee > 0) {
+          const feeMultiplier = 1 + (method.fee / 100) * 0.8;
+          return acc + payment.amount / feeMultiplier; // Base portion of KOKO payments
+        }
+        return acc + payment.amount;
+      }, 0);
+
+  const grandTotal = subtotal + customerFee;
+  const pendingDue = grandTotal - paymentsTotal;
+
+  // Check if KOKO is selected and calculate the pre-filled amount
+  const isKokoSelected = useMemo(() => {
+    const method = paymentMethods.find(
+      (m) => m.name.toLowerCase() === selectedPaymentMethod.toLowerCase()
+    );
+    return method?.paymentId === "pm-006";
+  }, [selectedPaymentMethod, paymentMethods]);
+
+  // Pre-calculated amount for KOKO (remaining base amount + 80% of fee on that amount)
+  const kokoPreCalculatedAmount = useMemo(() => {
+    if (!isKokoSelected || pendingBaseAmount <= 0) return 0;
+    const method = paymentMethods.find((m) => m.paymentId === "pm-006");
+    if (!method || method.fee <= 0) return Math.max(0, pendingBaseAmount);
+    // Amount customer pays = baseAmount × (1 + fee% × 80%)
+    const feeMultiplier = 1 + (method.fee / 100) * 0.8;
+    return Math.round(pendingBaseAmount * feeMultiplier * 100) / 100;
+  }, [isKokoSelected, pendingBaseAmount, paymentMethods]);
 
   const fetchPaymentMethods = async () => {
     // ... existing fetch ...
@@ -111,16 +172,22 @@ export default function POSPaymentForm() {
   }, [invoiceUrl]);
 
   const handleAddPayment = () => {
-    // ... existing code ...
-    const amount = parseFloat(paymentAmount);
+    // For KOKO, use pre-calculated amount
+    const amount = isKokoSelected
+      ? kokoPreCalculatedAmount
+      : parseFloat(paymentAmount);
 
     if (isNaN(amount) || amount <= 0) {
       toast.error("Please enter a valid amount");
       return;
     }
 
-    // For non-cash methods, don't allow overpayment
-    if (selectedPaymentMethod !== "cash" && amount > pendingDue + 0.5) {
+    // For non-cash methods (except KOKO), don't allow overpayment
+    if (
+      selectedPaymentMethod !== "cash" &&
+      !isKokoSelected &&
+      amount > pendingDue + 0.5
+    ) {
       toast.error("Amount exceeds the due amount");
       return;
     }
@@ -128,6 +195,12 @@ export default function POSPaymentForm() {
     // Card requires last 4 digits
     if (selectedPaymentMethod === "card" && cardNumber.length !== 4) {
       toast.error("Please enter the last 4 digits of the card");
+      return;
+    }
+
+    // KOKO requires reference ID
+    if (isKokoSelected && !referenceId.trim()) {
+      toast.error("Please enter the KOKO Payment ID");
       return;
     }
 
@@ -141,11 +214,13 @@ export default function POSPaymentForm() {
       paymentMethodId: method?.paymentId || "",
       amount,
       cardNumber: cardNumber || "None",
+      ...(referenceId.trim() && { referenceId: referenceId.trim() }),
     };
 
     setPayments([...payments, newPayment]);
     setPaymentAmount("");
     setCardNumber("");
+    setReferenceId("");
     setSelectedPaymentMethod("cash");
   };
 
@@ -154,7 +229,7 @@ export default function POSPaymentForm() {
   };
 
   const handlePlaceOrder = async () => {
-    if (paymentsTotal < subtotal) {
+    if (paymentsTotal < grandTotal) {
       toast.error("Payment amount is less than total");
       return;
     }
@@ -162,7 +237,7 @@ export default function POSPaymentForm() {
     setLoading(true);
     try {
       // ... existing order construction ...
-      // Calculate transaction fees
+      // Calculate transaction fees on full payment amount (what processor charges)
       const transactionFeeCharge = payments.reduce((acc, payment) => {
         const method = paymentMethods.find(
           (m) => m.name.toLowerCase() === payment.paymentMethod.toLowerCase()
@@ -184,7 +259,7 @@ export default function POSPaymentForm() {
           price: i.price,
           discount: i.discount,
         })),
-        fee: 0,
+        fee: customerFee,
         shippingFee: 0,
         discount: totalDiscount,
         paymentReceived: payments,
@@ -199,7 +274,7 @@ export default function POSPaymentForm() {
         ...(payments.length === 1 && {
           paymentMethodId: payments[0].paymentMethodId,
         }),
-        total: Math.round(subtotal * 100) / 100,
+        total: Math.round(grandTotal * 100) / 100,
         transactionFeeCharge: Math.round(transactionFeeCharge * 100) / 100,
       };
 
@@ -484,14 +559,15 @@ export default function POSPaymentForm() {
                 />
               )}
 
+              {/* Payment ID field - available for all payment methods */}
               <TextField
                 size="small"
-                label="Amount (LKR)"
-                type="number"
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
+                label="Payment ID"
+                value={referenceId}
+                onChange={(e) => setReferenceId(e.target.value)}
+                placeholder="Optional"
                 sx={{
-                  width: 150,
+                  width: 140,
                   "& .MuiOutlinedInput-root": {
                     borderRadius: 0,
                     "&.Mui-focused fieldset": { borderColor: "black" },
@@ -499,6 +575,54 @@ export default function POSPaymentForm() {
                   "& .MuiInputLabel-root.Mui-focused": { color: "black" },
                 }}
               />
+
+              {/* Amount field - read-only for KOKO */}
+              {isKokoSelected ? (
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    bgcolor: "primary.50",
+                    border: "2px solid",
+                    borderColor: "primary.200",
+                    px: 2,
+                    py: 1,
+                    minWidth: 150,
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    color="primary.main"
+                    fontWeight={700}
+                    sx={{ textTransform: "uppercase", fontSize: "0.65rem" }}
+                  >
+                    Amount to Collect
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    fontWeight={800}
+                    color="primary.main"
+                  >
+                    Rs. {kokoPreCalculatedAmount.toLocaleString()}
+                  </Typography>
+                </Box>
+              ) : (
+                <TextField
+                  size="small"
+                  label="Amount (LKR)"
+                  type="number"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  sx={{
+                    width: 150,
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 0,
+                      "&.Mui-focused fieldset": { borderColor: "black" },
+                    },
+                    "& .MuiInputLabel-root.Mui-focused": { color: "black" },
+                  }}
+                />
+              )}
 
               <Button
                 variant="contained"
@@ -561,6 +685,36 @@ export default function POSPaymentForm() {
                   </Typography>
                   <Typography variant="body2" fontWeight={700}>
                     -Rs. {totalDiscount.toLocaleString()}
+                  </Typography>
+                </Box>
+              )}
+              {customerFee > 0 && (
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    mb: 1,
+                    bgcolor: "primary.50",
+                    p: 1,
+                    mx: -1,
+                    border: "1px dashed",
+                    borderColor: "primary.200",
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    fontWeight={700}
+                    color="primary.main"
+                    sx={{ textTransform: "uppercase" }}
+                  >
+                    Processing Fee:
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    fontWeight={800}
+                    color="primary.main"
+                  >
+                    Rs. {customerFee.toLocaleString()}
                   </Typography>
                 </Box>
               )}

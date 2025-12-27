@@ -206,19 +206,34 @@ const PromotionFormModal: React.FC<Props> = ({
   };
 
   const handleSubmit = async () => {
-    if (!formData.name) return showNotification("Name is required", "error");
-    if (!startDate) return showNotification("Start date is required", "error");
+    // Required field validations
+    if (!formData.name?.trim()) {
+      return showNotification("Campaign name is required", "error");
+    }
+    if (!formData.type) {
+      return showNotification("Campaign type is required", "error");
+    }
+    if (!startDate) {
+      return showNotification("Start date is required", "error");
+    }
+    if (!endDate) {
+      return showNotification("End date is required", "error");
+    }
 
-    // Validations
+    // Date validation
     if (endDate && startDate && endDate < startDate) {
       return showNotification("End date must be after start date", "error");
     }
+
+    // Action validation
     if (
       formData.actions?.[0].value === undefined ||
       formData.actions[0].value <= 0
     ) {
       return showNotification("Discount value must be greater than 0", "error");
     }
+
+    // Limit validations
     if ((formData.usageLimit ?? 0) < 0) {
       return showNotification("Global limit cannot be negative", "error");
     }
@@ -392,7 +407,9 @@ const PromotionFormModal: React.FC<Props> = ({
 
                     <div className="space-y-6">
                       <div>
-                        <label className={styles.label}>Campaign Name</label>
+                        <label className={styles.label}>
+                          Campaign Name <span className="text-red-500">*</span>
+                        </label>
                         <input
                           name="name"
                           value={formData.name}
@@ -415,7 +432,9 @@ const PromotionFormModal: React.FC<Props> = ({
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className={styles.label}>Type</label>
+                          <label className={styles.label}>
+                            Type <span className="text-red-500">*</span>
+                          </label>
                           <div className="relative">
                             <select
                               name="type"
@@ -505,7 +524,9 @@ const PromotionFormModal: React.FC<Props> = ({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <LocalizationProvider dateAdapter={AdapterDateFns}>
                         <div>
-                          <label className={styles.label}>Start Date</label>
+                          <label className={styles.label}>
+                            Start Date <span className="text-red-500">*</span>
+                          </label>
                           <DatePicker
                             value={startDate}
                             onChange={(date) => setStartDate(date)}
@@ -538,7 +559,9 @@ const PromotionFormModal: React.FC<Props> = ({
                           />
                         </div>
                         <div>
-                          <label className={styles.label}>End Date</label>
+                          <label className={styles.label}>
+                            End Date <span className="text-red-500">*</span>
+                          </label>
                           <DatePicker
                             value={endDate}
                             onChange={(date) => setEndDate(date)}
@@ -605,7 +628,8 @@ const PromotionFormModal: React.FC<Props> = ({
                           <label className={styles.label}>
                             {formData.actions[0].type === "PERCENTAGE_OFF"
                               ? "Percentage Value"
-                              : "Discount Amount"}
+                              : "Discount Amount"}{" "}
+                            <span className="text-red-500">*</span>
                           </label>
                           <div className="relative">
                             <input

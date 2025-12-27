@@ -109,7 +109,7 @@ export default function POSProducts() {
                       bgcolor: "white",
                     }}
                   />
-                  {product.discount && product.discount > 0 && (
+                  {product.discount > 0 && (
                     <Box
                       sx={{
                         position: "absolute",
@@ -214,16 +214,14 @@ export default function POSProducts() {
                           fontWeight={900}
                           sx={{
                             color:
-                              product.discount && product.discount > 0
-                                ? "error.main"
-                                : "black",
+                              product.discount > 0 ? "error.main" : "black",
                             lineHeight: 1,
                           }}
                         >
                           <span style={{ fontSize: "0.7em", marginRight: 2 }}>
                             Rs.
                           </span>
-                          {product.discount && product.discount > 0
+                          {product.discount > 0
                             ? (
                                 Math.round(
                                   (product.sellingPrice *
@@ -231,9 +229,9 @@ export default function POSProducts() {
                                     10
                                 ) * 10
                               ).toLocaleString()
-                            : product.sellingPrice?.toLocaleString() || 0}
+                            : (product.sellingPrice || 0).toLocaleString()}
                         </Typography>
-                        {product.discount && product.discount > 0 && (
+                        {product.discount > 0 && (
                           <Typography
                             variant="caption"
                             sx={{
