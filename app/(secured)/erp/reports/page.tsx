@@ -17,9 +17,9 @@ const Reports = () => {
       category: "Financial",
       icon: <IconCoin size={20} stroke={2} />,
       reports: [
-        { title: "P&L Statement", link: "/reports/pnl" },
-        { title: "Tax Report", link: "/reports/tax" },
-        { title: "Cashflow Statement", link: "/reports/cash/cashflow" },
+        { title: "P&L Statement", link: "/erp/reports/pnl" },
+        { title: "Tax Report", link: "/erp/reports/tax" },
+        { title: "Cashflow Statement", link: "/erp/reports/cash/cashflow" },
       ],
     },
     {
@@ -27,21 +27,30 @@ const Reports = () => {
       category: "Sales Analysis",
       icon: <IconChartBar size={20} stroke={2} />,
       reports: [
-        { title: "Daily Summary", link: "/reports/sales/daily-summary" },
-        { title: "Monthly Summary", link: "/reports/sales/monthly-summary" },
-        { title: "Yearly Summary", link: "/reports/sales/yearly-summary" },
-        { title: "Top Selling Products", link: "/reports/sales/top-products" },
-        { title: "Sales by Category", link: "/reports/sales/by-category" },
-        { title: "Sales by Brand", link: "/reports/sales/by-brand" },
+        { title: "Daily Summary", link: "/erp/reports/sales/daily-summary" },
+        {
+          title: "Monthly Summary",
+          link: "/erp/reports/sales/monthly-summary",
+        },
+        { title: "Yearly Summary", link: "/erp/reports/sales/yearly-summary" },
+        {
+          title: "Top Selling Products",
+          link: "/erp/reports/sales/top-products",
+        },
+        { title: "Sales by Category", link: "/erp/reports/sales/by-category" },
+        { title: "Sales by Brand", link: "/erp/reports/sales/by-brand" },
         {
           title: "Sales vs Discount",
-          link: "/reports/sales/sales-vs-discount",
+          link: "/erp/reports/sales/sales-vs-discount",
         },
         {
           title: "By Payment Method",
-          link: "/reports/sales/by-payment-method",
+          link: "/erp/reports/sales/by-payment-method",
         },
-        { title: "Refunds & Returns", link: "/reports/sales/refunds-returns" },
+        {
+          title: "Refunds & Returns",
+          link: "/erp/reports/sales/refunds-returns",
+        },
       ],
     },
     {
@@ -49,32 +58,40 @@ const Reports = () => {
       category: "Revenue",
       icon: <IconCoin size={20} stroke={2} />,
       reports: [
-        { title: "Daily Revenue", link: "/reports/revenues/daily-revenue" },
-        { title: "Monthly Revenue", link: "/reports/revenues/monthly-revenue" },
-        { title: "Yearly Revenue", link: "/reports/revenues/yearly-revenue" },
+        { title: "Daily Revenue", link: "/erp/reports/revenues/daily-revenue" },
+        {
+          title: "Monthly Revenue",
+          link: "/erp/reports/revenues/monthly-revenue",
+        },
+        {
+          title: "Yearly Revenue",
+          link: "/erp/reports/revenues/yearly-revenue",
+        },
       ],
     },
     {
       id: "04",
       category: "Expenses",
       icon: <IconReceipt size={20} stroke={2} />,
-      reports: [{ title: "Expense Report", link: "/reports/expenses" }],
+      reports: [{ title: "Expense Report", link: "/erp/reports/expenses" }],
     },
     {
       id: "05",
       category: "Inventory",
       icon: <IconPackage size={20} stroke={2} />,
       reports: [
-        { title: "Live Stock", link: "/reports/stocks/live-stock" },
-        { title: "Low Stock Alerts", link: "/reports/stocks/low-stock" },
-        { title: "Stock Valuation", link: "/reports/stocks/valuation" },
+        { title: "Live Stock", link: "/erp/reports/stocks/live-stock" },
+        { title: "Low Stock Alerts", link: "/erp/reports/stocks/low-stock" },
+        { title: "Stock Valuation", link: "/erp/reports/stocks/valuation" },
       ],
     },
     {
       id: "06",
       category: "Customer Insights",
       icon: <IconChartBar size={20} stroke={2} />,
-      reports: [{ title: "Customer Analytics", link: "/reports/customers" }],
+      reports: [
+        { title: "Customer Analytics", link: "/erp/reports/customers" },
+      ],
     },
   ];
 
