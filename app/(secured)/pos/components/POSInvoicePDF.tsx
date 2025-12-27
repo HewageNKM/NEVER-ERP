@@ -140,7 +140,7 @@ const POSInvoicePDF: React.FC<InvoicePDFProps> = ({ order }) => {
         {/* Payments - check if 'paymentMethod' matches POS structure */}
         {/* If order has specific POS payment details, render them. Otherwise show generic */}
         <View style={{ marginBottom: 4 }}>
-          <Text style={{ fontSize: 7 }}>
+          <Text style={{ fontSize: 5 }}>
             Payment Method: {order.paymentMethod}
           </Text>
         </View>

@@ -1,6 +1,5 @@
 "use client";
 
-import React, { useEffect } from "react";
 import { Box, CircularProgress } from "@mui/material";
 import { usePOS } from "./context/POSContext";
 import POSHero from "./components/POSHero";
@@ -8,19 +7,9 @@ import POSProducts from "./components/POSProducts";
 import POSInvoiceDetails from "./components/POSInvoiceDetails";
 import POSPaymentForm from "./components/POSPaymentForm";
 import POSStockDialog from "./components/POSStockDialog";
-import { auth } from "@/firebase/firebaseClient";
 
 export default function POSPage() {
-  const {
-    loadCart,
-    loadProducts,
-    selectedStockId,
-    isProductsLoading,
-    loadStocks,
-  } = usePOS();
-
-  // Initialization is now handled by POSContext
-
+  const { isProductsLoading } = usePOS();
   return (
     <Box
       sx={{

@@ -428,9 +428,13 @@ export const createPOSOrder = async (
   userId: string
 ) => {
   try {
-    const res = await addOrder(orderData);
+    await addOrder(orderData);
     await clearPosCart(orderData.stockId!, userId);
-    return res;
+    // Return the order data with createdAt for PDF generation
+    return {
+      ...orderData,
+      createdAt: new Date().toISOString(),
+    };
   } catch (error) {
     console.error("Error creating POS order:", error);
     throw error;
