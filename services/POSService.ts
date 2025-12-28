@@ -495,7 +495,8 @@ export const getPaymentMethods = async () => {
   try {
     const snapshot = await adminFirestore
       .collection("paymentMethods")
-      .where("status", "==", "Active")
+      .where("isDeleted", "!=", true)
+      .where("status", "==", true)
       .where("available", "array-contains", "Store")
       .get();
 

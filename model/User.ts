@@ -8,7 +8,8 @@ export interface User {
   role: string;
   password?: string;
   currentPassword?: string;
-  status: "Active" | "Inactive" | "Pending";
+  status: boolean;
+  isDeleted?: boolean;
 
   createdAt: Timestamp | string;
   updatedAt: Timestamp | string;

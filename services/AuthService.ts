@@ -118,7 +118,7 @@ export const authorizeAndGetUser = async (req: any): Promise<User | null> => {
       const userData = userDoc.data() as User;
 
       // Double check status, though revoked token should have caught this.
-      if (userData.status === "Inactive") {
+      if (userData.status === false) {
         console.warn("User is inactive!");
         return null;
       }
@@ -157,7 +157,7 @@ export const loginUser = async (userId: string) => {
 
     const userData = userDoc.data() as User;
 
-    if (userData.status !== "Active") {
+    if (userData.status !== true) {
       throw new AppError(`User with ID ${userId} is not active`, 403);
     }
 
@@ -190,7 +190,7 @@ export const createUser = async (user: User): Promise<string> => {
         password: user.password,
         displayName: user.username,
         photoURL: user.photoURL,
-        disabled: user.status === "Inactive",
+        disabled: user.status === false,
       });
       userId = authUser.uid;
     } catch (error: any) {
@@ -239,8 +239,8 @@ export const updateUser = async (
 
   // 2. Sync with Firebase Auth (Identity)
   const updates: any = {};
-  if (data.status) {
-    updates.disabled = data.status === "Inactive";
+  if (typeof data.status === "boolean") {
+    updates.disabled = data.status === false;
   }
   if (data.email) {
     updates.email = data.email;

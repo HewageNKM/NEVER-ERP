@@ -8,13 +8,13 @@ const COLLECTION = "suppliers";
 /**
  * Get all suppliers
  */
-export const getSuppliers = async (
-  status?: "active" | "inactive"
-): Promise<Supplier[]> => {
+export const getSuppliers = async (status?: boolean): Promise<Supplier[]> => {
   try {
-    let query: FirebaseFirestore.Query = adminFirestore.collection(COLLECTION);
+    let query: FirebaseFirestore.Query = adminFirestore
+      .collection(COLLECTION)
+      .where("isDeleted", "==", false);
 
-    if (status) {
+    if (typeof status === "boolean") {
       query = query.where("status", "==", status);
     }
 
@@ -67,7 +67,8 @@ export const createSupplier = async (
     const newSupplier = {
       ...data,
       id,
-      status: data.status || "active",
+      status: true,
+      isDeleted: false,
       createdAt: now,
       updatedAt: now,
     };
@@ -126,7 +127,8 @@ export const deleteSupplier = async (id: string): Promise<void> => {
     }
 
     await docRef.update({
-      status: "inactive",
+      isDeleted: true,
+      status: false,
       updatedAt: FieldValue.serverTimestamp(),
     });
   } catch (error) {
@@ -144,7 +146,8 @@ export const getSuppliersDropdown = async (): Promise<
   try {
     const snapshot = await adminFirestore
       .collection(COLLECTION)
-      .where("status", "==", "active")
+      .where("isDeleted", "==", false)
+      .where("status", "==", true)
       .orderBy("name", "asc")
       .get();
 

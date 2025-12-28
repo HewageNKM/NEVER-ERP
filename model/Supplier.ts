@@ -11,9 +11,10 @@ export interface Supplier {
   city?: string;
   paymentTerms?: string; // e.g., "Net 30", "COD", "Advance"
   notes?: string;
-  status: "active" | "inactive";
+  status: boolean;
   createdAt?: Timestamp | string;
   updatedAt?: Timestamp | string;
+  isDeleted?: boolean;
 }
 
 export const DEFAULT_SUPPLIER: Partial<Supplier> = {
@@ -25,5 +26,5 @@ export const DEFAULT_SUPPLIER: Partial<Supplier> = {
   city: "",
   paymentTerms: "COD",
   notes: "",
-  status: "active",
+  status: true,
 };

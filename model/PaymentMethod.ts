@@ -1,12 +1,12 @@
-import { firestore } from "firebase-admin";
-import Timestamp = firestore.Timestamp;
+import { Timestamp } from "firebase-admin/firestore";
 
 export interface PaymentMethod {
-  paymentId: string;
+  id: string;
   name: string;
   description: string;
   fee: number;
-  status: "Active" | "Inactive";
+  status: boolean;
+  isDeleted?: boolean;
   available: string[];
 
   createdAt: Timestamp | string;

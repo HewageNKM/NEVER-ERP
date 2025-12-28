@@ -263,7 +263,7 @@ export const getCoupons = async (): Promise<Coupon[]> => {
   try {
     const snapshot = await adminFirestore
       .collection(COUPONS_COLLECTION)
-      .orderBy("createdAt", "desc")
+      .where("isDeleted", "==", false)
       .get();
     return snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -286,6 +286,7 @@ export const createCoupon = async (
       ...data,
       id,
       usageCount: 0,
+      isDeleted: false,
       createdAt: now,
       updatedAt: now,
     };
