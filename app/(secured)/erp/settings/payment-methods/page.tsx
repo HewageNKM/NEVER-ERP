@@ -350,7 +350,7 @@ const PaymentMethodsPage = () => {
             transition={{ duration: 0.15 }}
           >
             <motion.div
-              className="bg-white w-full max-w-md shadow-2xl flex flex-col border border-gray-200"
+              className="bg-white w-full max-w-md shadow-2xl flex flex-col border border-gray-200 max-h-[90vh]"
               initial={{ opacity: 0, scale: 0.98, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.98, y: 20 }}
@@ -377,7 +377,7 @@ const PaymentMethodsPage = () => {
                 </button>
               </div>
 
-              <div className="p-8 space-y-6">
+              <div className="p-8 space-y-6 overflow-y-auto">
                 <div>
                   <label className={styles.label}>
                     Method Name <span className="text-red-500">*</span>
