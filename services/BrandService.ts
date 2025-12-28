@@ -2,6 +2,7 @@ import { adminFirestore, adminStorageBucket } from "@/firebase/firebaseAdmin";
 import { Brand } from "@/model/Brand";
 import { FieldValue } from "firebase-admin/firestore";
 import { nanoid } from "nanoid";
+import { AppError } from "@/utils/apiResponse";
 
 const COLLECTION = "brands";
 
@@ -77,8 +78,8 @@ export const getBrands = async ({
     const snapshot = await query.offset(offset).limit(size).get();
 
     const dataList: Brand[] = snapshot.docs.map((doc) => ({
-      id: doc.id,
       ...(doc.data() as Brand),
+      id: doc.id,
     }));
 
     // 5️⃣ Total count for rowCount
@@ -111,7 +112,7 @@ export const getBrands = async ({
 export const getBrandById = async (id: string) => {
   const doc = await adminFirestore.collection(COLLECTION).doc(id).get();
   if (!doc.exists || doc.data()?.isDeleted) {
-    return { success: false, message: "Brand not found" };
+    throw new AppError("Brand not found", 404);
   }
   return { success: true, data: doc.data() as Brand };
 };
@@ -125,7 +126,7 @@ export const updateBrand = async (
   const ref = adminFirestore.collection(COLLECTION).doc(id);
   const doc = await ref.get();
   if (!doc.exists || doc.data()?.isDeleted) {
-    return { success: false, message: "Brand not found" };
+    throw new AppError("Brand not found", 404);
   }
 
   let logoUrl = doc.data()?.logoUrl || "";
@@ -149,7 +150,7 @@ export const deleteBrand = async (id: string) => {
   const ref = adminFirestore.collection(COLLECTION).doc(id);
   const doc = await ref.get();
   if (!doc.exists || doc.data()?.isDeleted) {
-    return { success: false, message: "Brand not found" };
+    throw new AppError("Brand not found", 404);
   }
 
   await ref.update({

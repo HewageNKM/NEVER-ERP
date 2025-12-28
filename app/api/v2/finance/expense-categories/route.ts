@@ -5,13 +5,12 @@ import {
   createExpenseCategory,
   getExpenseCategoriesDropdown,
 } from "@/services/ExpenseCategoryService";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: Request) => {
   try {
     const response = await authorizeRequest(req);
-    if (!response) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!response) return errorResponse("Unauthorized", 401);
 
     const url = new URL(req.url);
     const type = url.searchParams.get("type") as "expense" | "income" | null;
@@ -25,30 +24,20 @@ export const GET = async (req: Request) => {
     const data = await getExpenseCategories(type || undefined);
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error("[ExpenseCategories API] Error:", error);
-    return NextResponse.json(
-      { message: "Error fetching categories", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
 export const POST = async (req: Request) => {
   try {
     const response = await authorizeRequest(req);
-    if (!response) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!response) return errorResponse("Unauthorized", 401);
 
     const body = await req.json();
     const category = await createExpenseCategory(body);
     return NextResponse.json(category, { status: 201 });
   } catch (error: any) {
-    console.error("[ExpenseCategories API] Error:", error);
-    return NextResponse.json(
-      { message: "Error creating category", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 

@@ -1,6 +1,7 @@
 import { adminFirestore } from "@/firebase/firebaseAdmin";
 import { FieldValue } from "firebase-admin/firestore";
 import { nanoid } from "nanoid";
+import { AppError } from "@/utils/apiResponse";
 
 export interface Category {
   id?: string;
@@ -16,24 +17,19 @@ const COLLECTION = "categories";
 
 // CREATE
 export const createCategory = async (category: Category) => {
-  try {
-    const id = `c-${nanoid(8)}`.toLowerCase(); // generates a short 8-character unique ID
-    await adminFirestore
-      .collection(COLLECTION)
-      .doc(id)
-      .set({
-        ...category,
-        id,
-        active: category.active ?? true,
-        isDeleted: false,
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-    return { success: true, id };
-  } catch (error) {
-    console.error("Create Category Error:", error);
-    return { success: false, message: "Failed to create category" };
-  }
+  const id = `c-${nanoid(8)}`.toLowerCase(); // generates a short 8-character unique ID
+  await adminFirestore
+    .collection(COLLECTION)
+    .doc(id)
+    .set({
+      ...category,
+      id,
+      active: category.active ?? true,
+      isDeleted: false,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  return { success: true, id };
 };
 
 export const getCategories = async ({
@@ -99,56 +95,56 @@ export const getCategories = async ({
 
 // READ single
 export const getCategoryById = async (id: string) => {
-  try {
-    const doc = await adminFirestore.collection(COLLECTION).doc(id).get();
-    if (!doc.exists || doc.data()?.isDeleted) return null;
-    return { id: doc.id, ...(doc.data() as Category) };
-  } catch (error) {
-    console.error("Get Category By ID Error:", error);
-    return null;
+  const doc = await adminFirestore.collection(COLLECTION).doc(id).get();
+  if (!doc.exists || doc.data()?.isDeleted) {
+    throw new AppError("Category not found", 404);
   }
+  return { id: doc.id, ...(doc.data() as Category) };
 };
 
 // UPDATE
 export const updateCategory = async (id: string, data: Partial<Category>) => {
-  try {
-    await adminFirestore
-      .collection(COLLECTION)
-      .doc(id)
-      .update({ ...data, updatedAt: FieldValue.serverTimestamp() });
-    return { success: true };
-  } catch (error) {
-    console.error("Update Category Error:", error);
-    return { success: false, message: "Failed to update category" };
+  const ref = adminFirestore.collection(COLLECTION).doc(id);
+  const doc = await ref.get();
+
+  if (!doc.exists || doc.data()?.isDeleted) {
+    throw new AppError("Category not found", 404);
   }
+
+  await ref.update({ ...data, updatedAt: FieldValue.serverTimestamp() });
+  return { success: true };
 };
 
 // SOFT DELETE
 export const softDeleteCategory = async (id: string) => {
-  try {
-    await adminFirestore
-      .collection(COLLECTION)
-      .doc(id)
-      .update({ isDeleted: true, updatedAt: FieldValue.serverTimestamp() });
-    return { success: true };
-  } catch (error) {
-    console.error("Soft Delete Error:", error);
-    return { success: false, message: "Failed to delete category" };
+  const ref = adminFirestore.collection(COLLECTION).doc(id);
+  const doc = await ref.get();
+
+  if (!doc.exists || doc.data()?.isDeleted) {
+    throw new AppError("Category not found", 404);
   }
+
+  await ref.update({
+    isDeleted: true,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+  return { success: true };
 };
 
 // RESTORE
 export const restoreCategory = async (id: string) => {
-  try {
-    await adminFirestore
-      .collection(COLLECTION)
-      .doc(id)
-      .update({ isDeleted: false, updatedAt: FieldValue.serverTimestamp() });
-    return { success: true };
-  } catch (error) {
-    console.error("Restore Category Error:", error);
-    return { success: false, message: "Failed to restore category" };
+  const ref = adminFirestore.collection(COLLECTION).doc(id);
+  const doc = await ref.get();
+
+  if (!doc.exists) {
+    throw new AppError("Category not found", 404);
   }
+
+  await ref.update({
+    isDeleted: false,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+  return { success: true };
 };
 
 export const getCategoriesForDropdown = async () => {

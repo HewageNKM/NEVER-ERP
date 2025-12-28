@@ -3,8 +3,10 @@ import { ComboProduct } from "@/model/ComboProduct";
 import { FieldValue } from "firebase-admin/firestore";
 import { nanoid } from "nanoid";
 import { toSafeLocaleString } from "./UtilService";
+import { AppError } from "@/utils/apiResponse";
 
 const COMBOS_COLLECTION = "combo_products";
+
 const BUCKET = adminStorageBucket;
 
 const uploadThumbnail = async (
@@ -100,6 +102,13 @@ export const updateCombo = async (
   data: Partial<ComboProduct>,
   file?: File
 ): Promise<void> => {
+  const docRef = adminFirestore.collection(COMBOS_COLLECTION).doc(id);
+  const docSnap = await docRef.get();
+
+  if (!docSnap.exists || docSnap.data()?.isDeleted) {
+    throw new AppError(`Combo with ID ${id} not found`, 404);
+  }
+
   // Remove createdAt and thumbnail from data to handle separately
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { createdAt, thumbnail: existingThumbnail, ...updateData } = data;
@@ -107,8 +116,7 @@ export const updateCombo = async (
   let newThumbnail: ComboProduct["thumbnail"] | undefined;
 
   if (file) {
-    const oldCombo = await getComboById(id);
-    const oldPath = oldCombo?.thumbnail?.file;
+    const oldPath = docSnap.data()?.thumbnail?.file;
     if (oldPath) {
       try {
         await BUCKET.file(oldPath).delete();
@@ -146,25 +154,31 @@ export const updateCombo = async (
     }
   });
 
-  await adminFirestore.collection(COMBOS_COLLECTION).doc(id).update(payload);
+  await docRef.update(payload);
 };
 
 export const deleteCombo = async (id: string): Promise<void> => {
-  await adminFirestore.collection(COMBOS_COLLECTION).doc(id).update({
+  const docRef = adminFirestore.collection(COMBOS_COLLECTION).doc(id);
+  const docSnap = await docRef.get();
+
+  if (!docSnap.exists || docSnap.data()?.isDeleted) {
+    throw new AppError(`Combo with ID ${id} not found`, 404);
+  }
+
+  await docRef.update({
     isDeleted: true,
     updatedAt: FieldValue.serverTimestamp(),
   });
 };
 
-export const getComboById = async (
-  id: string
-): Promise<ComboProduct | null> => {
+export const getComboById = async (id: string): Promise<ComboProduct> => {
   const doc = await adminFirestore.collection(COMBOS_COLLECTION).doc(id).get();
-  if (!doc.exists) return null;
+  if (!doc.exists) throw new AppError("Combo not found", 404);
   const data = doc.data() as ComboProduct;
 
   // Skip soft-deleted combos
-  if (data.isDeleted) return null;
+  if (data.isDeleted) throw new AppError("Combo not found", 404);
+
   return {
     ...data,
     id: doc.id,

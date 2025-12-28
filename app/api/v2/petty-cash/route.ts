@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeAndGetUser } from "@/services/AuthService";
 import { addPettyCash, getPettyCashList } from "@/services/PettyCashService";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: NextRequest) => {
   try {
     const user = await authorizeAndGetUser(req);
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const searchParams = req.nextUrl.searchParams;
     const page = parseInt(searchParams.get("page") || "1");
@@ -25,20 +24,14 @@ export const GET = async (req: NextRequest) => {
     });
     return NextResponse.json(result);
   } catch (error: any) {
-    console.error("GET PettyCash List Error:", error);
-    return NextResponse.json(
-      { message: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
 export const POST = async (req: NextRequest) => {
   try {
     const user = await authorizeAndGetUser(req);
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const formData = await req.formData();
     const file = formData.get("attachment") as File | null;
@@ -65,10 +58,6 @@ export const POST = async (req: NextRequest) => {
     const newEntry = await addPettyCash(data, file || undefined);
     return NextResponse.json(newEntry, { status: 201 });
   } catch (error: any) {
-    console.error("POST PettyCash Error:", error);
-    return NextResponse.json(
-      { message: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };

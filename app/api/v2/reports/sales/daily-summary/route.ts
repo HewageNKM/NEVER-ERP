@@ -1,22 +1,20 @@
 import { authorizeRequest } from "@/services/AuthService";
 import { getDailySaleReport } from "@/services/ReportService";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: NextRequest) => {
   try {
     const authRes = await authorizeRequest(req);
-    if (!authRes)
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-      });
+    if (!authRes) return errorResponse("Unauthorized", 401);
+
     const url = new URL(req.url);
     const from = url.searchParams.get("from") || "";
     const to = url.searchParams.get("to") || "";
 
     const res = await getDailySaleReport(from, to);
-    return new Response(JSON.stringify(res), { status: 200 });
-  } catch (error) {
-    console.log(error);
-    return new Response(JSON.stringify({ error }), { status: 500 });
+    return NextResponse.json(res);
+  } catch (error: any) {
+    return errorResponse(error);
   }
 };

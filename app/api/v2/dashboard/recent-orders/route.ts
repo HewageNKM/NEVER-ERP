@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
 import { authorizeRequest } from "@/services/AuthService";
 import { getRecentOrders } from "@/services/DashboardService";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: Request) => {
   try {
     // Verify the ID token
     const response = await authorizeRequest(req);
-    if (!response) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!response) return errorResponse("Unauthorized", 401);
 
     // Get optional limit from query params
     const url = new URL(req.url);
@@ -19,11 +18,7 @@ export const GET = async (req: Request) => {
 
     return NextResponse.json(orders);
   } catch (error: any) {
-    console.error("[Dashboard Recent Orders API] Error:", error);
-    return NextResponse.json(
-      { message: "Error fetching recent orders", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 

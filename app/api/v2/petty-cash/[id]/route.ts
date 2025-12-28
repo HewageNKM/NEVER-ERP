@@ -7,6 +7,7 @@ import {
   deletePettyCash,
   reviewPettyCash,
 } from "@/services/PettyCashService";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (
   req: NextRequest,
@@ -14,27 +15,16 @@ export const GET = async (
 ) => {
   try {
     const user = await authorizeAndGetUser(req);
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const { id } = await params;
     const entry = await getPettyCashById(id);
 
-    if (!entry) {
-      return NextResponse.json(
-        { message: "Petty Cash entry not found" },
-        { status: 404 }
-      );
-    }
+    if (!entry) return errorResponse("Petty Cash entry not found", 404);
 
     return NextResponse.json(entry);
   } catch (error: any) {
-    console.error("GET PettyCash Detail Error:", error);
-    return NextResponse.json(
-      { message: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
@@ -44,9 +34,7 @@ export const PUT = async (
 ) => {
   try {
     const user = await authorizeAndGetUser(req);
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const { id } = await params;
     const formData = await req.formData();
@@ -79,11 +67,7 @@ export const PUT = async (
     const updatedEntry = await updatePettyCash(id, data, file || undefined);
     return NextResponse.json(updatedEntry);
   } catch (error: any) {
-    console.error("PUT PettyCash Error:", error);
-    return NextResponse.json(
-      { message: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
@@ -93,9 +77,7 @@ export const DELETE = async (
 ) => {
   try {
     const user = await authorizeAndGetUser(req);
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const { id } = await params;
     await deletePettyCash(id);
@@ -105,10 +87,6 @@ export const DELETE = async (
       { status: 200 }
     );
   } catch (error: any) {
-    console.error("DELETE PettyCash Error:", error);
-    return NextResponse.json(
-      { message: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };

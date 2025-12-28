@@ -1,9 +1,8 @@
-// app/api/v2/master/products/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeRequest } from "@/services/AuthService";
 import { getProducts, addProducts } from "@/services/ProductService"; // Import your service
 import { Product } from "@/model/Product";
+import { errorResponse, AppError } from "@/utils/apiResponse";
 
 /**
  * Helper to parse FormData into a Product object
@@ -14,7 +13,7 @@ const parseProductFromFormData = async (
   const product: Partial<Product> = {};
 
   // Handle all string/number fields
-  for (const [key, value] of formData.entries()) {
+  for (const [key, value] of Array.from(formData.entries())) {
     if (key === "thumbnail") continue; // Skip file
     if (key === "variants" || key === "tags") {
       // Parse JSON fields
@@ -61,9 +60,7 @@ const parseProductFromFormData = async (
 export const GET = async (req: NextRequest) => {
   try {
     const user = await authorizeRequest(req);
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const { searchParams } = req.nextUrl;
     const page = parseInt(searchParams.get("page") || "1");
@@ -91,11 +88,7 @@ export const GET = async (req: NextRequest) => {
 
     return NextResponse.json(result);
   } catch (error: any) {
-    console.error("GET /api/v2/master/products Error:", error);
-    return NextResponse.json(
-      { message: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
@@ -105,36 +98,23 @@ export const GET = async (req: NextRequest) => {
 export const POST = async (req: NextRequest) => {
   try {
     const user = await authorizeRequest(req);
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const formData = await req.formData();
     const file = formData.get("thumbnail") as File | null;
 
     if (!file) {
-      return NextResponse.json(
-        { message: "Thumbnail file is required" },
-        { status: 400 }
-      );
+      return errorResponse("Thumbnail file is required", 400);
     }
 
     const productData = await parseProductFromFormData(formData);
-    const success = await addProducts(productData, file);
-
-    if (!success) {
-      throw new Error("Failed to add product");
-    }
+    await addProducts(productData, file);
 
     return NextResponse.json(
       { message: "Product created successfully" },
       { status: 201 }
     );
   } catch (error: any) {
-    console.error("POST /api/v2/master/products Error:", error);
-    return NextResponse.json(
-      { message: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };

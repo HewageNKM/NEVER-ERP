@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const POST = async (req: NextRequest) => {
   try {
@@ -7,9 +8,6 @@ export const POST = async (req: NextRequest) => {
     return NextResponse.json({ message: "Logout successful" }, { status: 200 });
   } catch (error: any) {
     console.error("Logout Error:", error);
-    return NextResponse.json(
-      { message: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };

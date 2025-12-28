@@ -5,6 +5,7 @@ import {
   getPurchaseOrderById,
   updateReceivedQuantities,
 } from "./PurchaseOrderService";
+import { AppError } from "@/utils/apiResponse";
 
 const COLLECTION = "grn";
 const INVENTORY_COLLECTION = "stock_inventory";
@@ -60,10 +61,12 @@ export const getGRNs = async (purchaseOrderId?: string): Promise<GRN[]> => {
 /**
  * Get GRN by ID
  */
-export const getGRNById = async (id: string): Promise<GRN | null> => {
+export const getGRNById = async (id: string): Promise<GRN> => {
   try {
     const doc = await adminFirestore.collection(COLLECTION).doc(id).get();
-    if (!doc.exists) return null;
+    if (!doc.exists) {
+      throw new AppError(`GRN with ID ${id} not found`, 404);
+    }
     return { id: doc.id, ...doc.data() } as GRN;
   } catch (error) {
     console.error("[GRNService] Error fetching GRN:", error);
@@ -83,9 +86,9 @@ export const createGRN = async (
   try {
     // Validate PO exists
     const po = await getPurchaseOrderById(grn.purchaseOrderId);
-    if (!po) {
-      throw new Error("Purchase Order not found");
-    }
+    // getPurchaseOrderById now throws 404 if not found, so no explicit check needed here unless it returns null?
+    // In PurchaseOrderService.ts, I updated it to throw AppError(404).
+    // So 'const po' will be valid.
 
     const grnNumber = await generateGRNNumber();
 

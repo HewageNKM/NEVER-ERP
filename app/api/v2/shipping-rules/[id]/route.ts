@@ -3,6 +3,7 @@ import {
   updateShippingRule,
   deleteShippingRule,
 } from "@/services/ShippingRuleService";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const PUT = async (
   req: NextRequest,
@@ -16,10 +17,7 @@ export const PUT = async (
 
     return NextResponse.json({ message: "Shipping rule updated successfully" });
   } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to update rule" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
@@ -32,9 +30,6 @@ export const DELETE = async (
     await deleteShippingRule(id);
     return NextResponse.json({ message: "Shipping rule deleted successfully" });
   } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to delete rule" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };

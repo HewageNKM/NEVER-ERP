@@ -13,7 +13,7 @@ export const getUsersAction = async (page: number, size: number) => {
       },
     });
     return response.data;
-  } catch (e) {
+  } catch (e: any) {
     throw new Error(e.response ? e.response.data.message : e.message);
   }
 };
@@ -55,7 +55,7 @@ export const getUsersV2Action = async (
       },
     });
     return response.data;
-  } catch (e) {
+  } catch (e: any) {
     throw new Error(e.response ? e.response.data.message : e.message);
   }
 };
@@ -72,7 +72,7 @@ export const addNewUserAction = async (data: User) => {
       data: JSON.stringify(data),
     });
     return response.data;
-  } catch (e) {
+  } catch (e: any) {
     throw new Error(e.response ? e.response.data.message : e.message);
   }
 };
@@ -87,7 +87,7 @@ export const deleteUserByIdAction = async (id: string) => {
         Authorization: `Bearer ${token}`,
       },
     });
-  } catch (e) {
+  } catch (e: any) {
     throw new Error(e.response ? e.response.data.message : e.message);
   }
 };
@@ -103,7 +103,7 @@ export const updateUserByIdAction = async (data: User) => {
       },
       data: JSON.stringify(data),
     });
-  } catch (e) {
+  } catch (e: any) {
     throw new Error(e.response ? e.response.data.message : e.message);
   }
 };

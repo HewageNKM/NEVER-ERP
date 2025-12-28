@@ -5,6 +5,7 @@ import {
   updateSupplierInvoice,
   deleteSupplierInvoice,
 } from "@/services/SupplierInvoiceService";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (
   req: Request,
@@ -12,27 +13,16 @@ export const GET = async (
 ) => {
   try {
     const response = await authorizeRequest(req);
-    if (!response) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!response) return errorResponse("Unauthorized", 401);
 
     const { id } = await params;
     const invoice = await getSupplierInvoiceById(id);
 
-    if (!invoice) {
-      return NextResponse.json(
-        { message: "Invoice not found" },
-        { status: 404 }
-      );
-    }
+    if (!invoice) return errorResponse("Invoice not found", 404);
 
     return NextResponse.json(invoice);
   } catch (error: any) {
-    console.error("[Invoice API] Error:", error);
-    return NextResponse.json(
-      { message: "Error fetching invoice", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
@@ -42,9 +32,7 @@ export const PUT = async (
 ) => {
   try {
     const response = await authorizeRequest(req);
-    if (!response) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!response) return errorResponse("Unauthorized", 401);
 
     const { id } = await params;
     const formData = await req.formData();
@@ -58,11 +46,7 @@ export const PUT = async (
     const invoice = await updateSupplierInvoice(id, data, file || undefined);
     return NextResponse.json(invoice);
   } catch (error: any) {
-    console.error("[Invoice API] Error:", error);
-    return NextResponse.json(
-      { message: "Error updating invoice", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
@@ -72,19 +56,13 @@ export const DELETE = async (
 ) => {
   try {
     const response = await authorizeRequest(req);
-    if (!response) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!response) return errorResponse("Unauthorized", 401);
 
     const { id } = await params;
     await deleteSupplierInvoice(id);
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error("[Invoice API] Error:", error);
-    return NextResponse.json(
-      { message: "Error deleting invoice", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 

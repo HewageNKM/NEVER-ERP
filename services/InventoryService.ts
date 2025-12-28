@@ -2,6 +2,7 @@ import { adminFirestore } from "@/firebase/firebaseAdmin";
 import { InventoryItem } from "@/model/InventoryItem"; // Adjust path if needed
 import { FieldPath, FieldValue } from "firebase-admin/firestore";
 import { nanoid } from "nanoid";
+import { AppError } from "@/utils/apiResponse";
 
 const INVENTORY_COLLECTION = "stock_inventory";
 const PRODUCTS_COLLECTION = "products"; // Needed for product-level stock updates
@@ -64,9 +65,9 @@ export const getInventory = async (
 
     // --- OPTIMIZED PRODUCT FETCH ---
     // 2. Get all unique Product IDs
-    const productIds = [
-      ...new Set(inventoryData.map((item) => item.productId)),
-    ];
+    const productIds = Array.from(
+      new Set(inventoryData.map((item) => item.productId))
+    );
 
     // 3. Fetch all product documents in ONE query
     const productsSnapshot = await adminFirestore
@@ -82,7 +83,9 @@ export const getInventory = async (
 
     // 4. --- ADDED: OPTIMIZED STOCK FETCH ---
     // 4a. Get all unique Stock IDs
-    const stockIds = [...new Set(inventoryData.map((item) => item.stockId))];
+    const stockIds = Array.from(
+      new Set(inventoryData.map((item) => item.stockId))
+    );
 
     // 4b. Fetch all stock documents in ONE query
     const stocksSnapshot = await adminFirestore
@@ -129,9 +132,10 @@ export const getInventory = async (
         "Firestore Error: This query requires a composite index. " +
           "Check the Firestore console logs for a link to create it."
       );
-      throw new Error(
+      throw new AppError(
         "A database index is required for this filter combination. " +
-          "Please check the server logs for a link to create it."
+          "Please check the server logs for a link to create it.",
+        500
       );
     }
     throw error;
@@ -173,7 +177,7 @@ export const addInventory = async (
   const { productId, variantId, size, stockId, quantity } = itemData;
 
   if (quantity < 0) {
-    throw new Error("Quantity cannot be negative.");
+    throw new AppError("Quantity cannot be negative.", 400);
   }
 
   // Check if item already exists
@@ -222,7 +226,7 @@ export const updateInventoryQuantity = async (
   newQuantity: number
 ): Promise<InventoryItem> => {
   if (newQuantity < 0) {
-    throw new Error("Quantity cannot be negative.");
+    throw new AppError("Quantity cannot be negative.", 400);
   }
 
   const inventoryRef = adminFirestore
@@ -232,7 +236,10 @@ export const updateInventoryQuantity = async (
   try {
     const docSnap = await inventoryRef.get();
     if (!docSnap.exists) {
-      throw new Error(`Inventory item with ID ${inventoryId} not found.`);
+      throw new AppError(
+        `Inventory item with ID ${inventoryId} not found.`,
+        404
+      );
     }
     const currentItem = docSnap.data() as InventoryItem;
 

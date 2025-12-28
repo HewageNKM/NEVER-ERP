@@ -1,23 +1,19 @@
 import { authorizeRequest } from "@/services/AuthService";
 import { deleteBanner } from "@/services/WebsiteService";
 import { NextResponse } from "next/server";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const DELETE = async (req: Request) => {
   try {
-    // Verify the ID token
     const response = await authorizeRequest(req);
     if (!response) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return errorResponse("Unauthorized", 401);
     }
     const name = new URL(req.url).pathname.split("/")[5];
     const writeResult = await deleteBanner(name || "");
     return NextResponse.json(writeResult);
   } catch (error: any) {
-    console.error(error);
-    // Return a response with error message
-    return NextResponse.json(
-      { message: "Error creating slides", error: error.message },
-      { status: 500 }
-    );
+    console.error("[Banners API] Delete Error:", error);
+    return errorResponse(error);
   }
 };

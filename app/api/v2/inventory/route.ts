@@ -5,14 +5,13 @@ import {
   addBulkInventory,
 } from "@/services/InventoryService";
 import { NextRequest, NextResponse } from "next/server";
+import { errorResponse } from "@/utils/apiResponse";
 
 // GET Handler: Fetch list of inventory items
 export const GET = async (req: NextRequest) => {
   try {
     const user = await authorizeRequest(req);
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const { searchParams } = req.nextUrl;
     const page = parseInt(searchParams.get("page") || "1");
@@ -35,11 +34,7 @@ export const GET = async (req: NextRequest) => {
 
     return NextResponse.json(result);
   } catch (error: any) {
-    console.error("GET /api/v2/inventory Error:", error);
-    return NextResponse.json(
-      { message: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
@@ -47,9 +42,7 @@ export const GET = async (req: NextRequest) => {
 export const POST = async (req: NextRequest) => {
   try {
     const user = await authorizeRequest(req);
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const data = await req.json();
 
@@ -57,21 +50,18 @@ export const POST = async (req: NextRequest) => {
     if (data.bulk === true) {
       // Bulk validation
       if (!data.productId || !data.variantId || !data.stockId) {
-        return NextResponse.json(
-          {
-            message:
-              "Product, Variant, and Stock Location are required for bulk entry",
-          },
-          { status: 400 }
+        return errorResponse(
+          "Product, Variant, and Stock Location are required for bulk entry",
+          400
         );
       }
       if (
         !Array.isArray(data.sizeQuantities) ||
         data.sizeQuantities.length === 0
       ) {
-        return NextResponse.json(
-          { message: "sizeQuantities array is required for bulk entry" },
-          { status: 400 }
+        return errorResponse(
+          "sizeQuantities array is required for bulk entry",
+          400
         );
       }
 
@@ -87,9 +77,9 @@ export const POST = async (req: NextRequest) => {
 
     // Single item entry (existing logic)
     if (!data.productId || !data.variantId || !data.size || !data.stockId) {
-      return NextResponse.json(
-        { message: "Product, Variant, Size, and Stock Location are required" },
-        { status: 400 }
+      return errorResponse(
+        "Product, Variant, Size, and Stock Location are required",
+        400
       );
     }
     if (
@@ -98,9 +88,9 @@ export const POST = async (req: NextRequest) => {
       data.quantity < 0 ||
       !Number.isInteger(data.quantity)
     ) {
-      return NextResponse.json(
-        { message: "Quantity is required and must be a non-negative integer" },
-        { status: 400 }
+      return errorResponse(
+        "Quantity is required and must be a non-negative integer",
+        400
       );
     }
 
@@ -115,10 +105,6 @@ export const POST = async (req: NextRequest) => {
     const newInventoryItem = await addInventory(inventoryData);
     return NextResponse.json(newInventoryItem, { status: 201 });
   } catch (error: any) {
-    console.error("POST /api/v2/inventory Error:", error);
-    return NextResponse.json(
-      { message: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };

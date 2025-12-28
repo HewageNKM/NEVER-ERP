@@ -6,6 +6,7 @@ import {
   validateDocumentIntegrity,
 } from "./IntegrityService";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { AppError } from "@/utils/apiResponse";
 import { InventoryItem } from "@/model/InventoryItem";
 import { Product } from "@/model/Product";
 import { toSafeLocaleString } from "./UtilService";
@@ -91,7 +92,7 @@ export const getOrders = async (
   }
 };
 
-export const getOrder = async (orderId: string): Promise<Order | null> => {
+export const getOrder = async (orderId: string): Promise<Order> => {
   try {
     // 1. Changed query to a direct doc.get() for efficiency and consistency
     const doc = await adminFirestore
@@ -100,8 +101,7 @@ export const getOrder = async (orderId: string): Promise<Order | null> => {
       .get();
 
     if (!doc.exists) {
-      console.warn(`Order with ID ${orderId} not found`);
-      return null;
+      throw new AppError(`Order with ID ${orderId} not found`, 404);
     }
 
     const data = doc.data() as Order;
@@ -141,13 +141,15 @@ export const updateOrder = async (order: Order, orderId: string) => {
     const orderRef = adminFirestore.collection(ORDERS_COLLECTION).doc(orderId);
     const orderDoc = await orderRef.get();
 
-    if (!orderDoc.exists) throw new Error(`Order with ID ${orderId} not found`);
+    if (!orderDoc.exists)
+      throw new AppError(`Order with ID ${orderId} not found`, 404);
 
     const existingOrder = orderDoc.data() as Order;
 
     if (existingOrder.paymentStatus?.toLowerCase() === "refunded") {
-      throw new Error(
-        `Order with ID ${orderId} is already refunded can't proceed with update`
+      throw new AppError(
+        `Order with ID ${orderId} is already refunded can't proceed with update`,
+        400
       );
     }
 
@@ -172,7 +174,10 @@ export const updateOrder = async (order: Order, orderId: string) => {
     const updatedOrderData = updatedOrderDoc.data();
 
     if (!updatedOrderData) {
-      throw new Error(`Order with ID ${orderId} not found after update`);
+      throw new AppError(
+        `Order with ID ${orderId} not found after update`,
+        404
+      );
     }
 
     // 🔒 Update or add hash ledger entry
@@ -186,9 +191,9 @@ export const updateOrder = async (order: Order, orderId: string) => {
 };
 
 export const addOrder = async (order: Partial<Order>) => {
-  if (!order.orderId) throw new Error("Order ID is required");
-  if (!order.items?.length) throw new Error("Order items are required");
-  if (!order.from) throw new Error("Order 'from' field is required");
+  if (!order.orderId) throw new AppError("Order ID is required", 400);
+  if (!order.items?.length) throw new AppError("Order items are required", 400);
+  if (!order.from) throw new AppError("Order 'from' field is required", 400);
 
   // ... (existing validations) ...
 
@@ -254,7 +259,7 @@ export const addOrder = async (order: Partial<Order>) => {
         );
         // Option: Throw error or proceed without discount?
         // Throwing error is safer.
-        throw new Error(`Coupon Invalid: ${validation.message}`);
+        throw new AppError(`Coupon Invalid: ${validation.message}`, 400);
       }
 
       finalDiscount = validation.discount || 0;
@@ -328,7 +333,7 @@ export const addOrder = async (order: Partial<Order>) => {
         }
 
         // Validate each combo group
-        for (const [comboId, items] of comboGroups) {
+        for (const [comboId, items] of Array.from(comboGroups)) {
           const comboDoc = await adminFirestore
             .collection("combo_products")
             .doc(comboId)
@@ -358,8 +363,9 @@ export const addOrder = async (order: Partial<Order>) => {
             console.error(
               `🚨 Combo discount mismatch! Combo: ${comboId}, Expected: ${expectedTotalDiscount}, Claimed: ${claimedTotalDiscount}`
             );
-            throw new Error(
-              `Invalid combo discount detected. Please refresh and try again.`
+            throw new AppError(
+              `Invalid combo discount detected. Please refresh and try again.`,
+              400
             );
           }
         }
@@ -491,12 +497,13 @@ export const addOrder = async (order: Partial<Order>) => {
         console.error(
           `Breakdown: items=${itemsTotal}, itemDiscounts=${itemDiscounts}, shipping=${serverShippingFee}, fee=${serverPaymentFee}, coupon=${serverCouponDiscount}, promotion=${promotionDiscount}`
         );
-        throw new Error(
+        throw new AppError(
           `Order total mismatch. Expected Rs. ${serverTotal.toFixed(
             2
           )}, received Rs. ${frontendTotal.toFixed(
             2
-          )}. Please refresh and try again.`
+          )}. Please refresh and try again.`,
+          400
         );
       }
 
@@ -529,7 +536,7 @@ export const addOrder = async (order: Partial<Order>) => {
     // --- STORE ORDER (Batch, with retry) ---
     if (fromSource === "store") {
       // ... existing store logic ...
-      if (!order.stockId) throw new Error("Stock ID is required");
+      if (!order.stockId) throw new AppError("Stock ID is required", 400);
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
           const batch = adminFirestore.batch();
@@ -546,13 +553,13 @@ export const addOrder = async (order: Partial<Order>) => {
                 .get();
 
               if (invSnap.empty)
-                throw new Error(`Missing inventory for ${item.name}`);
+                throw new AppError(`Missing inventory for ${item.name}`, 404);
 
               const invDoc = invSnap.docs[0];
               const invData = invDoc.data() as InventoryItem;
               const prodData = productMap.get(item.itemId);
               if (!prodData)
-                throw new Error(`Product not found: ${item.itemId}`);
+                throw new AppError(`Product not found: ${item.itemId}`, 404);
 
               const newInvQty = Math.max(
                 (invData.quantity ?? 0) - item.quantity,
@@ -600,7 +607,7 @@ export const addOrder = async (order: Partial<Order>) => {
 
       const stockId = settingsSnap.data()?.onlineStockId;
       if (!settingsSnap.exists || !settingsSnap.data()?.onlineStockId)
-        throw new Error("ERP settings or onlineStockId missing");
+        throw new AppError("ERP settings or onlineStockId missing", 500);
       orderData.stockId = stockId;
       for (let attempt = 1; attempt <= 3 && !success; attempt++) {
         try {
@@ -619,7 +626,7 @@ export const addOrder = async (order: Partial<Order>) => {
 
               const invSnap = await tx.get(invQuery);
               if (invSnap.empty)
-                throw new Error(`Inventory not found for ${item.name}`);
+                throw new AppError(`Inventory not found for ${item.name}`, 404);
 
               const invDoc = invSnap.docs[0];
               const invData = invDoc.data() as InventoryItem;
@@ -631,13 +638,13 @@ export const addOrder = async (order: Partial<Order>) => {
             for (const { invDoc, invData, item } of inventoryUpdates) {
               const prodData = productMap.get(item.itemId);
               if (!prodData)
-                throw new Error(`Product not found: ${item.itemId}`);
+                throw new AppError(`Product not found: ${item.itemId}`, 404);
 
               const newInvQty = (invData.quantity ?? 0) - item.quantity;
               const newTotalStock = (prodData.totalStock ?? 0) - item.quantity;
 
               if (newInvQty < 0 || newTotalStock < 0)
-                throw new Error(`Insufficient stock for ${item.name}`);
+                throw new AppError(`Insufficient stock for ${item.name}`, 400);
 
               tx.update(invDoc.ref, { quantity: newInvQty });
               tx.update(

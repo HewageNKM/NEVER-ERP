@@ -5,6 +5,7 @@ import { adminFirestore } from "@/firebase/firebaseAdmin";
 import { authorizeRequest } from "@/services/AuthService";
 import { getProductById, updateProduct } from "@/services/ProductService"; // Import your service
 import { Product } from "@/model/Product";
+import { errorResponse, AppError } from "@/utils/apiResponse";
 
 interface RouteParams {
   params: Promise<{
@@ -19,7 +20,7 @@ const parseProductFromFormData = async (
   formData: FormData
 ): Promise<Partial<Product>> => {
   const product: Partial<Product> = {};
-  for (const [key, value] of formData.entries()) {
+  for (const [key, value] of Array.from(formData.entries())) {
     if (key === "thumbnail") continue;
     if (key === "variants" || key === "tags") {
       product[key as "variants" | "tags"] = JSON.parse(value as string);
@@ -58,27 +59,20 @@ const parseProductFromFormData = async (
 export const GET = async (req: NextRequest, { params }: RouteParams) => {
   try {
     const user = await authorizeRequest(req);
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const { productId } = await params;
     const product = await getProductById(productId);
 
     if (!product) {
-      return NextResponse.json(
-        { message: "Product not found" },
-        { status: 404 }
-      );
+      // getProductById might throw 404 (if I succeed to fix service), or return null (if not).
+      // Handling both cases.
+      return errorResponse("Product not found", 404);
     }
 
     return NextResponse.json(product);
   } catch (error: any) {
-    console.error(`GET /api/v2/master/products/ Error:`, error);
-    return NextResponse.json(
-      { message: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
@@ -88,9 +82,7 @@ export const GET = async (req: NextRequest, { params }: RouteParams) => {
 export const PUT = async (req: NextRequest, { params }: RouteParams) => {
   try {
     const user = await authorizeRequest(req);
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const { productId } = await params;
     const formData = await req.formData();
@@ -117,19 +109,12 @@ export const PUT = async (req: NextRequest, { params }: RouteParams) => {
     }
 
     // Pass the product data and the (potentially null) new file
-    const success = await updateProduct(productId, productData, file);
-
-    if (!success) {
-      throw new Error("Failed to update product");
-    }
+    // Pass the product data and the (potentially null) new file
+    await updateProduct(productId, productData, file);
 
     return NextResponse.json({ message: "Product updated successfully" });
   } catch (error: any) {
-    console.error(`PUT /api/v2/master/products/ Error:`, error);
-    return NextResponse.json(
-      { message: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
@@ -139,9 +124,7 @@ export const PUT = async (req: NextRequest, { params }: RouteParams) => {
 export const DELETE = async (req: NextRequest, { params }: RouteParams) => {
   try {
     const user = await authorizeRequest(req);
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!user) return errorResponse("Unauthorized", 401);
 
     // --- CRITICAL FIX: Use productId, not id ---
     const { productId } = await params;
@@ -157,10 +140,6 @@ export const DELETE = async (req: NextRequest, { params }: RouteParams) => {
 
     return NextResponse.json({ message: "Product deleted successfully" });
   } catch (error: any) {
-    console.error(`DELETE /api/v2/master/products/ Error:`, error);
-    return NextResponse.json(
-      { message: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };

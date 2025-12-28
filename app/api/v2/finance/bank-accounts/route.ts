@@ -6,13 +6,12 @@ import {
   getBankAccountsDropdown,
   getTotalBalance,
 } from "@/services/BankAccountService";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: Request) => {
   try {
     const response = await authorizeRequest(req);
-    if (!response) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!response) return errorResponse("Unauthorized", 401);
 
     const url = new URL(req.url);
     const dropdown = url.searchParams.get("dropdown") === "true";
@@ -31,30 +30,20 @@ export const GET = async (req: Request) => {
     const data = await getBankAccounts();
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error("[BankAccounts API] Error:", error);
-    return NextResponse.json(
-      { message: "Error fetching accounts", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
 export const POST = async (req: Request) => {
   try {
     const response = await authorizeRequest(req);
-    if (!response) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!response) return errorResponse("Unauthorized", 401);
 
     const body = await req.json();
     const account = await createBankAccount(body);
     return NextResponse.json(account, { status: 201 });
   } catch (error: any) {
-    console.error("[BankAccounts API] Error:", error);
-    return NextResponse.json(
-      { message: "Error creating account", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 

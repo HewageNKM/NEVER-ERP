@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { authorizeRequest, updateUser } from "@/services/AuthService";
 import { User } from "@/model/User";
 import { adminAuth, adminFirestore } from "@/firebase/firebaseAdmin";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const PUT = async (
   req: Request,
@@ -10,17 +11,14 @@ export const PUT = async (
   try {
     const isAuthorized = await authorizeRequest(req);
     if (!isAuthorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return errorResponse("Unauthorized", 401);
     }
 
     const { userId } = await params;
     const body: Partial<User> = await req.json();
 
     if (!userId) {
-      return NextResponse.json(
-        { message: "User ID is required" },
-        { status: 400 }
-      );
+      return errorResponse("User ID is required", 400);
     }
 
     await updateUser(userId, body);
@@ -30,11 +28,7 @@ export const PUT = async (
       { status: 200 }
     );
   } catch (error: any) {
-    console.error(`Error updating user ${error.message}`);
-    return NextResponse.json(
-      { message: "Error updating user", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
@@ -45,16 +39,13 @@ export const DELETE = async (
   try {
     const isAuthorized = await authorizeRequest(req);
     if (!isAuthorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return errorResponse("Unauthorized", 401);
     }
 
     const { userId } = await params;
 
     if (!userId) {
-      return NextResponse.json(
-        { message: "User ID is required" },
-        { status: 400 }
-      );
+      return errorResponse("User ID is required", 400);
     }
 
     // Delete from Auth
@@ -75,10 +66,6 @@ export const DELETE = async (
       { status: 200 }
     );
   } catch (error: any) {
-    console.error(`Error deleting user ${error.message}`);
-    return NextResponse.json(
-      { message: "Error deleting user", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };

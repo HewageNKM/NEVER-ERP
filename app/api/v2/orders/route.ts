@@ -3,14 +3,13 @@ import { authorizeRequest } from "@/services/AuthService";
 import { addOrder, getOrders } from "@/services/OrderService";
 import { authorizeOrderRequest } from "@/services/AuthService";
 import { Order } from "@/model/Order";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: NextRequest) => {
   try {
     // Verify the ID token
     const response = await authorizeRequest(req);
-    if (!response) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!response) return errorResponse("Unauthorized", 401);
 
     // Get the URL and parse the query parameters
     const url = new URL(req.url);
@@ -36,26 +35,19 @@ export const GET = async (req: NextRequest) => {
     // Return a response with the orders
     return NextResponse.json({ dataList, total });
   } catch (error: any) {
-    console.error(error);
-    // Return a response with error message
-    return NextResponse.json(
-      { message: "Error fetching orders", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
 export const POST = async (req: NextRequest) => {
   try {
     const authorization = await authorizeOrderRequest(req);
-    if (!authorization) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    if (!authorization) return errorResponse("Unauthorized", 401);
+
     const orderData: Partial<Order> = await req.json();
     await addOrder(orderData);
     return NextResponse.json("Order Created Successfully");
-  } catch (error) {
-    console.log(error);
-    return NextResponse.json({ error: error }, { status: 500 });
+  } catch (error: any) {
+    return errorResponse(error);
   }
 };

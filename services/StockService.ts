@@ -1,6 +1,7 @@
 import { adminFirestore } from "@/firebase/firebaseAdmin";
 import { Stock } from "@/model/Stock"; // Adjust path if needed
 import { nanoid } from "nanoid";
+import { AppError } from "@/utils/apiResponse";
 import { FieldValue } from "firebase-admin/firestore";
 
 const STOCKS_COLLECTION = "stocks"; // Collection name
@@ -65,7 +66,7 @@ export const getStocks = async (
         "Firestore Index Error: A composite index might be needed if search and orderBy are combined."
       );
     }
-    return { dataList: [], rowCount: 0 };
+    throw error;
   }
 };
 
@@ -86,8 +87,9 @@ export const addStock = async (
     } = {
       ...data,
       isDeleted: false,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
+      tags: data.tags || [],
+      createdAt: FieldValue.serverTimestamp() as any,
+      updatedAt: FieldValue.serverTimestamp() as any,
     };
 
     await adminFirestore.collection(STOCKS_COLLECTION).doc(id).set(newStock);
@@ -106,17 +108,13 @@ export const addStock = async (
 export const updateStock = async (
   id: string,
   data: Partial<Omit<Stock, "id" | "createdAt" | "updatedAt" | "isDeleted">>
-): Promise<boolean> => {
+): Promise<void> => {
   try {
     const stockRef = adminFirestore.collection(STOCKS_COLLECTION).doc(id);
+    const stockSnap = await stockRef.get();
 
-    // Regenerate tags if name or address changed
-    let tags: string[] | undefined = undefined;
-    if (data.name !== undefined || data.address !== undefined) {
-      // Need current data to generate full tags if only one field changes
-      const currentSnap = await stockRef.get();
-      if (!currentSnap.exists)
-        throw new Error(`Stock location with ID ${id} not found.`);
+    if (!stockSnap.exists) {
+      throw new AppError(`Stock location with ID ${id} not found.`, 404);
     }
 
     const updateData: any = {
@@ -125,7 +123,6 @@ export const updateStock = async (
     };
 
     await stockRef.update(updateData);
-    return true;
   } catch (error) {
     console.error("Update Stock Error:", error);
     throw error;
@@ -135,14 +132,19 @@ export const updateStock = async (
 /**
  * Soft-deletes a stock location document.
  */
-export const deleteStock = async (id: string): Promise<boolean> => {
+export const deleteStock = async (id: string): Promise<void> => {
   try {
     const stockRef = adminFirestore.collection(STOCKS_COLLECTION).doc(id);
+    const stockSnap = await stockRef.get();
+
+    if (!stockSnap.exists) {
+      throw new AppError(`Stock location with ID ${id} not found.`, 404);
+    }
+
     await stockRef.update({
       isDeleted: true,
       updatedAt: FieldValue.serverTimestamp(),
     });
-    return true;
   } catch (error) {
     console.error("Delete Stock Error:", error);
     throw error;

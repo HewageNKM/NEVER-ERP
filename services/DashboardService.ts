@@ -168,7 +168,7 @@ export const getOverviewByDateRange = async (
     };
   } catch (error: any) {
     console.error("[DashboardService] Error:", error);
-    throw new Error(error.message);
+    throw error;
   }
 };
 
@@ -228,7 +228,7 @@ export const getYearlySalesPerformance = async (
     };
   } catch (error: any) {
     console.error("[DashboardService] Error:", error);
-    throw new Error(error.message);
+    throw error;
   }
 };
 
@@ -293,7 +293,7 @@ export const getRecentOrders = async (
     return orders;
   } catch (error: any) {
     console.error("[DashboardService] Error:", error);
-    throw new Error(error.message);
+    throw error;
   }
 };
 
@@ -391,7 +391,7 @@ export const getPopularItems = async (
     return popularItems.sort((a, b) => b.soldCount - a.soldCount);
   } catch (error: any) {
     console.error("[DashboardService] Error:", error);
-    throw new Error(error.message);
+    throw error;
   }
 };
 
@@ -488,7 +488,7 @@ export const getLowStockAlerts = async (
     return lowStockItems;
   } catch (error: any) {
     console.error("[DashboardService] Error:", error);
-    throw new Error(error.message);
+    throw error;
   }
 };
 
@@ -595,7 +595,7 @@ export const getMonthlyComparison = async (): Promise<MonthlyComparison> => {
     };
   } catch (error: any) {
     console.error("[DashboardService] Error:", error);
-    throw new Error(error.message);
+    throw error;
   }
 };
 
@@ -690,7 +690,7 @@ export const getOrderStatusDistribution =
       return distribution;
     } catch (error: any) {
       console.error("[DashboardService] Error:", error);
-      throw new Error(error.message);
+      throw error;
     }
   };
 
@@ -736,7 +736,7 @@ export const getPendingOrdersCount = async (): Promise<PendingOrdersCount> => {
     return result;
   } catch (error: any) {
     console.error("[DashboardService] Error:", error);
-    throw new Error(error.message);
+    throw error;
   }
 };
 
@@ -794,7 +794,7 @@ export const getWeeklyTrends = async (): Promise<WeeklyTrends> => {
     return { labels, orders, revenue };
   } catch (error: any) {
     console.error("[DashboardService] Error:", error);
-    throw new Error(error.message);
+    throw error;
   }
 };
 
@@ -900,7 +900,7 @@ export const getExpenseSummary = async (): Promise<ExpenseSummary> => {
     };
   } catch (error: any) {
     console.error("[DashboardService] Error:", error);
-    throw new Error(error.message);
+    throw error;
   }
 };
 
@@ -968,7 +968,7 @@ export const getProfitMargins = async (): Promise<ProfitMargins> => {
     };
   } catch (error: any) {
     console.error("[DashboardService] Error:", error);
-    throw new Error(error.message);
+    throw error;
   }
 };
 
@@ -1055,7 +1055,7 @@ export const getInventoryValue = async (): Promise<InventoryValue> => {
     };
   } catch (error: any) {
     console.error("[DashboardService] Error:", error);
-    throw new Error(error.message);
+    throw error;
   }
 };
 
@@ -1182,6 +1182,6 @@ export const getRevenueByCategory = async (): Promise<CategoryRevenue[]> => {
     return result;
   } catch (error: any) {
     console.error("[DashboardService] Error:", error);
-    throw new Error(error.message);
+    throw error;
   }
 };

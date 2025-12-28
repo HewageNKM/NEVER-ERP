@@ -1,22 +1,17 @@
 import { NextResponse } from "next/server";
 import { authorizeRequest } from "@/services/AuthService";
 import { getInventoryValue } from "@/services/DashboardService";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: Request) => {
   try {
     const response = await authorizeRequest(req);
-    if (!response) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!response) return errorResponse("Unauthorized", 401);
 
     const data = await getInventoryValue();
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error("[Dashboard API] Error:", error);
-    return NextResponse.json(
-      { message: "Error fetching inventory value", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 

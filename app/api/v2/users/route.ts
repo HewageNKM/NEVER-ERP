@@ -3,13 +3,14 @@ import { adminFirestore } from "@/firebase/firebaseAdmin";
 import { authorizeRequest, createUser } from "@/services/AuthService";
 import { User } from "@/model/User";
 import admin from "firebase-admin";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: Request) => {
   try {
     // Verify the ID token
     const isAuthorized = await authorizeRequest(req);
     if (!isAuthorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return errorResponse("Unauthorized", 401);
     }
 
     // Get the URL and parse the query parameters
@@ -73,7 +74,7 @@ export const GET = async (req: Request) => {
       } as User);
     });
 
-    // Apply search filter (client-side for now since Firestore doesn't support full-text search)
+    // Apply search filter
     let filteredUsers = users;
     if (search.trim()) {
       const searchLower = search.toLowerCase();
@@ -84,7 +85,7 @@ export const GET = async (req: Request) => {
       );
     }
 
-    // Get total count for pagination info
+    // Get total count
     const totalSnapshot = await adminFirestore.collection("users").get();
     const totalCount = totalSnapshot.size + uniqueUsers.length;
 
@@ -100,11 +101,7 @@ export const GET = async (req: Request) => {
       hasMore: filteredUsers.length === size,
     });
   } catch (error: any) {
-    console.error(error);
-    return NextResponse.json(
-      { message: "Error fetching users", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
@@ -113,26 +110,17 @@ export const POST = async (req: Request) => {
     // Verify the ID token
     const isAuthorized = await authorizeRequest(req);
     if (!isAuthorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return errorResponse("Unauthorized", 401);
     }
 
     const body: User = await req.json();
     if (!body) {
-      return NextResponse.json(
-        { message: "Invalid request body" },
-        { status: 400 }
-      );
+      return errorResponse("Invalid request body", 400);
     }
 
     const userId = await createUser(body);
     return NextResponse.json({ userId }, { status: 201 });
   } catch (error: any) {
-    console.error(error);
-    return NextResponse.json(
-      { message: "Error creating user", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
-
-export const dynamic = "force-dynamic";

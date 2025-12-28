@@ -1,12 +1,12 @@
 import { authorizeRequest } from "@/services/AuthService";
 import { getCombos, createCombo } from "@/services/ComboService";
 import { NextRequest, NextResponse } from "next/server";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: NextRequest) => {
   try {
     const user = await authorizeRequest(req);
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const { searchParams } = req.nextUrl;
     const page = parseInt(searchParams.get("page") || "1");
@@ -15,15 +15,14 @@ export const GET = async (req: NextRequest) => {
     const result = await getCombos(page, size);
     return NextResponse.json(result);
   } catch (error: any) {
-    return NextResponse.json({ message: error.message }, { status: 500 });
+    return errorResponse(error);
   }
 };
 
 export const POST = async (req: NextRequest) => {
   try {
     const user = await authorizeRequest(req);
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
@@ -34,10 +33,7 @@ export const POST = async (req: NextRequest) => {
     const name = formData.get("name") as string;
 
     if (!name || items.length === 0) {
-      return NextResponse.json(
-        { message: "Name and at least one item required" },
-        { status: 400 }
-      );
+      return errorResponse("Name and at least one item required", 400);
     }
 
     const payload: UnparsedComboData = {
@@ -72,7 +68,7 @@ export const POST = async (req: NextRequest) => {
     const combo = await createCombo(payload as any, file || undefined);
     return NextResponse.json(combo, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ message: error.message }, { status: 500 });
+    return errorResponse(error);
   }
 };
 

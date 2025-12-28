@@ -2,6 +2,7 @@ import { authorizeRequest } from "@/services/AuthService";
 import { ProductVariant } from "@/model/ProductVariant";
 import { addVariant } from "@/services/VariantService";
 import { NextRequest, NextResponse } from "next/server";
+import { errorResponse } from "@/utils/apiResponse";
 
 // Helper to parse FormData for variants (similar to product parse)
 const parseVariantFormData = (
@@ -47,15 +48,12 @@ export const POST = async (
   try {
     const user = await authorizeRequest(req);
     if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return errorResponse("Unauthorized", 401);
     }
 
     const { productId } = await params;
     if (!productId) {
-      return NextResponse.json(
-        { message: "Product ID is required" },
-        { status: 400 }
-      );
+      return errorResponse("Product ID is required", 400);
     }
 
     const formData = await req.formData();
@@ -63,10 +61,7 @@ export const POST = async (
 
     // Basic validation
     if (!variantData.variantName) {
-      return NextResponse.json(
-        { message: "Variant name is required" },
-        { status: 400 }
-      );
+      return errorResponse("Variant name is required", 400);
     }
 
     // Call the service to add the variant
@@ -79,9 +74,6 @@ export const POST = async (
     return NextResponse.json(savedVariant, { status: 201 }); // Return the saved variant
   } catch (error: any) {
     console.error("POST Variant Error:", error);
-    return NextResponse.json(
-      { message: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };

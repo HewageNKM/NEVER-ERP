@@ -5,12 +5,13 @@ import {
   createAdjustment,
 } from "@/services/InventoryAdjustmentService";
 import { AdjustmentType } from "@/model/InventoryAdjustment";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: Request) => {
   try {
     const response = await authorizeRequest(req);
     if (!response) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return errorResponse("Unauthorized", 401);
     }
 
     const url = new URL(req.url);
@@ -20,10 +21,7 @@ export const GET = async (req: Request) => {
     return NextResponse.json(data);
   } catch (error: any) {
     console.error("[Adjustments API] Error:", error);
-    return NextResponse.json(
-      { message: "Error fetching adjustments", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
@@ -31,7 +29,7 @@ export const POST = async (req: Request) => {
   try {
     const response = await authorizeRequest(req);
     if (!response) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return errorResponse("Unauthorized", 401);
     }
 
     const body = await req.json();
@@ -39,10 +37,7 @@ export const POST = async (req: Request) => {
     return NextResponse.json(adjustment, { status: 201 });
   } catch (error: any) {
     console.error("[Adjustments API] Error:", error);
-    return NextResponse.json(
-      { message: "Error creating adjustment", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 

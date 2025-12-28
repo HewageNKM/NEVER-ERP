@@ -2,6 +2,7 @@ import { authorizeRequest } from "@/services/AuthService";
 import { updateVariant, deleteVariant } from "@/services/VariantService";
 import { ProductVariant } from "@/model/ProductVariant";
 import { NextRequest, NextResponse } from "next/server";
+import { errorResponse } from "@/utils/apiResponse";
 
 // Helper to parse FormData (can reuse from POST route)
 const parseVariantFormData = (
@@ -43,25 +44,19 @@ export const PUT = async (
   try {
     const user = await authorizeRequest(req);
     if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return errorResponse("Unauthorized", 401);
     }
 
     const { productId, variantId } = await params;
     if (!productId || !variantId) {
-      return NextResponse.json(
-        { message: "Product ID and Variant ID are required" },
-        { status: 400 }
-      );
+      return errorResponse("Product ID and Variant ID are required", 400);
     }
 
     const formData = await req.formData();
     const { variantData, newImageFiles } = parseVariantFormData(formData);
 
     if (!variantData.variantName) {
-      return NextResponse.json(
-        { message: "Variant name is required" },
-        { status: 400 }
-      );
+      return errorResponse("Variant name is required", 400);
     }
 
     // Call the service to update the variant
@@ -75,10 +70,7 @@ export const PUT = async (
     return NextResponse.json(updatedVariant, { status: 200 }); // Return updated variant
   } catch (error: any) {
     console.error("PUT Variant Error:", error);
-    return NextResponse.json(
-      { message: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
@@ -89,26 +81,19 @@ export const DELETE = async (
   try {
     const user = await authorizeRequest(req);
     if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return errorResponse("Unauthorized", 401);
     }
 
     const { productId, variantId } = await params;
     if (!productId || !variantId) {
-      return NextResponse.json(
-        { message: "Product ID and Variant ID are required" },
-        { status: 400 }
-      );
+      return errorResponse("Product ID and Variant ID are required", 400);
     }
 
     // Call the service to delete the variant
     const success = await deleteVariant(productId, variantId);
 
     if (!success) {
-      // You might decide if not found is an error or just a no-op
-      return NextResponse.json(
-        { message: "Variant not found or already deleted" },
-        { status: 404 }
-      );
+      return errorResponse("Variant not found or already deleted", 404);
     }
 
     return NextResponse.json(
@@ -117,9 +102,6 @@ export const DELETE = async (
     );
   } catch (error: any) {
     console.error("DELETE Variant Error:", error);
-    return NextResponse.json(
-      { message: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };

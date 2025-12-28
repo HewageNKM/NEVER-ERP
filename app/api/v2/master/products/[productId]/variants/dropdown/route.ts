@@ -1,6 +1,7 @@
 import { authorizeRequest } from "@/services/AuthService";
 import { getProductVariantsForDropdown } from "@/services/VariantService";
 import { NextRequest, NextResponse } from "next/server";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (
   req: NextRequest,
@@ -9,17 +10,13 @@ export const GET = async (
   try {
     const user = await authorizeRequest(req);
     if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return errorResponse("Unauthorized", 401);
     }
     const { productId } = await params;
-    const id = productId;
-    const res = await getProductVariantsForDropdown(id);
+    const res = await getProductVariantsForDropdown(productId);
     return NextResponse.json(res);
-  } catch (error) {
-    console.error("GET Product Error:", error);
-    return NextResponse.json(
-      { message: "Internal Server Error" },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    console.error("GET Variants Dropdown Error:", error);
+    return errorResponse(error);
   }
 };

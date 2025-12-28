@@ -5,6 +5,7 @@ import {
   AdjustmentType,
 } from "@/model/InventoryAdjustment";
 import { FieldValue } from "firebase-admin/firestore";
+import { AppError } from "@/utils/apiResponse";
 
 const COLLECTION = "inventory_adjustments";
 const INVENTORY_COLLECTION = "stock_inventory";
@@ -64,10 +65,12 @@ export const getAdjustments = async (
  */
 export const getAdjustmentById = async (
   id: string
-): Promise<InventoryAdjustment | null> => {
+): Promise<InventoryAdjustment> => {
   try {
     const doc = await adminFirestore.collection(COLLECTION).doc(id).get();
-    if (!doc.exists) return null;
+    if (!doc.exists) {
+      throw new AppError(`Adjustment with ID ${id} not found`, 404);
+    }
     return { id: doc.id, ...doc.data() } as InventoryAdjustment;
   } catch (error) {
     console.error("[AdjustmentService] Error fetching adjustment:", error);

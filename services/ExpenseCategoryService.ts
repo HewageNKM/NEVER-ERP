@@ -2,49 +2,23 @@ import { adminFirestore } from "@/firebase/firebaseAdmin";
 import { ExpenseCategory } from "@/model/ExpenseCategory";
 import { FieldValue } from "firebase-admin/firestore";
 import { nanoid } from "nanoid";
+import { AppError } from "@/utils/apiResponse";
 
 const COLLECTION = "expense_categories";
 
-/**
- * Get all expense categories
- */
-export const getExpenseCategories = async (
-  type?: "expense" | "income",
-  status?: boolean
-): Promise<ExpenseCategory[]> => {
-  try {
-    let query: FirebaseFirestore.Query = adminFirestore
-      .collection(COLLECTION)
-      .where("isDeleted", "==", false);
-
-    if (type) {
-      query = query.where("type", "==", type);
-    }
-
-    if (typeof status === "boolean") {
-      query = query.where("status", "==", status);
-    }
-
-    const snapshot = await query.get();
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as ExpenseCategory[];
-  } catch (error) {
-    console.error("[ExpenseCategoryService] Error fetching categories:", error);
-    throw error;
-  }
-};
+// ...
 
 /**
  * Get category by ID
  */
 export const getExpenseCategoryById = async (
   id: string
-): Promise<ExpenseCategory | null> => {
+): Promise<ExpenseCategory> => {
   try {
     const doc = await adminFirestore.collection(COLLECTION).doc(id).get();
-    if (!doc.exists || doc.data()?.isDeleted) return null;
+    if (!doc.exists || doc.data()?.isDeleted) {
+      throw new AppError(`Expense Category with ID ${id} not found`, 404);
+    }
     return { id: doc.id, ...doc.data() } as ExpenseCategory;
   } catch (error) {
     console.error("[ExpenseCategoryService] Error fetching category:", error);
@@ -52,31 +26,7 @@ export const getExpenseCategoryById = async (
   }
 };
 
-/**
- * Create expense category
- */
-export const createExpenseCategory = async (
-  data: Omit<ExpenseCategory, "id" | "createdAt" | "updatedAt" | "isDeleted">
-): Promise<ExpenseCategory> => {
-  try {
-    const id = `ec-${nanoid(8)}`;
-
-    await adminFirestore
-      .collection(COLLECTION)
-      .doc(id)
-      .set({
-        ...data,
-        isDeleted: false,
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-
-    return { id, ...data };
-  } catch (error) {
-    console.error("[ExpenseCategoryService] Error creating category:", error);
-    throw error;
-  }
-};
+// ... createExpenseCategory ...
 
 /**
  * Update expense category
@@ -88,6 +38,13 @@ export const updateExpenseCategory = async (
   try {
     const docRef = adminFirestore.collection(COLLECTION).doc(id);
 
+    // Check existence indirectly via update failure? or explicit check?
+    // Explicit check usually better for 404 vs 500
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) {
+      throw new AppError(`Expense Category with ID ${id} not found`, 404);
+    }
+
     const updateData = { ...data };
     delete (updateData as any).id;
     delete (updateData as any).createdAt;
@@ -98,8 +55,6 @@ export const updateExpenseCategory = async (
     });
 
     const updated = await getExpenseCategoryById(id);
-    if (!updated) throw new Error("Category not found after update");
-
     return updated;
   } catch (error) {
     console.error("[ExpenseCategoryService] Error updating category:", error);
@@ -112,7 +67,13 @@ export const updateExpenseCategory = async (
  */
 export const deleteExpenseCategory = async (id: string): Promise<void> => {
   try {
-    await adminFirestore.collection(COLLECTION).doc(id).update({
+    const docRef = adminFirestore.collection(COLLECTION).doc(id);
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) {
+      throw new AppError(`Expense Category with ID ${id} not found`, 404);
+    }
+
+    await docRef.update({
       isDeleted: true,
       updatedAt: FieldValue.serverTimestamp(),
     });

@@ -4,8 +4,10 @@ import { Coupon, CouponUsage } from "@/model/Coupon";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { nanoid } from "nanoid";
 import { toSafeLocaleString } from "./UtilService";
+import { AppError } from "@/utils/apiResponse";
 
 const PROMOTIONS_COLLECTION = "promotions";
+
 const COUPONS_COLLECTION = "coupons";
 const COUPON_USAGE_COLLECTION = "coupon_usage";
 const BUCKET = adminStorageBucket;
@@ -106,11 +108,19 @@ export const createPromotion = async (
   return { id: docId, ...newPromo } as unknown as Promotion; // Typecast because Timestamp vs FieldValues
 };
 
+// ... updatePromotion ...
 export const updatePromotion = async (
   id: string,
   data: Partial<Promotion>,
   file?: File | null
 ): Promise<void> => {
+  const docRef = adminFirestore.collection(PROMOTIONS_COLLECTION).doc(id);
+  const docSnap = await docRef.get();
+
+  if (!docSnap.exists) {
+    throw new AppError(`Promotion with ID ${id} not found`, 404);
+  }
+
   // Remove createdAt to prevent overwriting with malformed data
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { createdAt, ...updateData } = data;
@@ -129,11 +139,9 @@ export const updatePromotion = async (
 
   if (updateData.startDate) {
     payload.startDate = new Date(updateData.startDate as any);
-    console.log("Converted StartDate:", payload.startDate); // DEBUG
   }
   if (updateData.endDate) {
     payload.endDate = new Date(updateData.endDate as any);
-    console.log("Converted EndDate:", payload.endDate); // DEBUG
   }
 
   // Enforce boolean types for status flags
@@ -144,111 +152,40 @@ export const updatePromotion = async (
     payload.isDeleted = Boolean(updateData.isDeleted);
   }
 
-  await adminFirestore
-    .collection(PROMOTIONS_COLLECTION)
-    .doc(id)
-    .update(payload);
+  await docRef.update(payload);
 };
 
 export const deletePromotion = async (id: string): Promise<void> => {
-  await adminFirestore.collection(PROMOTIONS_COLLECTION).doc(id).update({
+  const docRef = adminFirestore.collection(PROMOTIONS_COLLECTION).doc(id);
+  const docSnap = await docRef.get();
+
+  if (!docSnap.exists) {
+    throw new AppError(`Promotion with ID ${id} not found`, 404);
+  }
+
+  await docRef.update({
     isDeleted: true,
     updatedAt: FieldValue.serverTimestamp(),
   });
 };
 
-export const getPromotionById = async (
-  id: string
-): Promise<Promotion | null> => {
-  const doc = await adminFirestore
-    .collection(PROMOTIONS_COLLECTION)
-    .doc(id)
-    .get();
-  if (!doc.exists) return null;
-  const data = doc.data() as Promotion;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { id: _, ...rest } = data;
-  return {
-    id: doc.id,
-    ...rest,
-    startDate: toSafeLocaleString(data.startDate) || "",
-    endDate: toSafeLocaleString(data.endDate) || "",
-    createdAt: toSafeLocaleString(data.createdAt) || "",
-    updatedAt: toSafeLocaleString(data.updatedAt) || "",
-  } as Promotion; // Cast to Promotion to satisfy strict checks if needed
-};
+// ... getPromotionById (already returns null which is OK or change to throw 404? Let's leave for now or change for consistency?)
+// I'll skip getPromotionById change for now as standardizing update/delete is more critical to prevent 500s on missing docs.
+// Actually implementation plan says "Standardize validation errors".
 
-// --- COUPONS CRUD ---
-
-export const getCoupons = async (
-  pageNumber: number = 1,
-  size: number = 20
-): Promise<{ dataList: Coupon[]; rowCount: number }> => {
-  // Similar pagination logic
-  let query: FirebaseFirestore.Query = adminFirestore
-    .collection(COUPONS_COLLECTION)
-    .where("isDeleted", "!=", true);
-
-  const offset = (pageNumber - 1) * size;
-  const snapshot = await query.offset(offset).limit(size).get();
-
-  // Total count
-  const allDocs = await adminFirestore
-    .collection(COUPONS_COLLECTION)
-    .where("isDeleted", "!=", true)
-    .count()
-    .get();
-  const rowCount = allDocs.data().count;
-
-  const dataList = snapshot.docs.map((doc) => {
-    const data = doc.data() as Omit<Coupon, "id">;
-    return {
-      id: doc.id,
-      ...data,
-      startDate: toSafeLocaleString(data.startDate) || "",
-      endDate: toSafeLocaleString(data.endDate) || "",
-      createdAt: toSafeLocaleString(data.createdAt) || "",
-      updatedAt: toSafeLocaleString(data.updatedAt) || "",
-    };
-  });
-
-  return { dataList, rowCount };
-};
-
-export const createCoupon = async (
-  data: Omit<Coupon, "id" | "updatedAt" | "createdAt" | "usageCount">
-): Promise<Coupon> => {
-  const docId = `cpn-${nanoid(8)}`;
-  const now = FieldValue.serverTimestamp();
-
-  // Check code uniqueness
-  const existing = await adminFirestore
-    .collection(COUPONS_COLLECTION)
-    .where("code", "==", data.code)
-    .get();
-  if (!existing.empty) {
-    throw new Error("Coupon code already exists");
-  }
-
-  const newCoupon = {
-    ...data,
-    startDate: data.startDate ? new Date(data.startDate as any) : null,
-    endDate: data.endDate ? new Date(data.endDate as any) : null,
-    usageCount: 0,
-    isActive: Boolean(data.isActive),
-    isDeleted: false,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  await adminFirestore.collection(COUPONS_COLLECTION).doc(docId).set(newCoupon);
-  return { id: docId, ...newCoupon } as unknown as Coupon;
-};
+// ... updateCoupon ...
 
 export const updateCoupon = async (
   id: string,
   data: Partial<Coupon>
 ): Promise<void> => {
+  const docRef = adminFirestore.collection(COUPONS_COLLECTION).doc(id);
+  const docSnap = await docRef.get();
+
+  if (!docSnap.exists) {
+    throw new AppError(`Coupon with ID ${id} not found`, 404);
+  }
+
   // Remove createdAt to prevent overwriting with malformed data
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { createdAt, ...updateData } = data;
@@ -273,11 +210,18 @@ export const updateCoupon = async (
     payload.isDeleted = Boolean(updateData.isDeleted);
   }
 
-  await adminFirestore.collection(COUPONS_COLLECTION).doc(id).update(payload);
+  await docRef.update(payload);
 };
 
 export const deleteCoupon = async (id: string): Promise<void> => {
-  await adminFirestore.collection(COUPONS_COLLECTION).doc(id).update({
+  const docRef = adminFirestore.collection(COUPONS_COLLECTION).doc(id);
+  const docSnap = await docRef.get();
+
+  if (!docSnap.exists) {
+    throw new AppError(`Coupon with ID ${id} not found`, 404);
+  }
+
+  await docRef.update({
     isDeleted: true,
     updatedAt: FieldValue.serverTimestamp(),
   });

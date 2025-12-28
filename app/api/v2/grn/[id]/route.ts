@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { authorizeRequest } from "@/services/AuthService";
 import { getGRNById } from "@/services/GRNService";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (
   req: Request,
@@ -8,24 +9,16 @@ export const GET = async (
 ) => {
   try {
     const response = await authorizeRequest(req);
-    if (!response) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!response) return errorResponse("Unauthorized", 401);
 
     const { id } = await params;
     const grn = await getGRNById(id);
 
-    if (!grn) {
-      return NextResponse.json({ message: "GRN not found" }, { status: 404 });
-    }
+    if (!grn) return errorResponse("GRN not found", 404);
 
     return NextResponse.json(grn);
   } catch (error: any) {
-    console.error("[GRN API] Error:", error);
-    return NextResponse.json(
-      { message: "Error fetching GRN", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 

@@ -1,5 +1,6 @@
 import { adminFirestore } from "@/firebase/firebaseAdmin";
 import { Size } from "@/model/Size";
+import { AppError } from "@/utils/apiResponse";
 
 const COLLECTION = "sizes";
 
@@ -43,7 +44,7 @@ export const getSizes = async ({
     return { dataList, rowCount: totalSnapshot.size };
   } catch (error) {
     console.error("Get Sizes Error:", error);
-    return { dataList: [], rowCount: 0 };
+    throw error;
   }
 };
 
@@ -59,26 +60,39 @@ export const createSize = async (data: Size) => {
 
 // 🔹 Update Size
 export const updateSize = async (id: string, data: Partial<Size>) => {
-  if (data.name) data.name = data.name.toLowerCase();
-  await adminFirestore.collection(COLLECTION).doc(id).update(data);
+  const docRef = adminFirestore.collection(COLLECTION).doc(id);
+  const docSnap = await docRef.get();
+  if (!docSnap.exists) {
+    throw new AppError(`Size with ID ${id} not found`, 404);
+  }
+
+  if (data.name) {
+    // Note: Assuming nameLower is needed but not strictly typed in Partial<Size>
+    (data as any).nameLower = data.name.toLowerCase();
+  }
+  await docRef.update(data);
   return { id, ...data };
 };
 
 // 🔹 Delete Size (soft delete)
 export const deleteSize = async (id: string) => {
-  await adminFirestore
-    .collection(COLLECTION)
-    .doc(id)
-    .update({ isDeleted: true });
+  const docRef = adminFirestore.collection(COLLECTION).doc(id);
+  const docSnap = await docRef.get();
+  if (!docSnap.exists) {
+    throw new AppError(`Size with ID ${id} not found`, 404);
+  }
+
+  await docRef.update({ isDeleted: true });
   return { id };
 };
 
 export const getSizeDropdown = async () => {
   try {
-    const snapshot = await adminFirestore.collection(COLLECTION)
-    .where("isDeleted", "==", false)
-    .where("status", "==", true)
-    .get();
+    const snapshot = await adminFirestore
+      .collection(COLLECTION)
+      .where("isDeleted", "==", false)
+      .where("status", "==", true)
+      .get();
     const sizes = snapshot.docs.map((doc) => ({
       id: doc.id,
       label: doc.data().name,

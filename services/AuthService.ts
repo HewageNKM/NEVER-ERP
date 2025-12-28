@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { User } from "@/model/User";
 import admin from "firebase-admin";
+import { AppError, errorResponse } from "@/utils/apiResponse";
 
 export const authorizeOrderRequest = async (req: Request) => {
   try {
@@ -19,7 +20,7 @@ export const authorizeOrderRequest = async (req: Request) => {
     }
   } catch (error) {
     console.log(error);
-    throw error;
+    throw new AppError("Authorization Failed", 401);
   }
 };
 
@@ -28,7 +29,7 @@ export const verifyPosAuth = async () => {
   const authHeader = headersList.get("authorization");
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    throw new Error("Unauthorized: Missing or invalid token");
+    throw new AppError("Unauthorized: Missing or invalid token", 401);
   }
 
   const token = authHeader.split("Bearer ")[1];
@@ -36,22 +37,19 @@ export const verifyPosAuth = async () => {
     const decodedToken = await adminAuth.verifyIdToken(token, true);
 
     if (!decodedToken.role) {
-      throw new Error("Unauthorized: Role not found in token");
+      throw new AppError("Unauthorized: Role not found in token", 401);
     }
 
     return decodedToken;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Token verification failed:", error);
-    throw new Error("Unauthorized: Invalid token or user");
+    throw new AppError("Unauthorized: Invalid token or user", 401);
   }
 };
 
 export const handleAuthError = (error: any) => {
-  const status = error.message.startsWith("Unauthorized") ? 401 : 500;
-  return NextResponse.json(
-    { error: error.message || "Internal Server Error" },
-    { status }
-  );
+  const status = error instanceof AppError ? error.statusCode : 500;
+  return errorResponse(error, status);
 };
 
 export const authorizeRequest = async (req: any) => {
@@ -154,13 +152,13 @@ export const loginUser = async (userId: string) => {
 
     if (!userDoc.exists) {
       console.warn(`User with ID ${userId} not found`);
-      throw new Error(`User with ID ${userId} not found`);
+      throw new AppError(`User with ID ${userId} not found`, 404);
     }
 
     const userData = userDoc.data() as User;
 
     if (userData.status !== "Active") {
-      throw new Error(`User with ID ${userId} is not active`);
+      throw new AppError(`User with ID ${userId} is not active`, 403);
     }
 
     return {
@@ -174,7 +172,8 @@ export const loginUser = async (userId: string) => {
     } as User;
   } catch (e) {
     console.error(e);
-    throw e;
+    if (e instanceof AppError) throw e;
+    throw new AppError(e instanceof Error ? e.message : "Login failed", 500);
   }
 };
 

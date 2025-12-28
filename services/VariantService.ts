@@ -4,6 +4,7 @@ import { ProductVariant } from "@/model/ProductVariant";
 import { Img } from "@/model/Img";
 import { nanoid } from "nanoid";
 import { FieldValue } from "firebase-admin/firestore";
+import { AppError } from "@/utils/apiResponse";
 
 const PRODUCTS_COLLECTION = "products";
 const BUCKET = adminStorageBucket;
@@ -44,7 +45,7 @@ export const addVariant = async (
     // --- Step 1: Get current product data ---
     const productSnap = await productRef.get();
     if (!productSnap.exists) {
-      throw new Error(`Product with ID ${productId} not found.`);
+      throw new AppError(`Product with ID ${productId} not found`, 404);
     }
     const currentProductData = productSnap.data() as Product;
 
@@ -113,7 +114,7 @@ export const updateVariant = async (
     // --- Step 1: Get current product data ---
     const productSnap = await productRef.get();
     if (!productSnap.exists) {
-      throw new Error(`Product with ID ${productId} not found.`);
+      throw new AppError(`Product with ID ${productId} not found`, 404);
     }
     const currentProductData = productSnap.data() as Product;
     const existingVariants = currentProductData.variants || [];
@@ -122,8 +123,9 @@ export const updateVariant = async (
       (v) => v.variantId === variantId
     );
     if (variantIndex === -1) {
-      throw new Error(
-        `Variant with ID ${variantId} not found in product ${productId}.`
+      throw new AppError(
+        `Variant with ID ${variantId} not found in product ${productId}`,
+        404
       );
     }
 
@@ -192,7 +194,7 @@ export const deleteVariant = async (
     // --- Step 1: Get current product data ---
     const productSnap = await productRef.get();
     if (!productSnap.exists) {
-      throw new Error(`Product with ID ${productId} not found.`);
+      throw new AppError(`Product with ID ${productId} not found`, 404);
     }
     const currentProductData = productSnap.data() as Product;
     const existingVariants = currentProductData.variants || [];

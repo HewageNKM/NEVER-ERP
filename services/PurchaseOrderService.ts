@@ -5,6 +5,7 @@ import {
   PurchaseOrderItem,
 } from "@/model/PurchaseOrder";
 import { FieldValue } from "firebase-admin/firestore";
+import { AppError } from "@/utils/apiResponse";
 
 const COLLECTION = "purchase_orders";
 
@@ -68,10 +69,12 @@ export const getPurchaseOrders = async (
  */
 export const getPurchaseOrderById = async (
   id: string
-): Promise<PurchaseOrder | null> => {
+): Promise<PurchaseOrder> => {
   try {
     const doc = await adminFirestore.collection(COLLECTION).doc(id).get();
-    if (!doc.exists) return null;
+    if (!doc.exists) {
+      throw new AppError(`Purchase Order with ID ${id} not found`, 404);
+    }
     return { id: doc.id, ...doc.data() } as PurchaseOrder;
   } catch (error) {
     console.error("[PurchaseOrderService] Error fetching PO:", error);
@@ -129,6 +132,10 @@ export const updatePurchaseOrder = async (
 ): Promise<PurchaseOrder> => {
   try {
     const docRef = adminFirestore.collection(COLLECTION).doc(id);
+    const docSnap = await docRef.get(); // Check existence first
+    if (!docSnap.exists) {
+      throw new AppError(`Purchase Order with ID ${id} not found`, 404);
+    }
 
     const updateData = { ...updates };
     delete (updateData as any).id;
@@ -149,9 +156,7 @@ export const updatePurchaseOrder = async (
     });
 
     const updated = await getPurchaseOrderById(id);
-    if (!updated) throw new Error("PO not found after update");
-
-    return updated;
+    return updated; // getPurchaseOrderById will throw if not found (unlikely here)
   } catch (error) {
     console.error("[PurchaseOrderService] Error updating PO:", error);
     throw error;
@@ -182,7 +187,8 @@ export const updateReceivedQuantities = async (
 ): Promise<PurchaseOrder> => {
   try {
     const po = await getPurchaseOrderById(id);
-    if (!po) throw new Error("PO not found");
+
+    // Note: getPurchaseOrderById throws 404 if not found, so no need to check po null
 
     const updatedItems = po.items.map((item) => {
       const received = receivedItems.find(
@@ -231,10 +237,10 @@ export const updateReceivedQuantities = async (
  */
 export const deletePurchaseOrder = async (id: string): Promise<void> => {
   try {
-    const po = await getPurchaseOrderById(id);
-    if (!po) throw new Error("PO not found");
+    const po = await getPurchaseOrderById(id); // Will throw 404 if not found
+
     if (po.status !== "draft") {
-      throw new Error("Only draft POs can be deleted");
+      throw new AppError("Only draft POs can be deleted", 400);
     }
 
     await adminFirestore.collection(COLLECTION).doc(id).delete();

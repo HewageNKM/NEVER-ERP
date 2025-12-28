@@ -1,6 +1,7 @@
 import { adminFirestore } from "@/firebase/firebaseAdmin";
 import { ShippingRule } from "@/model/ShippingRule";
 import { FieldValue } from "firebase-admin/firestore";
+import { AppError } from "@/utils/apiResponse";
 
 const COLLECTION = "shipping_rules";
 
@@ -23,8 +24,6 @@ export const createShippingRule = async (data: Partial<ShippingRule>) => {
   try {
     const newRule = {
       ...data,
-      createAt: FieldValue.serverTimestamp(), // Typo in original code? No, usually createdAt.
-      // Original code used createdAt. I will stick to standard.
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     };
@@ -41,6 +40,12 @@ export const updateShippingRule = async (
   data: Partial<ShippingRule>
 ) => {
   try {
+    const docRef = adminFirestore.collection(COLLECTION).doc(id);
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) {
+      throw new AppError(`Shipping rule with ID ${id} not found`, 404);
+    }
+
     const updateData = {
       ...data,
       updatedAt: FieldValue.serverTimestamp(),
@@ -48,7 +53,7 @@ export const updateShippingRule = async (
     // Ensure ID is not in the data payload for update
     delete (updateData as any).id;
 
-    await adminFirestore.collection(COLLECTION).doc(id).update(updateData);
+    await docRef.update(updateData);
     return id;
   } catch (error) {
     console.error("Error updating shipping rule:", error);
@@ -58,7 +63,12 @@ export const updateShippingRule = async (
 
 export const deleteShippingRule = async (id: string) => {
   try {
-    await adminFirestore.collection(COLLECTION).doc(id).delete();
+    const docRef = adminFirestore.collection(COLLECTION).doc(id);
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) {
+      throw new AppError(`Shipping rule with ID ${id} not found`, 404);
+    }
+    await docRef.delete();
     return id;
   } catch (error) {
     console.error("Error deleting shipping rule:", error);

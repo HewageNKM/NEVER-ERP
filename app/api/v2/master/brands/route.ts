@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { createBrand, getBrands } from "@/services/BrandService";
 import { authorizeRequest } from "@/services/AuthService";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: Request) => {
   try {
     const user = await authorizeRequest(req);
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const { searchParams } = new URL(req.url);
     const page = Number(searchParams.get("page") || 1);
@@ -17,16 +17,14 @@ export const GET = async (req: Request) => {
     const data = await getBrands({ page, size, search, status });
     return NextResponse.json(data);
   } catch (err) {
-    console.error("Get Brands Error:", err);
-    return NextResponse.json({ dataList: [], rowCount: 0 }, { status: 500 });
+    return errorResponse(err);
   }
 };
 
 export const POST = async (req: Request) => {
   try {
     const user = await authorizeRequest(req);
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const formData = await req.formData();
     const name = formData.get("name") as string;
@@ -40,10 +38,6 @@ export const POST = async (req: Request) => {
     );
     return NextResponse.json(result);
   } catch (err) {
-    console.error("Create Brand Error:", err);
-    return NextResponse.json(
-      { success: false, message: "Failed to create brand" },
-      { status: 500 }
-    );
+    return errorResponse(err);
   }
 };

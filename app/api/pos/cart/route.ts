@@ -6,6 +6,7 @@ import {
   clearPosCart,
 } from "@/services/POSService";
 import { verifyPosAuth, handleAuthError } from "@/services/AuthService";
+import { errorResponse } from "@/utils/apiResponse";
 
 // GET - Fetch all cart items
 export async function GET(request: NextRequest) {
@@ -14,10 +15,7 @@ export async function GET(request: NextRequest) {
     const stockId = request.nextUrl.searchParams.get("stockId");
 
     if (!stockId) {
-      return NextResponse.json(
-        { error: "Stock ID is required" },
-        { status: 400 }
-      );
+      return errorResponse("Stock ID is required", 400);
     }
 
     const userId = decodedToken.uid;
@@ -49,10 +47,7 @@ export async function DELETE(request: NextRequest) {
     // If clearAll flag is set, clear entire cart
     if (body.clearAll) {
       if (!body.stockId) {
-        return NextResponse.json(
-          { error: "Stock ID is required to clear cart" },
-          { status: 400 }
-        );
+        return errorResponse("Stock ID is required to clear cart", 400);
       }
       await clearPosCart(body.stockId, decodedToken.uid);
       return NextResponse.json({ success: true, message: "Cart cleared" });

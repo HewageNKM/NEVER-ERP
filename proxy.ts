@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errorResponse } from "@/utils/apiResponse";
 
 export default async function proxy(req: Request) {
   const { pathname } = new URL(req.url);
@@ -29,9 +30,10 @@ export default async function proxy(req: Request) {
   if (!isPublic) {
     const authHeader = req.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { message: "Unauthorized: Missing or invalid token format" },
-        { status: 401, headers: corsHeaders }
+      return errorResponse(
+        "Unauthorized: Missing or invalid token format",
+        401,
+        corsHeaders
       );
     }
     // Note: Signature verification is deferred to the specific API route handler

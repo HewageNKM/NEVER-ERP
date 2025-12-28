@@ -5,6 +5,7 @@ import {
   deleteBrand,
 } from "@/services/BrandService";
 import { authorizeRequest } from "@/services/AuthService";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (
   _req: Request,
@@ -13,17 +14,12 @@ export const GET = async (
   try {
     const { brandId } = await params;
     const user = await authorizeRequest(_req);
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const result = await getBrandById(brandId);
     return NextResponse.json(result);
   } catch (err) {
-    console.error("Get Brand Error:", err);
-    return NextResponse.json(
-      { success: false, message: "Error fetching brand" },
-      { status: 500 }
-    );
+    return errorResponse(err);
   }
 };
 
@@ -34,8 +30,7 @@ export const PUT = async (
   try {
     const { brandId } = await params;
     const user = await authorizeRequest(req);
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const formData = await req.formData();
     const name = formData.get("name") as string;
@@ -50,11 +45,7 @@ export const PUT = async (
     );
     return NextResponse.json(result);
   } catch (err) {
-    console.error("Update Brand Error:", err);
-    return NextResponse.json(
-      { success: false, message: "Failed to update brand" },
-      { status: 500 }
-    );
+    return errorResponse(err);
   }
 };
 
@@ -65,16 +56,11 @@ export const DELETE = async (
   try {
     const { brandId } = await params;
     const user = await authorizeRequest(req);
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const result = await deleteBrand(brandId);
     return NextResponse.json(result);
   } catch (err) {
-    console.error("Delete Brand Error:", err);
-    return NextResponse.json(
-      { success: false, message: "Failed to delete brand" },
-      { status: 500 }
-    );
+    return errorResponse(err);
   }
 };

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { authorizeRequest } from "@/services/AuthService";
 import { getAdjustmentById } from "@/services/InventoryAdjustmentService";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (
   req: Request,
@@ -9,26 +10,16 @@ export const GET = async (
   try {
     const response = await authorizeRequest(req);
     if (!response) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return errorResponse("Unauthorized", 401);
     }
 
     const { id } = await params;
     const adjustment = await getAdjustmentById(id);
 
-    if (!adjustment) {
-      return NextResponse.json(
-        { message: "Adjustment not found" },
-        { status: 404 }
-      );
-    }
-
     return NextResponse.json(adjustment);
   } catch (error: any) {
     console.error("[Adjustment API] Error:", error);
-    return NextResponse.json(
-      { message: "Error fetching adjustment", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 

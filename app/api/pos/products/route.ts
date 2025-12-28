@@ -4,6 +4,7 @@ import {
   searchProductsByStock,
 } from "@/services/POSService";
 import { verifyPosAuth, handleAuthError } from "@/services/AuthService";
+import { errorResponse } from "@/utils/apiResponse";
 
 // GET - Fetch products by stock ID, with optional search
 export async function GET(request: NextRequest) {
@@ -17,10 +18,7 @@ export async function GET(request: NextRequest) {
     const size = parseInt(searchParams.get("size") || "20");
 
     if (!stockId) {
-      return NextResponse.json(
-        { error: "stockId is required" },
-        { status: 400 }
-      );
+      return errorResponse("stockId is required", 400);
     }
 
     let products;

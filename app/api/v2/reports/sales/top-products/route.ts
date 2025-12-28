@@ -1,13 +1,12 @@
 import { authorizeRequest } from "@/services/AuthService";
 import { getTopSellingProducts } from "@/services/ReportService";
 import { NextRequest, NextResponse } from "next/server";
+import { errorResponse } from "@/utils/apiResponse";
 
 export async function GET(req: NextRequest) {
   try {
     const authorized = await authorizeRequest(req);
-    if (!authorized) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!authorized) return errorResponse("Unauthorized", 401);
 
     const url = new URL(req.url);
     const from = url.searchParams.get("from") || "";
@@ -18,11 +17,7 @@ export async function GET(req: NextRequest) {
 
     const data = await getTopSellingProducts(from, to, threshold);
     return NextResponse.json(data);
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json(
-      { message: "Failed to fetch top selling products" },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    return errorResponse(error);
   }
 }

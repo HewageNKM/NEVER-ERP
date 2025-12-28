@@ -36,54 +36,52 @@ const uploadThumbnail = async (
   };
 };
 
+import { AppError } from "@/utils/apiResponse";
+
+// ... (previous code)
+
 /**
  * Adds a new product to Firestore, now including generated keywords.
  * UPDATED to await generateTags
  */
 export const addProducts = async (product: Partial<Product>, file: File) => {
-  try {
-    const id = `p-${nanoid(8)}`.toLowerCase();
+  const id = `p-${nanoid(8)}`.toLowerCase();
 
-    // 1. Upload thumbnail
-    const thumbnail = await uploadThumbnail(file, id);
+  // 1. Upload thumbnail
+  const thumbnail = await uploadThumbnail(file, id);
 
-    // Build tags from brand and category (no AI)
-    const tags: string[] = [];
-    if (product.brand) tags.push(product.brand.toLowerCase());
-    if (product.category) tags.push(product.category.toLowerCase());
+  // Build tags from brand and category (no AI)
+  const tags: string[] = [];
+  if (product.brand) tags.push(product.brand.toLowerCase());
+  if (product.category) tags.push(product.category.toLowerCase());
 
-    // Denormalize sizes from variants for search
-    const allSizes = new Set<string>();
-    (product.variants || []).forEach((v) =>
-      v.sizes?.forEach((s) => allSizes.add(s))
-    );
+  // Denormalize sizes from variants for search
+  const allSizes = new Set<string>();
+  (product.variants || []).forEach((v) =>
+    v.sizes?.forEach((s) => allSizes.add(s))
+  );
 
-    const newProductDocument: Product = {
-      ...(product as Product), // Cast after filling required fields
-      id: id,
-      productId: id,
-      thumbnail: thumbnail,
-      nameLower: product.name?.toLowerCase(),
-      tags: tags,
-      gender: product.gender || [],
-      availableSizes: Array.from(allSizes),
-      isDeleted: false,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    };
+  const newProductDocument: any = {
+    ...(product as Product), // Cast after filling required fields
+    id: id,
+    productId: id,
+    thumbnail: thumbnail,
+    nameLower: product.name?.toLowerCase(),
+    tags: tags,
+    gender: product.gender || [],
+    availableSizes: Array.from(allSizes),
+    isDeleted: false,
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  };
 
-    await adminFirestore
-      .collection(PRODUCTS_COLLECTION)
-      .doc(id)
-      .set(newProductDocument);
+  await adminFirestore
+    .collection(PRODUCTS_COLLECTION)
+    .doc(id)
+    .set(newProductDocument);
 
-    console.log(`Product added with ID: ${id}`);
-
-    return true;
-  } catch (err) {
-    console.error("Error adding product:", err);
-    return false;
-  }
+  console.log(`Product added with ID: ${id}`);
+  return true;
 };
 
 /**
@@ -94,65 +92,61 @@ export const updateProduct = async (
   product: Partial<Product>,
   file?: File | null
 ) => {
-  try {
-    // Build tags from brand and category (no AI)
-    const tags: string[] = [];
-    if (product.brand) tags.push(product.brand.toLowerCase());
-    if (product.category) tags.push(product.category.toLowerCase());
+  // Build tags from brand and category (no AI)
+  const tags: string[] = [];
+  if (product.brand) tags.push(product.brand.toLowerCase());
+  if (product.category) tags.push(product.category.toLowerCase());
 
-    // Denormalize sizes from variants for search
-    const allSizes = new Set<string>();
-    (product.variants || []).forEach((v) =>
-      v.sizes?.forEach((s) => allSizes.add(s))
-    );
+  // Denormalize sizes from variants for search
+  const allSizes = new Set<string>();
+  (product.variants || []).forEach((v) =>
+    v.sizes?.forEach((s) => allSizes.add(s))
+  );
 
-    let thumbnail = product.thumbnail;
+  let thumbnail = product.thumbnail;
 
-    if (file) {
-      const oldProduct = await getProductById(id);
-      const oldPath = oldProduct?.thumbnail?.file;
-      if (oldPath) {
-        try {
-          await BUCKET.file(oldPath).delete();
-        } catch (delError) {
-          console.warn(`Failed to delete old thumbnail: ${oldPath}`, delError);
-        }
+  if (file) {
+    const oldProduct = await getProductById(id);
+    // getProductById now throws if not found, so we are safe.
+    const oldPath = oldProduct?.thumbnail?.file;
+    if (oldPath) {
+      try {
+        await BUCKET.file(oldPath).delete();
+      } catch (delError) {
+        console.warn(`Failed to delete old thumbnail: ${oldPath}`, delError);
       }
-      thumbnail = await uploadThumbnail(file, id);
     }
-
-    const updatedProductDocument = {
-      name: product.name,
-      category: product.category,
-      brand: product.brand,
-      description: product.description,
-      buyingPrice: product.buyingPrice,
-      sellingPrice: product.sellingPrice,
-      marketPrice: product.marketPrice,
-      discount: product.discount,
-      listing: product.listing,
-      weight: product.weight,
-      variants: product.variants,
-      status: product.status,
-      thumbnail: thumbnail,
-      nameLower: product.name?.toLowerCase(),
-      tags: tags,
-      gender: product.gender || [],
-      availableSizes: Array.from(allSizes),
-      updatedAt: new Date(),
-    };
-
-    await adminFirestore
-      .collection(PRODUCTS_COLLECTION)
-      .doc(id)
-      .set(updatedProductDocument, { merge: true }); // Use set with merge
-
-    console.log(`Product updated with ID: ${id}`);
-    return true;
-  } catch (error) {
-    console.log("Error updating product:", error); // Added log message
-    return false;
+    thumbnail = await uploadThumbnail(file, id);
   }
+
+  const updatedProductDocument = {
+    name: product.name,
+    category: product.category,
+    brand: product.brand,
+    description: product.description,
+    buyingPrice: product.buyingPrice,
+    sellingPrice: product.sellingPrice,
+    marketPrice: product.marketPrice,
+    discount: product.discount,
+    listing: product.listing,
+    weight: product.weight,
+    variants: product.variants,
+    status: product.status,
+    thumbnail: thumbnail,
+    nameLower: product.name?.toLowerCase(),
+    tags: tags,
+    gender: product.gender || [],
+    availableSizes: Array.from(allSizes),
+    updatedAt: new Date(),
+  };
+
+  await adminFirestore
+    .collection(PRODUCTS_COLLECTION)
+    .doc(id)
+    .set(updatedProductDocument, { merge: true }); // Use set with merge
+
+  console.log(`Product updated with ID: ${id}`);
+  return true;
 };
 
 export const getProducts = async (
@@ -228,32 +222,29 @@ export const getProducts = async (
     return { dataList: products, rowCount };
   } catch (error) {
     console.error("Get Products Error:", error);
-    throw error;
+    throw error; // Rethrow to let route handle
   }
 };
 
-export const getProductById = async (id: string): Promise<Product | null> => {
-  try {
-    const docSnap = await adminFirestore
-      .collection(PRODUCTS_COLLECTION)
-      .doc(id)
-      .get();
-    if (!docSnap.exists || docSnap.data()?.isDeleted) return null;
-
-    const data = docSnap.data() as any;
-    const activeVariants = (data.variants || []).filter(
-      (v: ProductVariant & { isDeleted?: boolean }) => !v.isDeleted
-    );
-
-    return {
-      ...data,
-      productId: docSnap.id,
-      variants: activeVariants,
-    } as Product;
-  } catch (error) {
-    console.error("Get Product By ID Error:", error);
-    throw error;
+export const getProductById = async (id: string): Promise<Product> => {
+  const docSnap = await adminFirestore
+    .collection(PRODUCTS_COLLECTION)
+    .doc(id)
+    .get();
+  if (!docSnap.exists || docSnap.data()?.isDeleted) {
+    throw new AppError("Product not found", 404);
   }
+
+  const data = docSnap.data() as any;
+  const activeVariants = (data.variants || []).filter(
+    (v: ProductVariant & { isDeleted?: boolean }) => !v.isDeleted
+  );
+
+  return {
+    ...data,
+    productId: docSnap.id,
+    variants: activeVariants,
+  } as Product;
 };
 
 // Get product dropdown for active products
@@ -341,12 +332,14 @@ export const getPopularProducts = async (
 
           if (productDoc.exists) {
             const itemData = productDoc.data() as Product;
+            const itemWithStrings = {
+              ...itemData,
+              createdAt: toSafeLocaleString(itemData.createdAt),
+              updatedAt: toSafeLocaleString(itemData.updatedAt),
+            } as any;
+
             popularItems.push({
-              item: {
-                ...itemData,
-                createdAt: toSafeLocaleString(itemData.createdAt),
-                updatedAt: toSafeLocaleString(itemData.updatedAt),
-              },
+              item: itemWithStrings,
               soldCount: count,
             });
           }

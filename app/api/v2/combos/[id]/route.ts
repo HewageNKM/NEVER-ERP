@@ -5,6 +5,7 @@ import {
   deleteCombo,
 } from "@/services/ComboService";
 import { NextRequest, NextResponse } from "next/server";
+import { errorResponse } from "@/utils/apiResponse";
 
 interface Props {
   params: Promise<{
@@ -16,16 +17,15 @@ export const GET = async (req: NextRequest, props: Props) => {
   const params = await props.params;
   try {
     const user = await authorizeRequest(req);
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const combo = await getComboById(params.id);
     if (!combo) {
-      return NextResponse.json({ message: "Combo not found" }, { status: 404 });
+      return errorResponse("Combo not found", 404);
     }
     return NextResponse.json(combo);
   } catch (error: any) {
-    return NextResponse.json({ message: error.message }, { status: 500 });
+    return errorResponse(error);
   }
 };
 
@@ -33,8 +33,7 @@ export const PUT = async (req: NextRequest, props: Props) => {
   const params = await props.params;
   try {
     const user = await authorizeRequest(req);
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
@@ -79,7 +78,7 @@ export const PUT = async (req: NextRequest, props: Props) => {
 
     return NextResponse.json({ message: "Updated successfully" });
   } catch (error: any) {
-    return NextResponse.json({ message: error.message }, { status: 500 });
+    return errorResponse(error);
   }
 };
 
@@ -103,12 +102,11 @@ export const DELETE = async (req: NextRequest, props: Props) => {
   const params = await props.params;
   try {
     const user = await authorizeRequest(req);
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!user) return errorResponse("Unauthorized", 401);
 
     await deleteCombo(params.id);
     return NextResponse.json({ message: "Deleted successfully" });
   } catch (error: any) {
-    return NextResponse.json({ message: error.message }, { status: 500 });
+    return errorResponse(error);
   }
 };

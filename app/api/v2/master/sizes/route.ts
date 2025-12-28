@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSizes, createSize } from "@/services/SizeService";
 import { authorizeRequest } from "@/services/AuthService";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: Request) => {
   try {
     const user = await authorizeRequest(req);
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const { searchParams } = new URL(req.url);
     const page = Number(searchParams.get("page") || 1);
@@ -16,34 +16,25 @@ export const GET = async (req: Request) => {
 
     const data = await getSizes({ page, size, search, status });
     return NextResponse.json(data);
-  } catch (err) {
-    console.error("Get Sizes Error:", err);
-    return NextResponse.json({ dataList: [], rowCount: 0 }, { status: 500 });
+  } catch (err: any) {
+    return errorResponse(err);
   }
 };
 
 export const POST = async (req: Request) => {
   try {
     const user = await authorizeRequest(req);
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const sizeData = await req.json();
 
     if (!sizeData.name || !sizeData.status)
-      return NextResponse.json(
-        { message: "Name and status are required" },
-        { status: 400 }
-      );
+      return errorResponse("Name and status are required", 400);
 
     const result = await createSize(sizeData);
 
     return NextResponse.json(result);
-  } catch (err) {
-    console.error("Create Size Error:", err);
-    return NextResponse.json(
-      { success: false, message: "Failed to create size" },
-      { status: 500 }
-    );
+  } catch (err: any) {
+    return errorResponse(err);
   }
 };

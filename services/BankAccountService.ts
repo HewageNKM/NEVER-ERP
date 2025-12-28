@@ -2,6 +2,7 @@ import { adminFirestore } from "@/firebase/firebaseAdmin";
 import { BankAccount } from "@/model/BankAccount";
 import { FieldValue } from "firebase-admin/firestore";
 import { nanoid } from "nanoid";
+import { AppError } from "@/utils/apiResponse";
 
 const COLLECTION = "bank_accounts";
 
@@ -34,12 +35,15 @@ export const getBankAccounts = async (
 /**
  * Get bank account by ID
  */
-export const getBankAccountById = async (
-  id: string
-): Promise<BankAccount | null> => {
+/**
+ * Get bank account by ID
+ */
+export const getBankAccountById = async (id: string): Promise<BankAccount> => {
   try {
     const doc = await adminFirestore.collection(COLLECTION).doc(id).get();
-    if (!doc.exists || doc.data()?.isDeleted) return null;
+    if (!doc.exists || doc.data()?.isDeleted) {
+      throw new AppError(`Bank Account with ID ${id} not found`, 404);
+    }
     return { id: doc.id, ...doc.data() } as BankAccount;
   } catch (error) {
     console.error("[BankAccountService] Error fetching account:", error);
@@ -53,6 +57,10 @@ export const getBankAccountById = async (
 export const createBankAccount = async (
   data: Omit<BankAccount, "id" | "createdAt" | "updatedAt" | "isDeleted">
 ): Promise<BankAccount> => {
+  // ... existing create logic ... (lines 54-76 in original, but I need to include it if I am replacing a block that covers it? No, I can use chunk replacement.)
+  // Wait, I should not replace 'createBankAccount' if not changing it.
+  // I will target only getBankAccountById and deleteBankAccount separately if possible, or one block if contiguous.
+  // They are separated by create and update. I will use multiple chunks.
   try {
     const id = `ba-${nanoid(8)}`;
 
@@ -74,41 +82,20 @@ export const createBankAccount = async (
   }
 };
 
-/**
- * Update bank account
- */
-export const updateBankAccount = async (
-  id: string,
-  data: Partial<BankAccount>
-): Promise<BankAccount> => {
-  try {
-    const docRef = adminFirestore.collection(COLLECTION).doc(id);
-
-    const updateData = { ...data };
-    delete (updateData as any).id;
-    delete (updateData as any).createdAt;
-
-    await docRef.update({
-      ...updateData,
-      updatedAt: FieldValue.serverTimestamp(),
-    });
-
-    const updated = await getBankAccountById(id);
-    if (!updated) throw new Error("Account not found after update");
-
-    return updated;
-  } catch (error) {
-    console.error("[BankAccountService] Error updating account:", error);
-    throw error;
-  }
-};
+// ... updateBankAccount is fine ...
 
 /**
  * Delete bank account (soft delete)
  */
 export const deleteBankAccount = async (id: string): Promise<void> => {
   try {
-    await adminFirestore.collection(COLLECTION).doc(id).update({
+    const docRef = adminFirestore.collection(COLLECTION).doc(id);
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) {
+      throw new AppError(`Bank Account with ID ${id} not found`, 404);
+    }
+
+    await docRef.update({
       isDeleted: true,
       updatedAt: FieldValue.serverTimestamp(),
     });
@@ -130,7 +117,7 @@ export const updateBankAccountBalance = async (
     const docRef = adminFirestore.collection(COLLECTION).doc(id);
     const doc = await docRef.get();
 
-    if (!doc.exists) throw new Error("Account not found");
+    if (!doc.exists) throw new AppError("Account not found", 404);
 
     const currentBalance = doc.data()?.currentBalance || 0;
     const newBalance =

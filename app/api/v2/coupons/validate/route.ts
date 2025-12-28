@@ -1,5 +1,6 @@
 import { validateCoupon } from "@/services/PromotionService";
 import { NextRequest, NextResponse } from "next/server";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const POST = async (req: NextRequest) => {
   try {
@@ -11,20 +12,17 @@ export const POST = async (req: NextRequest) => {
     const { code, userId, cartTotal, cartItems } = data;
 
     if (!code) {
-      return NextResponse.json(
-        { message: "Coupon code is required" },
-        { status: 400 }
-      );
+      return errorResponse("Coupon code is required", 400);
     }
 
     const result = await validateCoupon(code, userId, cartTotal, cartItems);
 
     if (!result.valid) {
-      return NextResponse.json(result, { status: 400 });
+      return errorResponse(result.message || "Invalid coupon", 400);
     }
 
     return NextResponse.json(result);
   } catch (error: any) {
-    return NextResponse.json({ message: error.message }, { status: 500 });
+    return errorResponse(error);
   }
 };

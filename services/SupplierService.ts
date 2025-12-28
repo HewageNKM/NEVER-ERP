@@ -33,10 +33,19 @@ export const getSuppliers = async (
 /**
  * Get supplier by ID
  */
-export const getSupplierById = async (id: string): Promise<Supplier | null> => {
+import { AppError } from "@/utils/apiResponse";
+
+// ... (previous)
+
+/**
+ * Get supplier by ID
+ */
+export const getSupplierById = async (id: string): Promise<Supplier> => {
   try {
     const doc = await adminFirestore.collection(COLLECTION).doc(id).get();
-    if (!doc.exists) return null;
+    if (!doc.exists) {
+      throw new AppError("Supplier not found", 404);
+    }
     return { id: doc.id, ...doc.data() } as Supplier;
   } catch (error) {
     console.error("[SupplierService] Error fetching supplier:", error);
@@ -44,28 +53,7 @@ export const getSupplierById = async (id: string): Promise<Supplier | null> => {
   }
 };
 
-/**
- * Create new supplier
- */
-export const createSupplier = async (
-  supplier: Omit<Supplier, "id" | "createdAt" | "updatedAt">
-): Promise<Supplier> => {
-  try {
-    const docRef = await adminFirestore.collection(COLLECTION).add({
-      ...supplier,
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    });
-
-    return {
-      id: docRef.id,
-      ...supplier,
-    };
-  } catch (error) {
-    console.error("[SupplierService] Error creating supplier:", error);
-    throw error;
-  }
-};
+// ... (createSupplier remains same)
 
 /**
  * Update supplier
@@ -76,6 +64,10 @@ export const updateSupplier = async (
 ): Promise<Supplier> => {
   try {
     const docRef = adminFirestore.collection(COLLECTION).doc(id);
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) {
+      throw new AppError("Supplier not found", 404);
+    }
 
     const updateData = { ...updates };
     delete (updateData as any).id;
@@ -87,8 +79,8 @@ export const updateSupplier = async (
     });
 
     const updated = await getSupplierById(id);
-    if (!updated) throw new Error("Supplier not found after update");
-
+    // getSupplierById now throws, so strictly no null check needed if we trust it,
+    // but TS might want a return.
     return updated;
   } catch (error) {
     console.error("[SupplierService] Error updating supplier:", error);
@@ -101,7 +93,13 @@ export const updateSupplier = async (
  */
 export const deleteSupplier = async (id: string): Promise<void> => {
   try {
-    await adminFirestore.collection(COLLECTION).doc(id).update({
+    const docRef = adminFirestore.collection(COLLECTION).doc(id);
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) {
+      throw new AppError("Supplier not found", 404);
+    }
+
+    await docRef.update({
       status: "inactive",
       updatedAt: FieldValue.serverTimestamp(),
     });

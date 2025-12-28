@@ -4,6 +4,7 @@ import { Product } from "@/model/Product";
 import { POSOrder } from "@/model/POSTypes";
 import { Order } from "@/model/Order";
 import { addOrder } from "./OrderService";
+import { AppError } from "@/utils/apiResponse";
 
 // ================================
 // 🔹 DATA TYPES
@@ -81,7 +82,8 @@ export const addItemToPosCart = async (item: POSCartItem, userId: string) => {
       .limit(1)
       .get();
 
-    if (inventoryQuery.empty) throw new Error("Item not found in inventory");
+    if (inventoryQuery.empty)
+      throw new AppError("Item not found in inventory", 404);
 
     const inventoryRef = inventoryQuery.docs[0].ref;
     const inventoryData = inventoryQuery.docs[0].data() as InventoryItem;
@@ -122,7 +124,8 @@ export const removeFromPosCart = async (item: POSCartItem, userId: string) => {
       .limit(1)
       .get();
 
-    if (inventoryQuery.empty) throw new Error("Item not found in inventory");
+    if (inventoryQuery.empty)
+      throw new AppError("Item not found in inventory", 404);
 
     const inventoryRef = inventoryQuery.docs[0].ref;
     const inventoryData = inventoryQuery.docs[0].data() as InventoryItem;
@@ -193,7 +196,7 @@ export const updatePosCartItemQuantity = async (
       .limit(1)
       .get();
 
-    if (cartQuery.empty) throw new Error("Cart item not found");
+    if (cartQuery.empty) throw new AppError("Cart item not found", 404);
 
     const cartDoc = cartQuery.docs[0];
     const currentItem = cartDoc.data() as POSCartItem;
@@ -209,7 +212,8 @@ export const updatePosCartItemQuantity = async (
       .limit(1)
       .get();
 
-    if (inventoryQuery.empty) throw new Error("Item not found in inventory");
+    if (inventoryQuery.empty)
+      throw new AppError("Item not found in inventory", 404);
 
     const inventoryRef = inventoryQuery.docs[0].ref;
     const inventoryData = inventoryQuery.docs[0].data() as InventoryItem;
@@ -366,7 +370,7 @@ export const getStockInventory = async (
       .get();
 
     if (stockSnapshot.empty) {
-      return null;
+      throw new AppError("Inventory item not found", 404);
     }
 
     return stockSnapshot.docs[0].data() as StockInventoryItem;
@@ -518,7 +522,9 @@ export const getOrderByOrderId = async (orderId: string) => {
       .limit(1)
       .get();
 
-    if (snapshot.empty) return null;
+    if (snapshot.empty) {
+      throw new AppError(`Order with Order ID ${orderId} not found`, 404);
+    }
 
     return {
       orderId: snapshot.docs[0].id,

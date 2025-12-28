@@ -4,16 +4,14 @@ import {
   createShippingRule,
 } from "@/services/ShippingRuleService";
 import { ShippingRule } from "@/model/ShippingRule";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: NextRequest) => {
   try {
     const rules = await getShippingRules();
     return NextResponse.json(rules);
   } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to fetch rules" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
@@ -28,10 +26,7 @@ export const POST = async (req: NextRequest) => {
       maxWeight === undefined ||
       rate === undefined
     ) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
+      return errorResponse("Missing required fields", 400);
     }
 
     const newRule: Partial<ShippingRule> = {
@@ -49,9 +44,6 @@ export const POST = async (req: NextRequest) => {
       { status: 201 }
     );
   } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to create rule" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };

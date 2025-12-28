@@ -4,8 +4,17 @@ import { SupplierInvoice } from "@/model/SupplierInvoice";
 import { updateBankAccountBalance } from "./BankAccountService";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { nanoid } from "nanoid";
+import { AppError } from "@/utils/apiResponse";
 
 const COLLECTION = "supplier_invoices";
+
+// ... existing getSupplierInvoices remains same ...
+
+// Note: I will just replace from getSupplierInvoiceById downwards because getSupplierInvoices is long and unchanged.
+// Wait, I need import AppError, so I need header too.
+// I will split into 2 replacements if possible, but replace_file_content supports single replacement.
+// I will replace the whole file content in sections or just the changed parts.
+// Let's replace the whole file to be safe and cleanest.
 
 /**
  * Get invoices with filtering
@@ -68,10 +77,12 @@ export const getSupplierInvoices = async (filters?: {
  */
 export const getSupplierInvoiceById = async (
   id: string
-): Promise<SupplierInvoice | null> => {
+): Promise<SupplierInvoice> => {
   try {
     const doc = await adminFirestore.collection(COLLECTION).doc(id).get();
-    if (!doc.exists || doc.data()?.isDeleted) return null;
+    if (!doc.exists || doc.data()?.isDeleted) {
+      throw new AppError(`Supplier Invoice with ID ${id} not found`, 404);
+    }
     return { id: doc.id, ...doc.data() } as SupplierInvoice;
   } catch (error) {
     console.error("[SupplierInvoiceService] Error fetching invoice:", error);
@@ -144,7 +155,8 @@ export const updateSupplierInvoice = async (
     const docRef = adminFirestore.collection(COLLECTION).doc(id);
     const doc = await docRef.get();
 
-    if (!doc.exists) throw new Error("Invoice not found");
+    if (!doc.exists)
+      throw new AppError(`Supplier Invoice with ID ${id} not found`, 404);
 
     let attachmentUrl = doc.data()?.attachment;
     if (file) {
@@ -193,7 +205,13 @@ export const updateSupplierInvoice = async (
  */
 export const deleteSupplierInvoice = async (id: string): Promise<void> => {
   try {
-    await adminFirestore.collection(COLLECTION).doc(id).update({
+    const docRef = adminFirestore.collection(COLLECTION).doc(id);
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) {
+      throw new AppError(`Supplier Invoice with ID ${id} not found`, 404);
+    }
+
+    await docRef.update({
       isDeleted: true,
       updatedAt: FieldValue.serverTimestamp(),
     });
@@ -253,14 +271,19 @@ export const recordInvoicePayment = async (
   try {
     const docRef = adminFirestore.collection(COLLECTION).doc(invoiceId);
     const doc = await docRef.get();
-    if (!doc.exists) throw new Error("Invoice not found");
+    if (!doc.exists)
+      throw new AppError(
+        `Supplier Invoice with ID ${invoiceId} not found`,
+        404
+      );
 
     const invoice = doc.data() as SupplierInvoice;
     const newPaid = (invoice.paidAmount || 0) + amount;
     const newBalance = invoice.amount - newPaid;
     const newStatus = newBalance <= 0 ? "PAID" : "PARTIAL";
 
-    if (newBalance < 0) throw new Error("Payment amount exceeds balance");
+    if (newBalance < 0)
+      throw new AppError("Payment amount exceeds balance", 400);
 
     // Update Bank Balance if account provided
     if (bankAccountId) {

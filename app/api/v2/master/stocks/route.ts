@@ -1,14 +1,13 @@
 import { authorizeRequest } from "@/services/AuthService";
 import { getStocks, addStock } from "@/services/StockService"; // Use StockService
 import { NextRequest, NextResponse } from "next/server";
+import { errorResponse } from "@/utils/apiResponse";
 
 // GET Handler: Fetch list of stock locations
 export const GET = async (req: NextRequest) => {
   try {
     const user = await authorizeRequest(req);
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const { searchParams } = req.nextUrl;
     const page = parseInt(searchParams.get("page") || "1");
@@ -28,12 +27,8 @@ export const GET = async (req: NextRequest) => {
     const result = await getStocks(page, size, search, status);
 
     return NextResponse.json(result);
-  } catch (error) {
-    console.error("GET /api/v2/master/stocks Error:", error);
-    return NextResponse.json(
-      { message: "Internal Server Error" },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    return errorResponse(error);
   }
 };
 
@@ -41,9 +36,7 @@ export const GET = async (req: NextRequest) => {
 export const POST = async (req: NextRequest) => {
   try {
     const user = await authorizeRequest(req);
-    if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const data = await req.json();
 
@@ -53,16 +46,10 @@ export const POST = async (req: NextRequest) => {
       typeof data.name !== "string" ||
       data.name.trim() === ""
     ) {
-      return NextResponse.json(
-        { message: "Stock location name is required" },
-        { status: 400 }
-      );
+      return errorResponse("Stock location name is required", 400);
     }
     if (typeof data.status !== "boolean") {
-      return NextResponse.json(
-        { message: "Status (true/false) is required" },
-        { status: 400 }
-      );
+      return errorResponse("Status (true/false) is required", 400);
     }
 
     // Ensure only expected fields are passed
@@ -74,11 +61,7 @@ export const POST = async (req: NextRequest) => {
 
     const newStock = await addStock(stockData);
     return NextResponse.json(newStock, { status: 201 }); // Return the created object
-  } catch (error) {
-    console.error("POST /api/v2/master/stocks Error:", error);
-    return NextResponse.json(
-      { message: "Internal Server Error" },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    return errorResponse(error);
   }
 };

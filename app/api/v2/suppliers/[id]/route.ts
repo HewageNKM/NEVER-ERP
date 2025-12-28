@@ -5,6 +5,7 @@ import {
   updateSupplier,
   deleteSupplier,
 } from "@/services/SupplierService";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (
   req: Request,
@@ -12,27 +13,18 @@ export const GET = async (
 ) => {
   try {
     const response = await authorizeRequest(req);
-    if (!response) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!response) return errorResponse("Unauthorized", 401);
 
     const { id } = await params;
     const supplier = await getSupplierById(id);
 
     if (!supplier) {
-      return NextResponse.json(
-        { message: "Supplier not found" },
-        { status: 404 }
-      );
+      return errorResponse("Supplier not found", 404);
     }
 
     return NextResponse.json(supplier);
   } catch (error: any) {
-    console.error("[Supplier API] Error:", error);
-    return NextResponse.json(
-      { message: "Error fetching supplier", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
@@ -42,9 +34,7 @@ export const PUT = async (
 ) => {
   try {
     const response = await authorizeRequest(req);
-    if (!response) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!response) return errorResponse("Unauthorized", 401);
 
     const { id } = await params;
     const body = await req.json();
@@ -52,11 +42,7 @@ export const PUT = async (
 
     return NextResponse.json(supplier);
   } catch (error: any) {
-    console.error("[Supplier API] Error:", error);
-    return NextResponse.json(
-      { message: "Error updating supplier", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
@@ -66,20 +52,14 @@ export const DELETE = async (
 ) => {
   try {
     const response = await authorizeRequest(req);
-    if (!response) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!response) return errorResponse("Unauthorized", 401);
 
     const { id } = await params;
     await deleteSupplier(id);
 
     return NextResponse.json({ message: "Supplier deleted" });
   } catch (error: any) {
-    console.error("[Supplier API] Error:", error);
-    return NextResponse.json(
-      { message: "Error deleting supplier", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 

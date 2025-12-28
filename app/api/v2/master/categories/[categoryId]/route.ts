@@ -5,6 +5,7 @@ import {
   updateCategory,
   softDeleteCategory,
 } from "@/services/CategoryService";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (
   req: NextRequest,
@@ -13,23 +14,19 @@ export const GET = async (
   try {
     const { categoryId } = await params;
     const user = await authorizeRequest(req);
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const category = await getCategoryById(categoryId);
-    if (!category)
-      return NextResponse.json(
-        { message: "Category not found" },
-        { status: 404 }
-      );
+    // getCategoryById now throws AppError(404) if not found, so no need to check result if implementation is correct.
+    // But good to keep safety if I missed something or for future proofing, although inconsistent if service throws.
+    // Since I refactored service to throw, verify logic:
+    // If not found -> Service throws.
+    // So this next block is dead code if service works as expected, but safe.
+    if (!category) return errorResponse("Category not found", 404);
 
     return NextResponse.json(category);
   } catch (e) {
-    console.error(e);
-    return NextResponse.json(
-      { message: "Failed to fetch category" },
-      { status: 500 }
-    );
+    return errorResponse(e);
   }
 };
 
@@ -40,23 +37,16 @@ export const PUT = async (
   try {
     const { categoryId } = await params;
     const user = await authorizeRequest(req);
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const data = await req.json();
-    if (!data.name || !data.status)
-      return NextResponse.json(
-        { message: "Name and Status are required" },
-        { status: 400 }
-      );
+    if (!data.name || !data.status) {
+      return errorResponse("Name and Status are required", 400);
+    }
     const res = await updateCategory(categoryId, data);
     return NextResponse.json(res);
   } catch (e) {
-    console.error(e);
-    return NextResponse.json(
-      { message: "Failed to update category" },
-      { status: 500 }
-    );
+    return errorResponse(e);
   }
 };
 
@@ -67,16 +57,11 @@ export const DELETE = async (
   try {
     const { categoryId } = await params;
     const user = await authorizeRequest(req);
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const res = await softDeleteCategory(categoryId);
     return NextResponse.json(res);
   } catch (e) {
-    console.error(e);
-    return NextResponse.json(
-      { message: "Failed to delete category" },
-      { status: 500 }
-    );
+    return errorResponse(e);
   }
 };

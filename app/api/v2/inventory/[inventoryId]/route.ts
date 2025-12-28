@@ -1,6 +1,7 @@
 import { authorizeRequest } from "@/services/AuthService";
 import { updateInventoryQuantity } from "@/services/InventoryService"; // Use specific update function
 import { NextRequest, NextResponse } from "next/server";
+import { errorResponse } from "@/utils/apiResponse";
 
 // PUT Handler: Update quantity for a specific inventory item
 export const PUT = async (
@@ -11,14 +12,11 @@ export const PUT = async (
     const { inventoryId } = await params;
     const user = await authorizeRequest(req);
     if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return errorResponse("Unauthorized", 401);
     }
 
     if (!inventoryId) {
-      return NextResponse.json(
-        { message: "Inventory ID is required" },
-        { status: 400 }
-      );
+      return errorResponse("Inventory ID is required", 400);
     }
 
     const data = await req.json();
@@ -30,9 +28,9 @@ export const PUT = async (
       data.quantity < 0 ||
       !Number.isInteger(data.quantity)
     ) {
-      return NextResponse.json(
-        { message: "Quantity is required and must be a non-negative integer" },
-        { status: 400 }
+      return errorResponse(
+        "Quantity is required and must be a non-negative integer",
+        400
       );
     }
 
@@ -43,16 +41,8 @@ export const PUT = async (
 
     return NextResponse.json(updatedItem, { status: 200 }); // Return updated item
   } catch (error: any) {
-    // We try to access inventoryId from await params if possible, or fallback safely
-    // Since we can't easily access it if the await failed (unlikely for params), we won't try too hard in catch
     console.error(`PUT /api/v2/inventory Error:`, error);
-    if (error.message?.includes("not found")) {
-      return NextResponse.json({ message: error.message }, { status: 404 });
-    }
-    return NextResponse.json(
-      { message: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 

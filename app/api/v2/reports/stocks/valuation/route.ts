@@ -1,12 +1,12 @@
 import { authorizeRequest } from "@/services/AuthService";
 import { fetchStockValuationByStock } from "@/services/ReportService";
 import { NextRequest, NextResponse } from "next/server";
+import { errorResponse } from "@/utils/apiResponse";
 
 export async function GET(req: NextRequest) {
   try {
     const user = await authorizeRequest(req);
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!user) return errorResponse("Unauthorized", 401);
 
     const url = new URL(req.url);
     const stockId = url.searchParams.get("stockId") || "";
@@ -14,11 +14,7 @@ export async function GET(req: NextRequest) {
     const data = await fetchStockValuationByStock(stockId);
 
     return NextResponse.json(data);
-  } catch (err) {
-    console.error("Stock Valuation API Error:", err);
-    return NextResponse.json(
-      { message: "Error fetching stock valuation" },
-      { status: 500 }
-    );
+  } catch (err: any) {
+    return errorResponse(err);
   }
 }

@@ -5,13 +5,12 @@ import {
   createSupplierInvoice,
   getInvoiceAgingSummary,
 } from "@/services/SupplierInvoiceService";
+import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: Request) => {
   try {
     const response = await authorizeAndGetUser(req);
-    if (!response) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!response) return errorResponse("Unauthorized", 401);
 
     const url = new URL(req.url);
     const summary = url.searchParams.get("summary") === "true";
@@ -28,20 +27,14 @@ export const GET = async (req: Request) => {
     const data = await getSupplierInvoices(filters);
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error("[Invoices API] Error:", error);
-    return NextResponse.json(
-      { message: "Error fetching invoices", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
 export const POST = async (req: Request) => {
   try {
     const response = await authorizeAndGetUser(req);
-    if (!response) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    if (!response) return errorResponse("Unauthorized", 401);
 
     const formData = await req.formData();
     const file = formData.get("attachment") as File | null;
@@ -56,11 +49,7 @@ export const POST = async (req: Request) => {
     const invoice = await createSupplierInvoice(data, file || undefined);
     return NextResponse.json(invoice, { status: 201 });
   } catch (error: any) {
-    console.error("[Invoices API] Error:", error);
-    return NextResponse.json(
-      { message: "Error creating invoice", error: error.message },
-      { status: 500 }
-    );
+    return errorResponse(error);
   }
 };
 
