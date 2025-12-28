@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminFirestore } from "@/firebase/firebaseAdmin";
-import { authorizeRequest } from "@/services/AuthService";
-import { addNewUser } from "@/services/UserService";
+import { authorizeRequest, createUser } from "@/services/AuthService";
 import { User } from "@/model/User";
 import admin from "firebase-admin";
 
@@ -125,7 +124,7 @@ export const POST = async (req: Request) => {
       );
     }
 
-    const userId = await addNewUser(body);
+    const userId = await createUser(body);
     return NextResponse.json({ userId }, { status: 201 });
   } catch (error: any) {
     console.error(error);

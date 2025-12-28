@@ -63,7 +63,7 @@ export const addNewUserAction = async (data: User) => {
   try {
     const token = await getToken();
     const response = await axios({
-      url: `/api/v1/users`,
+      url: `/api/v2/users`,
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -81,7 +81,7 @@ export const deleteUserByIdAction = async (id: string) => {
   try {
     const token = await getToken();
     axios({
-      url: `/api/v1/users/${id}`,
+      url: `/api/v2/users/${id}`,
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -96,7 +96,7 @@ export const updateUserByIdAction = async (data: User) => {
   try {
     const token = await getToken();
     axios({
-      url: `/api/v1/users/${data.userId}`,
+      url: `/api/v2/users/${data.userId}`,
       method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,

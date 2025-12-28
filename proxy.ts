@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 export default async function proxy(req: Request) {
+  const { pathname } = new URL(req.url);
   const origin = req.headers.get("origin");
   const allowedOrigins = ["https://erp.neverbe.lk", "http://neverbe.lk"];
 
@@ -17,6 +18,24 @@ export default async function proxy(req: Request) {
       status: 204,
       headers: corsHeaders,
     });
+  }
+
+  // ✅ Public Routes (No Auth Required)
+  const publicPaths = ["/api/auth/login", "/api/auth/logout"];
+
+  // Simple strict matching for now, or use startsWith if paths are nested
+  const isPublic = publicPaths.some((path) => pathname.startsWith(path));
+
+  if (!isPublic) {
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return NextResponse.json(
+        { message: "Unauthorized: Missing or invalid token format" },
+        { status: 401, headers: corsHeaders }
+      );
+    }
+    // Note: Signature verification is deferred to the specific API route handler
+    // or downstream service to avoid Edge Runtime compatibility issues with firebase-admin.
   }
 
   // ✅ For all other requests, continue and attach CORS headers
