@@ -2,6 +2,7 @@ import { Timestamp } from "firebase-admin/firestore";
 
 export interface PaymentMethod {
   id: string;
+  paymentId: string;
   name: string;
   description: string;
   fee: number;

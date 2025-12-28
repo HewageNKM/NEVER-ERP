@@ -168,6 +168,11 @@ const Menuitems = [
         title: "Shipping Rates",
         href: "/erp/settings/shipping",
       },
+      {
+        id: uniqueId(),
+        title: "Payment Methods",
+        href: "/erp/settings/payment-methods",
+      },
       { id: uniqueId(), title: "Tax Settings", href: "/erp/settings/tax" },
     ],
   },
