@@ -9,7 +9,10 @@ const COLLECTION = "payment_methods";
  */
 export const getPaymentMethods = async (): Promise<PaymentMethod[]> => {
   try {
-    const snapshot = await adminFirestore.collection(COLLECTION).get();
+    const snapshot = await adminFirestore
+      .collection(COLLECTION)
+      .where("isDeleted", "==", false)
+      .get();
     return snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
@@ -27,11 +30,16 @@ export const getPaymentMethodById = async (
   id: string
 ): Promise<PaymentMethod> => {
   try {
-    const doc = await adminFirestore.collection(COLLECTION).doc(id).get();
-    if (!doc.exists) {
+    const doc = await adminFirestore
+      .collection(COLLECTION)
+      .where("isDeleted", "==", false)
+      .where("id", "==", id)
+      .limit(1)
+      .get();
+    if (!doc.docs.length) {
       throw new AppError(`Payment Method with ID ${id} not found`, 404);
     }
-    return { id: doc.id, ...doc.data() } as PaymentMethod;
+    return { id: doc.docs[0].id, ...doc.docs[0].data() } as PaymentMethod;
   } catch (error) {
     console.error("[PaymentMethodService] Error fetching method:", error);
     throw error;
