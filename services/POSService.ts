@@ -494,7 +494,7 @@ export const addPettyCashTransaction = async (data: any) => {
 export const getPaymentMethods = async () => {
   try {
     const snapshot = await adminFirestore
-      .collection("paymentMethods")
+      .collection("payment_methods")
       .where("isDeleted", "!=", true)
       .where("status", "==", true)
       .where("available", "array-contains", "Store")

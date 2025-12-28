@@ -93,7 +93,11 @@ export default function POSVariantDialog({
   const getVariantSizes = () => {
     if (!selectedVariant || !inventory.length) return [];
     return inventory
-      .filter((inv) => inv.variantId === selectedVariant.id && inv.quantity > 0)
+      .filter(
+        (inv) =>
+          inv.variantId === (selectedVariant.id || selectedVariant.variantId) &&
+          inv.quantity > 0
+      )
       .map((inv) => ({
         size: inv.size,
         stock: inv.quantity,
@@ -106,7 +110,9 @@ export default function POSVariantDialog({
   const getSelectedStock = () => {
     if (!selectedVariant || !selectedSize) return 0;
     const inv = inventory.find(
-      (i) => i.variantId === selectedVariant.id && i.size === selectedSize
+      (i) =>
+        i.variantId === (selectedVariant.id || selectedVariant.variantId) &&
+        i.size === selectedSize
     );
     return inv?.quantity || 0;
   };
@@ -134,7 +140,7 @@ export default function POSVariantDialog({
     try {
       await addItemToCart({
         itemId: product.id,
-        variantId: selectedVariant.id,
+        variantId: selectedVariant.id || selectedVariant.variantId,
         name: product.name,
         variantName:
           selectedVariant.variantName || selectedVariant.color || "Default",
@@ -246,7 +252,7 @@ export default function POSVariantDialog({
                 <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                   {product.variants.map((variant: any) => (
                     <Box
-                      key={variant.id}
+                      key={variant.id || variant.variantId}
                       onClick={() => {
                         setSelectedVariant(variant);
                         setSelectedSize("");
@@ -258,15 +264,21 @@ export default function POSVariantDialog({
                         p: 1,
                         border: "2px solid",
                         borderColor:
-                          selectedVariant?.id === variant.id
+                          (selectedVariant?.id ||
+                            selectedVariant?.variantId) ===
+                          (variant.id || variant.variantId)
                             ? "black"
                             : "grey.200",
                         bgcolor:
-                          selectedVariant?.id === variant.id
+                          (selectedVariant?.id ||
+                            selectedVariant?.variantId) ===
+                          (variant.id || variant.variantId)
                             ? "black"
                             : "transparent",
                         color:
-                          selectedVariant?.id === variant.id
+                          (selectedVariant?.id ||
+                            selectedVariant?.variantId) ===
+                          (variant.id || variant.variantId)
                             ? "white"
                             : "black",
                         borderRadius: 0,
