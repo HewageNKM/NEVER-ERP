@@ -155,10 +155,10 @@ export const loginUser = async (userId: string) => {
       throw new AppError(`User with ID ${userId} not found`, 404);
     }
 
-    const userData = userDoc.data() as User;
+    const userData = userDoc.data() as any;
 
-    if (userData.status !== true) {
-      throw new AppError(`User with ID ${userId} is not active`, 403);
+    if (userData.status !== "Active") {
+      throw new AppError(`User with ID ${userData.email} is not active`, 403);
     }
 
     return {
