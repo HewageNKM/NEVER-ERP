@@ -95,8 +95,7 @@ export default function POSVariantDialog({
     return inventory
       .filter(
         (inv) =>
-          inv.variantId === (selectedVariant.id || selectedVariant.variantId) &&
-          inv.quantity > 0
+          inv.variantId === (selectedVariant.id || selectedVariant.variantId)
       )
       .map((inv) => ({
         size: inv.size,
@@ -349,21 +348,34 @@ export default function POSVariantDialog({
                   {availableSizes.map((sizeObj) => (
                     <Grid item key={sizeObj.size}>
                       <Chip
-                        label={`${sizeObj.size} (${sizeObj.stock})`}
+                        label={`${sizeObj.size} (${
+                          sizeObj.stock > 0 ? sizeObj.stock : "OUT"
+                        })`}
                         onClick={() => setSelectedSize(sizeObj.size)}
                         sx={{
                           fontWeight: 700,
                           borderRadius: 0,
                           height: 32,
                           bgcolor:
-                            selectedSize === sizeObj.size ? "black" : "white",
+                            selectedSize === sizeObj.size
+                              ? "black"
+                              : sizeObj.stock > 0
+                              ? "white"
+                              : "grey.50",
                           color:
-                            selectedSize === sizeObj.size ? "white" : "black",
+                            selectedSize === sizeObj.size
+                              ? "white"
+                              : sizeObj.stock > 0
+                              ? "black"
+                              : "error.main", // Red text for out of stock but selectable
                           border: "2px solid",
                           borderColor:
                             selectedSize === sizeObj.size
                               ? "black"
-                              : "grey.200",
+                              : sizeObj.stock > 0
+                              ? "grey.200"
+                              : "error.light", // Red border for out of stock
+                          cursor: "pointer",
                           "&:hover": {
                             bgcolor:
                               selectedSize === sizeObj.size
