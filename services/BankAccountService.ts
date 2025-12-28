@@ -82,7 +82,42 @@ export const createBankAccount = async (
   }
 };
 
-// ... updateBankAccount is fine ...
+/**
+ * Update bank account
+ */
+export const updateBankAccount = async (
+  id: string,
+  data: Partial<BankAccount>
+): Promise<BankAccount> => {
+  try {
+    const docRef = adminFirestore.collection(COLLECTION).doc(id);
+    const docSnap = await docRef.get();
+
+    if (!docSnap.exists) {
+      throw new AppError(`Bank Account with ID ${id} not found`, 404);
+    }
+
+    const updates = {
+      ...data,
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    // Check if we need to remove read-only fields just in case
+    delete (updates as any).id;
+    delete (updates as any).createdAt;
+
+    // We do NOT allow updating currentBalance directly through this method usually,
+    // but if the user edits the account details they might want to correct the opening balance?
+    // For now let's allow updating what is passed.
+
+    await docRef.update(updates);
+
+    return { id, ...docSnap.data(), ...updates } as BankAccount;
+  } catch (error) {
+    console.error("[BankAccountService] Error updating account:", error);
+    throw error;
+  }
+};
 
 /**
  * Delete bank account (soft delete)

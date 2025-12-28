@@ -169,11 +169,21 @@ export const deletePromotion = async (id: string): Promise<void> => {
   });
 };
 
-// ... getPromotionById (already returns null which is OK or change to throw 404? Let's leave for now or change for consistency?)
-// I'll skip getPromotionById change for now as standardizing update/delete is more critical to prevent 500s on missing docs.
-// Actually implementation plan says "Standardize validation errors".
-
-// ... updateCoupon ...
+export const getPromotionById = async (id: string): Promise<Promotion> => {
+  try {
+    const doc = await adminFirestore
+      .collection(PROMOTIONS_COLLECTION)
+      .doc(id)
+      .get();
+    if (!doc.exists) {
+      throw new AppError("Promotion not found", 404);
+    }
+    return { id: doc.id, ...doc.data() } as Promotion;
+  } catch (error) {
+    console.error("Error getting promotion by ID:", error);
+    throw error;
+  }
+};
 
 export const updateCoupon = async (
   id: string,
@@ -249,7 +259,49 @@ export const getCouponByCode = async (code: string): Promise<Coupon | null> => {
   } as Coupon;
 };
 
-// --- VALIDATION & LOGIC (Advanced Phase) ---
+export const getCoupons = async (): Promise<Coupon[]> => {
+  try {
+    const snapshot = await adminFirestore
+      .collection(COUPONS_COLLECTION)
+      .orderBy("createdAt", "desc")
+      .get();
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Coupon[];
+  } catch (error) {
+    console.error("Error getting coupons:", error);
+    throw error;
+  }
+};
+
+export const createCoupon = async (
+  data: Omit<Coupon, "id" | "createdAt" | "updatedAt" | "usageCount">
+): Promise<Coupon> => {
+  try {
+    const id = nanoid(10);
+    const now = FieldValue.serverTimestamp();
+
+    const newCoupon = {
+      ...data,
+      id,
+      usageCount: 0,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await adminFirestore.collection(COUPONS_COLLECTION).doc(id).set(newCoupon);
+
+    return {
+      ...newCoupon,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as unknown as Coupon;
+  } catch (error) {
+    console.error("Error creating coupon:", error);
+    throw error;
+  }
+};
 
 interface CartItem {
   productId: string;

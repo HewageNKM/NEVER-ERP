@@ -26,7 +26,57 @@ export const getExpenseCategoryById = async (
   }
 };
 
-// ... createExpenseCategory ...
+/**
+ * Create expense category
+ */
+export const createExpenseCategory = async (
+  data: Omit<ExpenseCategory, "id">
+): Promise<ExpenseCategory> => {
+  try {
+    const id = `ec-${nanoid(8)}`;
+    const now = FieldValue.serverTimestamp();
+
+    await adminFirestore
+      .collection(COLLECTION)
+      .doc(id)
+      .set({
+        ...data,
+        id,
+        isDeleted: false,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+    return {
+      id,
+      ...data,
+    } as ExpenseCategory;
+  } catch (error) {
+    console.error("[ExpenseCategoryService] Error creating category:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get all expense categories
+ */
+export const getExpenseCategories = async (): Promise<ExpenseCategory[]> => {
+  try {
+    const snapshot = await adminFirestore
+      .collection(COLLECTION)
+      .where("isDeleted", "==", false)
+      .orderBy("name", "asc")
+      .get();
+
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as ExpenseCategory[];
+  } catch (error) {
+    console.error("[ExpenseCategoryService] Error fetching categories:", error);
+    throw error;
+  }
+};
 
 /**
  * Update expense category

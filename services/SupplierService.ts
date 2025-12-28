@@ -1,6 +1,7 @@
 import { adminFirestore } from "@/firebase/firebaseAdmin";
 import { Supplier } from "@/model/Supplier";
 import { FieldValue } from "firebase-admin/firestore";
+import { nanoid } from "nanoid";
 
 const COLLECTION = "suppliers";
 
@@ -53,7 +54,32 @@ export const getSupplierById = async (id: string): Promise<Supplier> => {
   }
 };
 
-// ... (createSupplier remains same)
+/**
+ * Create supplier
+ */
+export const createSupplier = async (
+  data: Omit<Supplier, "id" | "createdAt" | "updatedAt">
+): Promise<Supplier> => {
+  try {
+    const id = `sup-${nanoid(8)}`;
+    const now = FieldValue.serverTimestamp();
+
+    const newSupplier = {
+      ...data,
+      id,
+      status: data.status || "active",
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await adminFirestore.collection(COLLECTION).doc(id).set(newSupplier);
+
+    return newSupplier as unknown as Supplier;
+  } catch (error) {
+    console.error("[SupplierService] Error creating supplier:", error);
+    throw error;
+  }
+};
 
 /**
  * Update supplier
