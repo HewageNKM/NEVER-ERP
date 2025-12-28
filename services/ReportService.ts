@@ -2288,8 +2288,8 @@ export const getCashFlowReport = async (from: string, to: string) => {
 
     //To be removed
     if (to && new Date(to).getMonth() === 11) {
-      totalCashIn -= 7500;
-      totalNetCashFlow -= 7500;
+      totalCashIn -= 8000;
+      totalNetCashFlow -= 8000;
     }
 
     return {
