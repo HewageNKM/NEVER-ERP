@@ -9,7 +9,7 @@ export const PUT = async (
   { params }: { params: Promise<{ userId: string }> }
 ) => {
   try {
-    const isAuthorized = await authorizeRequest(req);
+    const isAuthorized = await authorizeRequest(req, "manage_users");
     if (!isAuthorized) {
       return errorResponse("Unauthorized", 401);
     }
@@ -37,7 +37,7 @@ export const DELETE = async (
   { params }: { params: Promise<{ userId: string }> }
 ) => {
   try {
-    const isAuthorized = await authorizeRequest(req);
+    const isAuthorized = await authorizeRequest(req, "manage_users");
     if (!isAuthorized) {
       return errorResponse("Unauthorized", 401);
     }

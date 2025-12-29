@@ -52,7 +52,10 @@ export const handleAuthError = (error: any) => {
   return errorResponse(error, status);
 };
 
-export const authorizeRequest = async (req: any) => {
+export const authorizeRequest = async (
+  req: any,
+  requiredPermission?: string
+) => {
   try {
     const authHeader = req.headers.get("authorization");
     const token = authHeader?.startsWith("Bearer ")
@@ -71,10 +74,40 @@ export const authorizeRequest = async (req: any) => {
         return false;
       }
 
-      if (role === "ADMIN" || role === "OWNER") {
+      // Super Admin has all permissions
+      if (role === "ADMIN") {
         return true;
+      }
+
+      if (requiredPermission) {
+        // Fetch Role from Firestore to check permissions
+        const roleDoc = await adminFirestore
+          .collection("roles")
+          .doc(role)
+          .get();
+        if (!roleDoc.exists) {
+          console.warn(`Role '${role}' not found in database.`);
+          return false;
+        }
+
+        const roleData = roleDoc.data();
+        if (
+          roleData?.permissions &&
+          roleData.permissions.includes(requiredPermission)
+        ) {
+          return true;
+        } else {
+          console.warn(
+            `User with role '${role}' does not have permission '${requiredPermission}'`
+          );
+          return false;
+        }
       } else {
-        console.warn(`User role '${role}' is not authorized!`);
+        // If no specific permission required, we default to blocking non-admins
+        // (Access limited to ADMIN or explicit permission grant)
+        console.warn(
+          `User role '${role}' is not authorized for generic access!`
+        );
         return false;
       }
     } else {
@@ -86,6 +119,7 @@ export const authorizeRequest = async (req: any) => {
     return false;
   }
 };
+// Duplicate catch block removed
 
 export const authorizeAndGetUser = async (req: any): Promise<User | null> => {
   try {
@@ -99,7 +133,7 @@ export const authorizeAndGetUser = async (req: any): Promise<User | null> => {
       const role = decodedIdToken.role;
 
       // 1. Quick check using Custom Claims
-      if (!role || (role !== "ADMIN" && role !== "OWNER")) {
+      if (!role) {
         console.warn(`User role '${role}' is not authorized!`);
         return null;
       }
@@ -123,8 +157,31 @@ export const authorizeAndGetUser = async (req: any): Promise<User | null> => {
         return null;
       }
 
+      // 3. Fetch permissions if not ADMIN
+      let permissions: string[] = [];
+      if (userData.role === "ADMIN") {
+        // ADMIN gets all permissions implicitly, but we can ideally leave this empty
+        // and handle it in the checking logic (authorizeRequest already does this).
+        // For frontend convenience, we might want to pass a flag or just rely on role check.
+        // Let's pass a specific permission "ALL" or just rely on 'role' in frontend.
+      } else if (userData.role) {
+        try {
+          // We need to fetch the role document to get permissions
+          const roleDoc = await adminFirestore
+            .collection("roles")
+            .doc(userData.role)
+            .get();
+          if (roleDoc.exists) {
+            permissions = roleDoc.data()?.permissions || [];
+          }
+        } catch (e) {
+          console.warn("Failed to fetch role permissions", e);
+        }
+      }
+
       return {
         ...userData,
+        permissions: permissions,
         createdAt:
           (userData.createdAt as any)?.toDate?.()?.toLocaleString() ||
           userData.createdAt,
@@ -161,8 +218,27 @@ export const loginUser = async (userId: string) => {
       throw new AppError(`User with ID ${userData.email} is not active`, 403);
     }
 
+    // Fetch permissions if not ADMIN
+    let permissions: string[] = [];
+    if (userData.role === "ADMIN") {
+      // ADMIN gets all permissions implicitly
+    } else if (userData.role) {
+      try {
+        const roleDoc = await adminFirestore
+          .collection("roles")
+          .doc(userData.role)
+          .get();
+        if (roleDoc.exists) {
+          permissions = roleDoc.data()?.permissions || [];
+        }
+      } catch (e) {
+        console.warn("Failed to fetch role permissions", e);
+      }
+    }
+
     return {
       ...userData,
+      permissions,
       createdAt:
         (userData.createdAt as any)?.toDate?.()?.toLocaleString() ||
         userData.createdAt,

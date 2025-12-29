@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import axios from "axios";
 import {
   IconPlus,
   IconPencil,
@@ -21,6 +22,7 @@ import {
 } from "@tabler/icons-react";
 import { useAppSelector } from "@/lib/hooks";
 import { User } from "@/model/User";
+import { Role } from "@/model/Role"; // Import Role
 import PageContainer from "../components/container/PageContainer";
 import {
   getUsersV2Action,
@@ -31,6 +33,7 @@ import {
 import { showNotification } from "@/utils/toast";
 import { useConfirmationDialog } from "@/contexts/ConfirmationDialogContext";
 import * as XLSX from "xlsx";
+import { usePermission } from "@/hooks/usePermission";
 
 // --- NIKE AESTHETIC STYLES ---
 const styles = {
@@ -65,6 +68,17 @@ const UserForm = ({
   onSuccess: () => void;
 }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [roles, setRoles] = useState<Role[]>([]);
+
+  useEffect(() => {
+    // Fetch roles for the dropdown
+    axios
+      .get("/api/v2/roles")
+      .then((res) => {
+        setRoles(res.data.roles || []);
+      })
+      .catch(console.error);
+  }, []);
 
   const handleSubmit = async (evt: React.FormEvent<HTMLFormElement>) => {
     try {
@@ -85,13 +99,13 @@ const UserForm = ({
       ).value;
       const role: string = (
         form.elements.namedItem("role") as HTMLSelectElement
-      ).value.toUpperCase();
+      ).value; // Don't uppercase dynamic roles
 
       const usr: User = {
         userId,
         username,
         email,
-        status,
+        status: status === "Active", // Convert to boolean
         role,
         createdAt: user?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -202,7 +216,7 @@ const UserForm = ({
                     <select
                       name="status"
                       disabled={isLoading}
-                      defaultValue={user?.status || "Inactive"}
+                      defaultValue={user?.status ? "Active" : "Inactive"}
                       className={styles.select}
                     >
                       <option value="Active">ACTIVE</option>
@@ -215,17 +229,15 @@ const UserForm = ({
                     <select
                       name="role"
                       disabled={isLoading}
-                      defaultValue={user?.role?.toLowerCase() || "user"}
+                      defaultValue={user?.role || "user"}
                       className={styles.select}
                     >
-                      <option value="admin">ADMIN</option>
-                      <option value="user">USER</option>
-                      <option
-                        value="owner"
-                        disabled={currentUser?.role !== "OWNER"}
-                      >
-                        OWNER
-                      </option>
+                      <option value="ADMIN">ADMIN</option>
+                      {roles.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name.toUpperCase()}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -304,6 +316,7 @@ const UsersPage = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   const { currentUser } = useAppSelector((state) => state.authSlice);
+  const canManageUsers = usePermission("manage_users");
 
   const { showConfirmation } = useConfirmationDialog();
 
@@ -366,6 +379,7 @@ const UsersPage = () => {
   };
 
   const handleDelete = async (userId: string) => {
+    if (!canManageUsers) return;
     showConfirmation({
       title: "DELETE USER?",
       message: "This action cannot be undone.",
@@ -396,7 +410,7 @@ const UsersPage = () => {
       "User ID": u.userId,
       Username: u.username,
       Email: u.email,
-      Status: u.status,
+      Status: u.status ? "Active" : "Inactive",
       Role: u.role,
       "Created At": u.createdAt,
       "Updated At": u.updatedAt,
@@ -419,17 +433,17 @@ const UsersPage = () => {
   // Stats (based on displayed users)
   const stats = {
     total: totalUsers,
-    active: displayedUsers.filter((u) => u.status === "Active").length,
-    inactive: displayedUsers.filter((u) => u.status === "Inactive").length,
-    admins: displayedUsers.filter((u) =>
-      ["ADMIN", "OWNER"].includes(u.role.toUpperCase())
+    active: displayedUsers.filter((u) => u.status).length,
+    inactive: displayedUsers.filter((u) => !u.status).length,
+    admins: displayedUsers.filter(
+      (u) => ["ADMIN", "OWNER"].includes(u.role?.toUpperCase()) // Safely handle optional role
     ).length,
     anonymous: users.filter(isAnonymousUser).length,
   };
 
   // Render Status Badge
-  const renderStatus = (status: string) => {
-    const isSuccess = status === "Active";
+  const renderStatus = (status: boolean | string) => {
+    const isSuccess = status === true || status === "Active";
     return (
       <span
         className={`px-2 py-1 text-[9px] font-black uppercase tracking-widest border ${
@@ -438,7 +452,7 @@ const UsersPage = () => {
             : "bg-white text-gray-400 border-gray-200"
         }`}
       >
-        {status}
+        {isSuccess ? "ACTIVE" : "INACTIVE"}
       </span>
     );
   };
@@ -509,7 +523,6 @@ const UsersPage = () => {
                 className={styles.select}
               >
                 <option value="all">ALL ROLES</option>
-                <option value="OWNER">OWNER</option>
                 <option value="ADMIN">ADMIN</option>
                 <option value="USER">USER</option>
               </select>
@@ -602,16 +615,18 @@ const UsersPage = () => {
                 <IconDownload size={16} className="mr-2 shrink-0" />
                 Export
               </button>
-              <button
-                onClick={() => {
-                  setSelectedUser(null);
-                  setShowUserForm(true);
-                }}
-                className={`${styles.primaryBtn} w-full sm:w-auto px-3 py-3 sm:px-4 sm:py-2 shadow-none hover:shadow-lg flex items-center justify-center whitespace-nowrap`}
-              >
-                <IconPlus size={16} className="mr-2 shrink-0" />
-                Add User
-              </button>
+              {canManageUsers && (
+                <button
+                  onClick={() => {
+                    setSelectedUser(null);
+                    setShowUserForm(true);
+                  }}
+                  className={`${styles.primaryBtn} w-full sm:w-auto px-3 py-3 sm:px-4 sm:py-2 shadow-none hover:shadow-lg flex items-center justify-center whitespace-nowrap`}
+                >
+                  <IconPlus size={16} className="mr-2 shrink-0" />
+                  Add User
+                </button>
+              )}
             </div>
           </div>
 
@@ -676,34 +691,30 @@ const UsersPage = () => {
                       </td>
                       <td className="p-6 align-top text-center">
                         <span className="text-[10px] font-mono text-gray-500 font-bold">
-                          {new Date(user.createdAt).toLocaleDateString()}
+                          {new Date(user.createdAt as any).toLocaleDateString()}
                         </span>
                       </td>
                       <td className="p-6 align-top text-right">
                         <div className="flex justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200">
-                          <button
-                            disabled={
-                              currentUser?.role !== "OWNER" &&
-                              user.role === "OWNER"
-                            }
-                            onClick={() => handleEdit(user)}
-                            className={styles.iconBtn}
-                            title="Edit"
-                          >
-                            <IconPencil size={16} stroke={2} />
-                          </button>
-                          <button
-                            disabled={
-                              currentUser?.userId === user.userId ||
-                              (currentUser?.role !== "OWNER" &&
-                                user.role === "OWNER")
-                            }
-                            onClick={() => handleDelete(user.userId)}
-                            className={`${styles.iconBtn} hover:border-red-600 hover:bg-red-600`}
-                            title="Delete"
-                          >
-                            <IconTrash size={16} stroke={2} />
-                          </button>
+                          {canManageUsers && (
+                            <>
+                              <button
+                                onClick={() => handleEdit(user)}
+                                className={styles.iconBtn}
+                                title="Edit"
+                              >
+                                <IconPencil size={16} stroke={2} />
+                              </button>
+                              <button
+                                disabled={currentUser?.userId === user.userId}
+                                onClick={() => handleDelete(user.userId)}
+                                className={`${styles.iconBtn} hover:border-red-600 hover:bg-red-600`}
+                                title="Delete"
+                              >
+                                <IconTrash size={16} stroke={2} />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>

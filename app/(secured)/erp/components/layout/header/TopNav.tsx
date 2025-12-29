@@ -10,7 +10,7 @@ import {
   IconMenu2,
   IconX,
 } from "@tabler/icons-react";
-import { useAppDispatch } from "@/lib/hooks";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { clearUser } from "@/lib/authSlice/authSlice";
 import Logo from "../shared/logo/Logo";
 import Menuitems from "./MenuItems";
@@ -59,6 +59,16 @@ const TopNav = () => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
+  const { currentUser } = useAppSelector((state) => state.authSlice);
+
+  // Helper to check permission
+  const checkPermission = (item: any) => {
+    if (!item.permission) return true;
+    if (!currentUser) return false;
+    if (currentUser.role === "ADMIN") return true;
+    return currentUser.permissions?.includes(item.permission);
+  };
+
   return (
     <>
       {/* --- MAIN HEADER --- */}
@@ -79,10 +89,11 @@ const TopNav = () => {
             </Link>
           </div>
 
-          {/* 3. Desktop Navigation (Hidden < lg) */}
+          {/* Desktop Navigation (Hidden < lg) */}
           <nav className="hidden lg:flex flex-1 overflow-x-auto items-center gap-1 no-scrollbar mask-gradient">
             {Menuitems.map((item: any) => {
               if (item.navLabel) return null;
+              if (!checkPermission(item)) return null;
 
               const isActive =
                 pathname === item.href ||
@@ -101,6 +112,12 @@ const TopNav = () => {
 
               // Dropdown Trigger Logic
               if (item.children) {
+                // Filter children
+                const visibleChildren = item.children.filter((child: any) =>
+                  checkPermission(child)
+                );
+                if (visibleChildren.length === 0) return null;
+
                 return (
                   <div
                     key={item.id}
@@ -189,22 +206,40 @@ const TopNav = () => {
             className="hidden lg:block w-64 bg-white border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,0.1)] overflow-hidden"
           >
             <div className="py-2">
-              {activeItem.children?.map((child: any) => (
-                <Link
-                  key={child.id}
-                  href={child.href}
-                  className={`
-                    block px-6 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors
-                    ${
-                      pathname === child.href
-                        ? "bg-black text-white"
-                        : "text-gray-500 hover:bg-gray-100 hover:text-black"
-                    }
-                  `}
-                >
-                  {child.title}
-                </Link>
-              ))}
+              {activeItem.children?.map((child: any) => {
+                const hasChildPermission = checkPermission(child);
+                const isChildActive = pathname === child.href;
+
+                if (!hasChildPermission) {
+                  // Render disabled/greyed-out item
+                  return (
+                    <div
+                      key={child.id}
+                      className="block px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-300 cursor-not-allowed"
+                      title="You don't have permission to access this"
+                    >
+                      {child.title}
+                    </div>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={child.id}
+                    href={child.href}
+                    className={`
+                      block px-6 py-3 text-[10px] font-bold uppercase tracking-widest transition-colors
+                      ${
+                        isChildActive
+                          ? "bg-black text-white"
+                          : "text-gray-500 hover:bg-gray-100 hover:text-black"
+                      }
+                    `}
+                  >
+                    {child.title}
+                  </Link>
+                );
+              })}
             </div>
           </motion.div>
         )}
@@ -247,8 +282,17 @@ const TopNav = () => {
               {/* Drawer Content */}
               <div className="flex-1 overflow-y-auto p-6 space-y-2">
                 {Menuitems.map((item: any, index: number) => {
-                  // Render Nav Labels (e.g., "Management", "Finance")
+                  if (!checkPermission(item)) return null;
+
+                  // Render Nav Labels
                   if (item.navLabel) {
+                    // Check if there are any visible children under this label
+                    // This is tricky as structure is flat-ish with headers interspersed.
+                    // For simplicity, we show header if next item is visible? Or just show it.
+                    // The loop checks item by item.
+                    // If we want to hide headers of empty sections, we need to look ahead or preprocess.
+                    // For now, let's just return it, or maybe hide it if it's strict.
+                    // But strictly speaking, navLabel doesn't have permission.
                     return (
                       <div
                         key={index}
@@ -261,6 +305,7 @@ const TopNav = () => {
 
                   const isActive = pathname === item.href;
                   const hasChildren = item.children && item.children.length > 0;
+
                   const isExpanded = mobileActiveDropdown === item.id;
 
                   return (
@@ -297,8 +342,23 @@ const TopNav = () => {
                                 exit={{ height: 0, opacity: 0 }}
                                 className="overflow-hidden bg-gray-50 border-x-2 border-b-2 border-gray-100"
                               >
-                                {item.children.map((child: any) => {
+                                {item.children?.map((child: any) => {
                                   const isChildActive = pathname === child.href;
+                                  const hasChildPermission =
+                                    checkPermission(child);
+
+                                  if (!hasChildPermission) {
+                                    return (
+                                      <div
+                                        key={child.id}
+                                        className="flex items-center gap-2 px-8 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-300 cursor-not-allowed"
+                                        title="No permission"
+                                      >
+                                        {child.title}
+                                      </div>
+                                    );
+                                  }
+
                                   return (
                                     <Link
                                       key={child.id}
@@ -309,7 +369,6 @@ const TopNav = () => {
                                           : "text-gray-500 hover:text-black"
                                       }`}
                                     >
-                                      {/* Active Dot Indicator */}
                                       {isChildActive && (
                                         <div className="w-1.5 h-1.5 bg-black rounded-none" />
                                       )}

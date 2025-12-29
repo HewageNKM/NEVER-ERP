@@ -8,7 +8,7 @@ import { errorResponse } from "@/utils/apiResponse";
 export const GET = async (req: Request) => {
   try {
     // Verify the ID token
-    const isAuthorized = await authorizeRequest(req);
+    const isAuthorized = await authorizeRequest(req, "manage_users");
     if (!isAuthorized) {
       return errorResponse("Unauthorized", 401);
     }
@@ -66,7 +66,7 @@ export const GET = async (req: Request) => {
       users.push({
         userId: user.uid,
         role: "Pending",
-        status: "Pending",
+        status: false,
         email: user.email || "",
         username: user.displayName || "",
         createdAt: user.metadata.creationTime?.toLocaleString() || "",
@@ -108,7 +108,7 @@ export const GET = async (req: Request) => {
 export const POST = async (req: Request) => {
   try {
     // Verify the ID token
-    const isAuthorized = await authorizeRequest(req);
+    const isAuthorized = await authorizeRequest(req, "manage_users");
     if (!isAuthorized) {
       return errorResponse("Unauthorized", 401);
     }
