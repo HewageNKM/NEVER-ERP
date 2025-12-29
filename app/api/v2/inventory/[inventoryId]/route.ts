@@ -10,7 +10,7 @@ export const PUT = async (
 ) => {
   try {
     const { inventoryId } = await params;
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_inventory");
     if (!user) {
       return errorResponse("Unauthorized", 401);
     }
