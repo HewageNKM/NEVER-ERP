@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { DropdownOption } from "@/app/(secured)/master/products/page";
+import { DropdownOption } from "@/app/(secured)/erp/master/products/page";
 import { getToken } from "@/firebase/firebaseClient";
 import axios from "axios";
 import { InventoryItem } from "@/model/InventoryItem";

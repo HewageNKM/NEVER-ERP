@@ -2,7 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { IconPlus, IconEye, IconSearch, IconFilter } from "@tabler/icons-react";
+import {
+  IconPlus,
+  IconEye,
+  IconSearch,
+  IconFilter,
+  IconShoppingCart,
+} from "@tabler/icons-react";
 import PageContainer from "@/app/(secured)/erp/components/container/PageContainer";
 import ComponentsLoader from "@/app/components/ComponentsLoader";
 import axios from "axios";
@@ -10,6 +16,7 @@ import { getToken } from "@/firebase/firebaseClient";
 import { showNotification } from "@/utils/toast";
 import { useAppSelector } from "@/lib/hooks";
 import { RootState } from "@/lib/store";
+import { PO_STATUS_COLORS, PO_STATUS_LABELS } from "@/model/PurchaseOrder";
 
 interface PurchaseOrder {
   id: string;
@@ -22,20 +29,16 @@ interface PurchaseOrder {
   createdAt: string;
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-800",
-  sent: "bg-blue-100 text-blue-800",
-  partial: "bg-yellow-100 text-yellow-800",
-  received: "bg-green-100 text-green-800",
-  cancelled: "bg-red-100 text-red-800",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  draft: "Draft",
-  sent: "Sent",
-  partial: "Partial",
-  received: "Received",
-  cancelled: "Cancelled",
+// --- NIKE AESTHETIC STYLES ---
+const styles = {
+  input:
+    "block w-full bg-[#f5f5f5] text-gray-900 text-sm font-medium pl-12 pr-4 py-3 rounded-sm border-2 border-transparent focus:bg-white focus:border-black transition-all duration-200 outline-none placeholder:text-gray-400",
+  select:
+    "block w-full bg-[#f5f5f5] text-gray-900 text-sm font-medium pl-12 pr-8 py-3 rounded-sm border-2 border-transparent focus:bg-white focus:border-black transition-all duration-200 outline-none appearance-none cursor-pointer uppercase",
+  primaryBtn:
+    "flex items-center justify-center px-6 py-3 bg-black text-white text-xs font-black uppercase tracking-widest hover:bg-gray-900 transition-all rounded-sm shadow-sm hover:shadow-md",
+  iconBtn:
+    "w-8 h-8 flex items-center justify-center border border-gray-200 hover:bg-black hover:border-black hover:text-white transition-colors",
 };
 
 const PurchaseOrdersPage = () => {
@@ -78,65 +81,70 @@ const PurchaseOrdersPage = () => {
 
   return (
     <PageContainer title="Purchase Orders">
-      <div className="w-full space-y-6">
+      <div className="w-full space-y-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold uppercase tracking-tight text-gray-900">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b-2 border-black pb-6">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold tracking-widest text-gray-500 uppercase mb-1 flex items-center gap-2">
+              <IconShoppingCart size={14} /> Procurement
+            </span>
+            <h2 className="text-4xl font-black text-black uppercase tracking-tighter leading-none">
               Purchase Orders
             </h2>
-            <p className="text-sm text-gray-500 mt-1">
-              Manage orders to suppliers
-            </p>
           </div>
           <Link
             href="/erp/inventory/purchase-orders/new"
-            className="w-full sm:w-auto px-6 py-3 bg-black text-white text-xs font-bold uppercase tracking-wider hover:bg-gray-900 transition-colors flex items-center justify-center gap-2"
+            className={styles.primaryBtn}
           >
-            <IconPlus size={16} />
-            New PO
+            <IconPlus size={16} className="mr-2" />
+            New Order
           </Link>
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <IconSearch
-              size={18}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-            <input
-              type="text"
-              placeholder="Search by PO# or supplier..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 focus:outline-none focus:border-black"
-            />
-          </div>
-          <div className="relative">
-            <IconFilter
-              size={18}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="pl-12 pr-8 py-3 bg-white border border-gray-200 focus:outline-none focus:border-black appearance-none min-w-[150px]"
-            >
-              <option value="">All Status</option>
-              <option value="draft">Draft</option>
-              <option value="sent">Sent</option>
-              <option value="partial">Partial</option>
-              <option value="received">Received</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+        <div className="bg-white border border-gray-200 p-6 shadow-sm">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <IconSearch
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="text"
+                placeholder="SEARCH ORDERS OR SUPPLIERS..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className={styles.input}
+              />
+            </div>
+            <div className="relative min-w-[200px]">
+              <IconFilter
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className={styles.select}
+              >
+                <option value="">ALL STATUS</option>
+                <option value="draft">DRAFT</option>
+                <option value="sent">SENT</option>
+                <option value="partial">PARTIAL</option>
+                <option value="received">RECEIVED</option>
+                <option value="cancelled">CANCELLED</option>
+              </select>
+            </div>
           </div>
         </div>
 
         {/* Loading */}
         {loading && (
-          <div className="flex justify-center py-20">
+          <div className="flex flex-col items-center justify-center py-20">
             <ComponentsLoader />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mt-4">
+              Loading Orders
+            </span>
           </div>
         )}
 
@@ -144,77 +152,70 @@ const PurchaseOrdersPage = () => {
         {!loading && (
           <div className="bg-white border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-200">
+              <table className="w-full text-sm text-left border-collapse">
+                <thead className="bg-white text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b-2 border-black">
                   <tr>
-                    <th className="px-6 py-3 font-bold tracking-wider">
-                      PO Number
-                    </th>
-                    <th className="px-6 py-3 font-bold tracking-wider">
-                      Supplier
-                    </th>
-                    <th className="px-6 py-3 font-bold tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 font-bold tracking-wider text-right">
-                      Amount
-                    </th>
-                    <th className="px-6 py-3 font-bold tracking-wider">
-                      Expected
-                    </th>
-                    <th className="px-6 py-3 font-bold tracking-wider text-right">
-                      Actions
-                    </th>
+                    <th className="px-6 py-5">PO Number</th>
+                    <th className="px-6 py-5">Supplier</th>
+                    <th className="px-6 py-5 text-center">Status</th>
+                    <th className="px-6 py-5 text-right">Amount</th>
+                    <th className="px-6 py-5 text-right">Expected</th>
+                    <th className="px-6 py-5 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filteredOrders.map((po) => (
-                    <tr
-                      key={po.id}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-6 py-4">
-                        <span className="font-mono font-bold text-gray-900">
-                          {po.poNumber}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-gray-600">
-                        {po.supplierName}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-2 py-1 text-xs font-bold uppercase ${
-                            STATUS_COLORS[po.status] || "bg-gray-100"
-                          }`}
-                        >
-                          {STATUS_LABELS[po.status] || po.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right font-medium text-gray-900">
-                        Rs {po.totalAmount.toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 text-gray-600">
-                        {po.expectedDate || "-"}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <Link
-                          href={`/inventory/purchase-orders/${po.id}`}
-                          className="p-2 hover:bg-gray-100 inline-flex transition-colors"
-                        >
-                          <IconEye size={16} />
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredOrders.length === 0 && (
+                  {filteredOrders.length === 0 ? (
                     <tr>
                       <td
                         colSpan={6}
-                        className="px-6 py-12 text-center text-gray-500"
+                        className="px-6 py-20 text-center text-gray-400 text-xs font-bold uppercase tracking-widest"
                       >
                         No purchase orders found
                       </td>
                     </tr>
+                  ) : (
+                    filteredOrders.map((po) => (
+                      <tr
+                        key={po.id}
+                        className="hover:bg-gray-50 transition-colors group"
+                      >
+                        <td className="px-6 py-5">
+                          <span className="font-mono font-bold text-black text-xs uppercase tracking-wide">
+                            {po.poNumber}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 font-bold text-gray-700 uppercase text-xs tracking-wide">
+                          {po.supplierName}
+                        </td>
+                        <td className="px-6 py-5 text-center">
+                          <span
+                            className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest border ${
+                              PO_STATUS_COLORS[po.status] ||
+                              "bg-gray-100 border-gray-200"
+                            }`}
+                          >
+                            {PO_STATUS_LABELS[po.status] || po.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 text-right font-black text-black">
+                          Rs {po.totalAmount.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-5 text-right text-gray-500 text-xs font-bold uppercase">
+                          {po.expectedDate || "-"}
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          <div className="flex justify-end opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all">
+                            <Link
+                              href={`/erp/inventory/purchase-orders/${po.id}`}
+                              className={styles.iconBtn}
+                              title="View Details"
+                            >
+                              <IconEye size={16} stroke={2} />
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>

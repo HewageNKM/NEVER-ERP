@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { IconEdit, IconLoader, IconBoxSeam } from "@tabler/icons-react";
-import { DropdownOption } from "@/app/(secured)/master/products/page";
+import { DropdownOption } from "@/app/(secured)/erp/master/products/page";
 import { InventoryItem } from "@/model/InventoryItem";
 
 interface StockLocationOption extends DropdownOption {}

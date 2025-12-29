@@ -18,8 +18,6 @@ export const getSuppliers = async (status?: boolean): Promise<Supplier[]> => {
       query = query.where("status", "==", status);
     }
 
-    query = query.orderBy("name", "asc");
-
     const snapshot = await query.get();
     return snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -148,7 +146,6 @@ export const getSuppliersDropdown = async (): Promise<
       .collection(COLLECTION)
       .where("isDeleted", "==", false)
       .where("status", "==", true)
-      .orderBy("name", "asc")
       .get();
 
     return snapshot.docs.map((doc) => ({

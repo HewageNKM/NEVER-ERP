@@ -167,7 +167,7 @@ const ProductListTable: React.FC<ProductListTableProps> = ({
               <td className="p-6 align-top text-right">
                 <div className="flex justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200">
                   <Link
-                    href={`/master/products/${product.productId}/view`}
+                    href={`/erp/master/products/${product.productId}/view`}
                     className={styles.iconBtn}
                     title="View"
                   >
