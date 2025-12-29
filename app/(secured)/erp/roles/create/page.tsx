@@ -101,7 +101,7 @@ const CreateRolePage = () => {
       title="Create Role"
       description="Create a new role with permissions"
     >
-      <div className="w-full max-w-4xl mx-auto space-y-8">
+      <div className="w-full space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4 border-b-2 border-black pb-6">
           <button
@@ -121,7 +121,7 @@ const CreateRolePage = () => {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="bg-white border border-gray-200 p-8 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>

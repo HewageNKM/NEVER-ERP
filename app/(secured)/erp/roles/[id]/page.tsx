@@ -123,7 +123,7 @@ const EditRolePage = ({ params }: { params: Promise<{ id: string }> }) => {
 
   return (
     <PageContainer title="Edit Role" description={`Editing role: ${roleId}`}>
-      <div className="w-full max-w-4xl mx-auto space-y-8">
+      <div className="w-full space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4 border-b-2 border-black pb-6">
           <button
@@ -146,7 +146,7 @@ const EditRolePage = ({ params }: { params: Promise<{ id: string }> }) => {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="bg-white border border-gray-200 p-8 space-y-6">
             <div>
               <label className={styles.label}>
