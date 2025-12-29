@@ -29,7 +29,7 @@ export const PUT = async (
 ) => {
   try {
     const { brandId } = await params;
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_master_data");
     if (!user) return errorResponse("Unauthorized", 401);
 
     const formData = await req.formData();
@@ -55,7 +55,7 @@ export const DELETE = async (
 ) => {
   try {
     const { brandId } = await params;
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_master_data");
     if (!user) return errorResponse("Unauthorized", 401);
 
     const result = await deleteBrand(brandId);

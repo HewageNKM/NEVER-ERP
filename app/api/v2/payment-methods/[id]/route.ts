@@ -12,7 +12,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authorized = await authorizeRequest(req);
+    const authorized = await authorizeRequest(req, "manage_payment_methods");
     if (!authorized) return errorResponse("Unauthorized", 401);
 
     const { id } = await params;
@@ -41,7 +41,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authorized = await authorizeRequest(req);
+    const authorized = await authorizeRequest(req, "manage_payment_methods");
     if (!authorized) return errorResponse("Unauthorized", 401);
 
     const { id } = await params;

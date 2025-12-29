@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authorizeAndGetUser } from "@/services/AuthService";
+import { authorizeRequest, authorizeAndGetUser } from "@/services/AuthService";
 import { addPettyCash, getPettyCashList } from "@/services/PettyCashService";
 import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: NextRequest) => {
   try {
-    const user = await authorizeAndGetUser(req);
-    if (!user) return errorResponse("Unauthorized", 401);
+    const authorized = await authorizeRequest(req, "view_petty_cash");
+    if (!authorized) return errorResponse("Unauthorized", 401);
 
     const searchParams = req.nextUrl.searchParams;
     const page = parseInt(searchParams.get("page") || "1");
@@ -30,6 +30,9 @@ export const GET = async (req: NextRequest) => {
 
 export const POST = async (req: NextRequest) => {
   try {
+    const authorized = await authorizeRequest(req, "create_petty_cash");
+    if (!authorized) return errorResponse("Unauthorized", 401);
+
     const user = await authorizeAndGetUser(req);
     if (!user) return errorResponse("Unauthorized", 401);
 

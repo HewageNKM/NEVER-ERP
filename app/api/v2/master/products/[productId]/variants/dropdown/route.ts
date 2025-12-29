@@ -8,7 +8,7 @@ export const GET = async (
   { params }: { params: Promise<{ productId: string }> }
 ) => {
   try {
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_master_data");
     if (!user) {
       return errorResponse("Unauthorized", 401);
     }

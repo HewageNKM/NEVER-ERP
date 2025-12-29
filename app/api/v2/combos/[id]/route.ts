@@ -16,7 +16,7 @@ interface Props {
 export const GET = async (req: NextRequest, props: Props) => {
   const params = await props.params;
   try {
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_combos");
     if (!user) return errorResponse("Unauthorized", 401);
 
     const combo = await getComboById(params.id);
@@ -32,7 +32,7 @@ export const GET = async (req: NextRequest, props: Props) => {
 export const PUT = async (req: NextRequest, props: Props) => {
   const params = await props.params;
   try {
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "update_combos");
     if (!user) return errorResponse("Unauthorized", 401);
 
     const formData = await req.formData();
@@ -101,7 +101,7 @@ interface UnparsedComboData {
 export const DELETE = async (req: NextRequest, props: Props) => {
   const params = await props.params;
   try {
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "delete_combos");
     if (!user) return errorResponse("Unauthorized", 401);
 
     await deleteCombo(params.id);

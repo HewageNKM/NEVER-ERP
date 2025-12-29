@@ -5,7 +5,7 @@ import { errorResponse } from "@/utils/apiResponse";
 
 export async function GET(req: NextRequest) {
   try {
-    const auth = await authorizeRequest(req);
+    const auth = await authorizeRequest(req, "view_reports");
     if (!auth) return errorResponse("Unauthorized", 401);
 
     const url = new URL(req.url);

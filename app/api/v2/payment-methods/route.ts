@@ -9,7 +9,7 @@ import { errorResponse } from "@/utils/apiResponse";
 // GET: List all payment methods
 export async function GET(req: Request) {
   try {
-    const authorized = await authorizeRequest(req);
+    const authorized = await authorizeRequest(req, "view_payment_methods");
     if (!authorized) return errorResponse("Unauthorized", 401);
 
     const methods = await getPaymentMethods();
@@ -22,7 +22,7 @@ export async function GET(req: Request) {
 // POST: Create a new payment method
 export async function POST(req: Request) {
   try {
-    const authorized = await authorizeRequest(req);
+    const authorized = await authorizeRequest(req, "manage_payment_methods");
     if (!authorized) return errorResponse("Unauthorized", 401);
 
     const body = await req.json();

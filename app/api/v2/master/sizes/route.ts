@@ -5,7 +5,7 @@ import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: Request) => {
   try {
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_master_data");
     if (!user) return errorResponse("Unauthorized", 401);
 
     const { searchParams } = new URL(req.url);
@@ -23,7 +23,7 @@ export const GET = async (req: Request) => {
 
 export const POST = async (req: Request) => {
   try {
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_master_data");
     if (!user) return errorResponse("Unauthorized", 401);
 
     const sizeData = await req.json();

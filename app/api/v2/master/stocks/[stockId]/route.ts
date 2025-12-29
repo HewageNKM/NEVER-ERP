@@ -10,7 +10,7 @@ export const PUT = async (
 ) => {
   try {
     const { stockId } = await params;
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_master_data");
     if (!user) return errorResponse("Unauthorized", 401);
 
     if (!stockId) return errorResponse("Stock ID is required", 400);
@@ -63,7 +63,7 @@ export const DELETE = async (
 ) => {
   try {
     const { stockId } = await params;
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_master_data");
     if (!user) return errorResponse("Unauthorized", 401);
 
     if (!stockId) return errorResponse("Stock ID is required", 400);

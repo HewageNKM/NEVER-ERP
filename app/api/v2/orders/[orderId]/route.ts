@@ -8,7 +8,7 @@ export const PUT = async (
   { params }: { params: Promise<{ orderId: string }> }
 ) => {
   try {
-    const response = await authorizeRequest(req);
+    const response = await authorizeRequest(req, "update_orders");
     if (!response) return errorResponse("Unauthorized", 401);
 
     const { orderId } = await params;
@@ -29,7 +29,7 @@ export const GET = async (
   { params }: { params: Promise<{ orderId: string }> }
 ) => {
   try {
-    const authorized = await authorizeRequest(req);
+    const authorized = await authorizeRequest(req, "view_orders");
     if (!authorized) return errorResponse("Unauthorized", 401);
 
     const { orderId } = await params;

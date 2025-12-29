@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { authorizeRequest } from "@/services/AuthService";
 import {
   getShippingRules,
   createShippingRule,
@@ -8,6 +9,9 @@ import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: NextRequest) => {
   try {
+    const authorized = await authorizeRequest(req, "view_shipping");
+    if (!authorized) return errorResponse("Unauthorized", 401);
+
     const rules = await getShippingRules();
     return NextResponse.json(rules);
   } catch (error) {
@@ -17,6 +21,8 @@ export const GET = async (req: NextRequest) => {
 
 export const POST = async (req: NextRequest) => {
   try {
+    const authorized = await authorizeRequest(req, "update_shipping");
+    if (!authorized) return errorResponse("Unauthorized", 401);
     const body = await req.json();
     const { name, minWeight, maxWeight, rate, isActive } = body;
 

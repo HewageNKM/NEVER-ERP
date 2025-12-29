@@ -58,7 +58,7 @@ const parseProductFromFormData = async (
 };
 export const GET = async (req: NextRequest, { params }: RouteParams) => {
   try {
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_master_data");
     if (!user) return errorResponse("Unauthorized", 401);
 
     const { productId } = await params;
@@ -81,7 +81,7 @@ export const GET = async (req: NextRequest, { params }: RouteParams) => {
  */
 export const PUT = async (req: NextRequest, { params }: RouteParams) => {
   try {
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_master_data");
     if (!user) return errorResponse("Unauthorized", 401);
 
     const { productId } = await params;
@@ -123,7 +123,7 @@ export const PUT = async (req: NextRequest, { params }: RouteParams) => {
  */
 export const DELETE = async (req: NextRequest, { params }: RouteParams) => {
   try {
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_master_data");
     if (!user) return errorResponse("Unauthorized", 401);
 
     // --- CRITICAL FIX: Use productId, not id ---

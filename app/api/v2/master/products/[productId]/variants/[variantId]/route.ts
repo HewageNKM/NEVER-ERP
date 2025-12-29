@@ -42,7 +42,7 @@ export const PUT = async (
   { params }: { params: Promise<{ productId: string; variantId: string }> }
 ) => {
   try {
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_master_data");
     if (!user) {
       return errorResponse("Unauthorized", 401);
     }
@@ -79,7 +79,7 @@ export const DELETE = async (
   { params }: { params: Promise<{ productId: string; variantId: string }> }
 ) => {
   try {
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_master_data");
     if (!user) {
       return errorResponse("Unauthorized", 401);
     }

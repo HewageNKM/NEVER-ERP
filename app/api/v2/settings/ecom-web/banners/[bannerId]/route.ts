@@ -5,7 +5,7 @@ import { errorResponse } from "@/utils/apiResponse";
 
 export const DELETE = async (req: Request) => {
   try {
-    const response = await authorizeRequest(req);
+    const response = await authorizeRequest(req, "view_website");
     if (!response) {
       return errorResponse("Unauthorized", 401);
     }

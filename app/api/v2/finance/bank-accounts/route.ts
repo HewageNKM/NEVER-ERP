@@ -10,7 +10,7 @@ import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: Request) => {
   try {
-    const response = await authorizeRequest(req);
+    const response = await authorizeRequest(req, "view_bank_accounts");
     if (!response) return errorResponse("Unauthorized", 401);
 
     const url = new URL(req.url);
@@ -36,7 +36,7 @@ export const GET = async (req: Request) => {
 
 export const POST = async (req: Request) => {
   try {
-    const response = await authorizeRequest(req);
+    const response = await authorizeRequest(req, "manage_bank_accounts");
     if (!response) return errorResponse("Unauthorized", 401);
 
     const body = await req.json();

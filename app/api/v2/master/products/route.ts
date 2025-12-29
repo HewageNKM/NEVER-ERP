@@ -59,7 +59,7 @@ const parseProductFromFormData = async (
  */
 export const GET = async (req: NextRequest) => {
   try {
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_master_data");
     if (!user) return errorResponse("Unauthorized", 401);
 
     const { searchParams } = req.nextUrl;
@@ -97,7 +97,7 @@ export const GET = async (req: NextRequest) => {
  */
 export const POST = async (req: NextRequest) => {
   try {
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_master_data");
     if (!user) return errorResponse("Unauthorized", 401);
 
     const formData = await req.formData();

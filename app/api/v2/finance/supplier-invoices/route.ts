@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { authorizeAndGetUser } from "@/services/AuthService";
+import { authorizeRequest, authorizeAndGetUser } from "@/services/AuthService";
 import {
   getSupplierInvoices,
   createSupplierInvoice,
@@ -9,8 +9,8 @@ import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: Request) => {
   try {
-    const response = await authorizeAndGetUser(req);
-    if (!response) return errorResponse("Unauthorized", 401);
+    const authorized = await authorizeRequest(req, "view_supplier_invoices");
+    if (!authorized) return errorResponse("Unauthorized", 401);
 
     const url = new URL(req.url);
     const summary = url.searchParams.get("summary") === "true";
@@ -33,6 +33,9 @@ export const GET = async (req: Request) => {
 
 export const POST = async (req: Request) => {
   try {
+    const authorized = await authorizeRequest(req, "create_supplier_invoices");
+    if (!authorized) return errorResponse("Unauthorized", 401);
+
     const response = await authorizeAndGetUser(req);
     if (!response) return errorResponse("Unauthorized", 401);
 

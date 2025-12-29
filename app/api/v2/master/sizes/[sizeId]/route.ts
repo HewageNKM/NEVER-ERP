@@ -28,7 +28,7 @@ export const PUT = async (
 ) => {
   try {
     const { sizeId } = await params;
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_master_data");
     if (!user) return errorResponse("Unauthorized", 401);
 
     const sizeData = await req.json();
@@ -51,7 +51,7 @@ export const DELETE = async (
 ) => {
   try {
     const { sizeId } = await params;
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_master_data");
     if (!user) return errorResponse("Unauthorized", 401);
 
     const result = await deleteSize(sizeId);

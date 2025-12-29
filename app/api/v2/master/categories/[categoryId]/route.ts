@@ -13,7 +13,7 @@ export const GET = async (
 ) => {
   try {
     const { categoryId } = await params;
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_master_data");
     if (!user) return errorResponse("Unauthorized", 401);
 
     const category = await getCategoryById(categoryId);
@@ -36,7 +36,7 @@ export const PUT = async (
 ) => {
   try {
     const { categoryId } = await params;
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_master_data");
     if (!user) return errorResponse("Unauthorized", 401);
 
     const data = await req.json();
@@ -56,7 +56,7 @@ export const DELETE = async (
 ) => {
   try {
     const { categoryId } = await params;
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_master_data");
     if (!user) return errorResponse("Unauthorized", 401);
 
     const res = await softDeleteCategory(categoryId);

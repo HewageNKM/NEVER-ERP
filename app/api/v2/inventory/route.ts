@@ -10,7 +10,7 @@ import { errorResponse } from "@/utils/apiResponse";
 // GET Handler: Fetch list of inventory items
 export const GET = async (req: NextRequest) => {
   try {
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "view_inventory");
     if (!user) return errorResponse("Unauthorized", 401);
 
     const { searchParams } = req.nextUrl;
@@ -41,7 +41,7 @@ export const GET = async (req: NextRequest) => {
 // POST Handler: Create inventory item(s) - supports single and bulk
 export const POST = async (req: NextRequest) => {
   try {
-    const user = await authorizeRequest(req);
+    const user = await authorizeRequest(req, "update_inventory");
     if (!user) return errorResponse("Unauthorized", 401);
 
     const data = await req.json();

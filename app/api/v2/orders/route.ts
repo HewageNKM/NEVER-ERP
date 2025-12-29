@@ -7,8 +7,8 @@ import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: NextRequest) => {
   try {
-    // Verify the ID token
-    const response = await authorizeRequest(req);
+    // Verify the ID token and permission
+    const response = await authorizeRequest(req, "view_orders");
     if (!response) return errorResponse("Unauthorized", 401);
 
     // Get the URL and parse the query parameters

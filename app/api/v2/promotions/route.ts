@@ -5,7 +5,8 @@ import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: NextRequest) => {
   try {
-    await authorizeRequest(req);
+    const authorized = await authorizeRequest(req, "view_promotions");
+    if (!authorized) return errorResponse("Unauthorized", 401);
 
     const { searchParams } = req.nextUrl;
     const page = parseInt(searchParams.get("page") || "1");
@@ -22,7 +23,8 @@ export const GET = async (req: NextRequest) => {
 
 export const POST = async (req: NextRequest) => {
   try {
-    await authorizeRequest(req);
+    const authorized = await authorizeRequest(req, "create_promotions");
+    if (!authorized) return errorResponse("Unauthorized", 401);
 
     const formData = await req.formData();
     const file = formData.get("banner") as File | null;

@@ -8,7 +8,7 @@ import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: Request) => {
   try {
-    const response = await authorizeRequest(req);
+    const response = await authorizeRequest(req, "view_website");
     if (!response) {
       return errorResponse("Unauthorized", 401);
     }
@@ -22,7 +22,7 @@ export const GET = async (req: Request) => {
 
 export const POST = async (req: Request) => {
   try {
-    const response = await authorizeRequest(req);
+    const response = await authorizeRequest(req, "view_website");
     if (!response) {
       return errorResponse("Unauthorized", 401);
     }

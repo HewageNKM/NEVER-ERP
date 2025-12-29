@@ -34,6 +34,8 @@ import { showNotification } from "@/utils/toast";
 import { useConfirmationDialog } from "@/contexts/ConfirmationDialogContext";
 import * as XLSX from "xlsx";
 import { usePermission } from "@/hooks/usePermission";
+import { auth } from "@/firebase/firebaseClient";
+import { RootState } from "@/lib/store";
 
 // --- NIKE AESTHETIC STYLES ---
 const styles = {
@@ -68,17 +70,27 @@ const UserForm = ({
   onSuccess: () => void;
 }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const { currentUser: usr } = useAppSelector(
+    (state: RootState) => state.authSlice
+  );
   const [roles, setRoles] = useState<Role[]>([]);
 
   useEffect(() => {
-    // Fetch roles for the dropdown
-    axios
-      .get("/api/v2/roles")
-      .then((res) => {
-        setRoles(res.data.roles || []);
-      })
-      .catch(console.error);
-  }, []);
+    if (usr) fetchRoles();
+  }, [showForm, usr]);
+
+  // Fetch roles for the dropdown with auth
+  const fetchRoles = async () => {
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      const res = await axios.get("/api/v2/roles", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setRoles(res.data.roles || []);
+    } catch (error) {
+      console.error("Failed to fetch roles", error);
+    }
+  };
 
   const handleSubmit = async (evt: React.FormEvent<HTMLFormElement>) => {
     try {
@@ -232,7 +244,6 @@ const UserForm = ({
                       defaultValue={user?.role || "user"}
                       className={styles.select}
                     >
-                      <option value="ADMIN">ADMIN</option>
                       {roles.map((r) => (
                         <option key={r.id} value={r.id}>
                           {r.name.toUpperCase()}

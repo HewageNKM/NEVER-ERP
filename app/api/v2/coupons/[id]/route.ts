@@ -15,7 +15,8 @@ export const GET = async (req: NextRequest, { params }: Props) => {
 
 export const PUT = async (req: NextRequest, { params }: Props) => {
   try {
-    await authorizeRequest(req);
+    const authorized = await authorizeRequest(req, "update_coupons");
+    if (!authorized) return errorResponse("Unauthorized", 401);
 
     const { id } = await params;
     const data = await req.json();
@@ -29,7 +30,8 @@ export const PUT = async (req: NextRequest, { params }: Props) => {
 
 export const DELETE = async (req: NextRequest, { params }: Props) => {
   try {
-    await authorizeRequest(req);
+    const authorized = await authorizeRequest(req, "delete_coupons");
+    if (!authorized) return errorResponse("Unauthorized", 401);
 
     const { id } = await params;
     await deleteCoupon(id);

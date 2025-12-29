@@ -220,7 +220,7 @@ export const loginUser = async (userId: string) => {
 
     // Fetch permissions if not ADMIN
     let permissions: string[] = [];
-    if (userData.role === "ADMIN") {
+    if (userData.role === "admin") {
       // ADMIN gets all permissions implicitly
     } else if (userData.role) {
       try {
