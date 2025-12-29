@@ -65,7 +65,7 @@ export const authorizeRequest = async (
       const decodedIdToken = await adminAuth.verifyIdToken(token, true);
 
       // Check role from Custom Claims
-      const role = decodedIdToken.role;
+      const role = decodedIdToken.role?.toLowerCase();
 
       if (!role) {
         console.warn("Authorization Failed! No role in token.");
@@ -73,7 +73,7 @@ export const authorizeRequest = async (
       }
 
       // Super Admin has all permissions
-      if (role === "ADMIN") {
+      if (role === "admin") {
         return true;
       }
 
@@ -128,7 +128,7 @@ export const authorizeAndGetUser = async (req: any): Promise<User | null> => {
 
     if (token && token !== "undefined") {
       const decodedIdToken = await adminAuth.verifyIdToken(token, true);
-      const role = decodedIdToken.role;
+      const role = decodedIdToken.role?.toLowerCase();
 
       // 1. Quick check using Custom Claims
       if (!role) {
@@ -147,7 +147,7 @@ export const authorizeAndGetUser = async (req: any): Promise<User | null> => {
 
       // 3. Fetch permissions if not ADMIN
       let permissions: string[] = [];
-      if (role === "ADMIN") {
+      if (role === "admin") {
         // ADMIN gets all permissions implicitly
       } else if (role) {
         try {
@@ -199,24 +199,21 @@ export const loginUser = async (userId: string) => {
 
     // Get role from custom claims
     const customClaims = authUser.customClaims || {};
-    const role = customClaims.role as string | undefined;
+    const role = customClaims.role as string | "";
+    console.log(role);
 
     // Fetch permissions if not ADMIN
     let permissions: string[] = [];
-    if (role?.toUpperCase() === "ADMIN") {
-      // ADMIN gets all permissions implicitly
-    } else if (role) {
-      try {
-        const roleDoc = await adminFirestore
-          .collection("roles")
-          .doc(role)
-          .get();
-        if (roleDoc.exists) {
-          permissions = roleDoc.data()?.permissions || [];
-        }
-      } catch (e) {
-        console.warn("Failed to fetch role permissions", e);
+    try {
+      const roleDoc = await adminFirestore
+        .collection("roles")
+        .doc(role?.toLowerCase())
+        .get();
+      if (roleDoc.exists) {
+        permissions = roleDoc.data()?.permissions || [];
       }
+    } catch (e) {
+      console.warn("Failed to fetch role permissions", e);
     }
 
     // Build User object from Firebase Auth data

@@ -93,12 +93,18 @@ const TopNav = () => {
           <nav className="hidden lg:flex flex-1 overflow-x-auto items-center gap-1 no-scrollbar mask-gradient">
             {Menuitems.map((item: any) => {
               if (item.navLabel) return null;
-              if (!checkPermission(item)) return null;
 
+              const hasPermission = checkPermission(item);
               const isActive =
                 pathname === item.href ||
                 (item.children &&
                   item.children.some((c: any) => pathname === c.href));
+
+              // Disabled button style for no permission
+              const disabledBtn = `
+                flex items-center gap-2 px-5 py-3 text-[11px] font-black uppercase tracking-[0.15em]
+                text-gray-300 cursor-not-allowed
+              `;
 
               // Industrial Button Style
               const baseBtn = `
@@ -112,11 +118,28 @@ const TopNav = () => {
 
               // Dropdown Trigger Logic
               if (item.children) {
-                // Filter children
+                // For parent with children, show if any child visible OR show disabled if no permission
                 const visibleChildren = item.children.filter((child: any) =>
                   checkPermission(child)
                 );
-                if (visibleChildren.length === 0) return null;
+
+                if (!hasPermission && visibleChildren.length === 0) {
+                  // Show disabled parent
+                  return (
+                    <div
+                      key={item.id}
+                      className={disabledBtn}
+                      title="You don't have permission to access this"
+                    >
+                      {item.title}
+                      <IconChevronDown
+                        size={14}
+                        stroke={3}
+                        className="text-gray-300"
+                      />
+                    </div>
+                  );
+                }
 
                 return (
                   <div
@@ -137,7 +160,19 @@ const TopNav = () => {
                 );
               }
 
-              // Direct Link Logic
+              // Direct Link Logic - show disabled if no permission
+              if (!hasPermission) {
+                return (
+                  <div
+                    key={item.id}
+                    className={disabledBtn}
+                    title="You don't have permission to access this"
+                  >
+                    {item.title}
+                  </div>
+                );
+              }
+
               return (
                 <Link key={item.id} href={item.href} className={baseBtn}>
                   {item.title}
@@ -282,17 +317,10 @@ const TopNav = () => {
               {/* Drawer Content */}
               <div className="flex-1 overflow-y-auto p-6 space-y-2">
                 {Menuitems.map((item: any, index: number) => {
-                  if (!checkPermission(item)) return null;
+                  const hasPermission = checkPermission(item);
 
                   // Render Nav Labels
                   if (item.navLabel) {
-                    // Check if there are any visible children under this label
-                    // This is tricky as structure is flat-ish with headers interspersed.
-                    // For simplicity, we show header if next item is visible? Or just show it.
-                    // The loop checks item by item.
-                    // If we want to hide headers of empty sections, we need to look ahead or preprocess.
-                    // For now, let's just return it, or maybe hide it if it's strict.
-                    // But strictly speaking, navLabel doesn't have permission.
                     return (
                       <div
                         key={index}
@@ -305,8 +333,30 @@ const TopNav = () => {
 
                   const isActive = pathname === item.href;
                   const hasChildren = item.children && item.children.length > 0;
-
                   const isExpanded = mobileActiveDropdown === item.id;
+
+                  // Show disabled state for items without permission
+                  if (!hasPermission) {
+                    return (
+                      <div key={item.id}>
+                        <div
+                          className="w-full flex items-center justify-between p-4 text-xs font-bold uppercase tracking-wide border-2 border-gray-100 text-gray-300 cursor-not-allowed"
+                          title="You don't have permission to access this"
+                        >
+                          <span className="flex items-center gap-3">
+                            {item.icon && <item.icon size={18} />}
+                            {item.title}
+                          </span>
+                          {hasChildren && (
+                            <IconChevronDown
+                              size={16}
+                              className="text-gray-300"
+                            />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
 
                   return (
                     <div key={item.id}>
