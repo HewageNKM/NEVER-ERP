@@ -1,8 +1,6 @@
 import { adminAuth, adminFirestore } from "@/firebase/firebaseAdmin";
 import { headers } from "next/headers";
-import { NextResponse } from "next/server";
 import { User } from "@/model/User";
-import admin from "firebase-admin";
 import { AppError, errorResponse } from "@/utils/apiResponse";
 
 export const authorizeOrderRequest = async (req: Request) => {
@@ -138,38 +136,24 @@ export const authorizeAndGetUser = async (req: any): Promise<User | null> => {
         return null;
       }
 
-      // 2. Fetch full user details from Firestore (needed for return value)
-      const userDoc = await adminFirestore
-        .collection("users")
-        .doc(decodedIdToken.uid)
-        .get();
+      // 2. Get user details from Firebase Auth (no Firestore users collection)
+      const authUser = await adminAuth.getUser(decodedIdToken.uid);
 
-      if (!userDoc.exists) {
-        console.warn("User not found!");
-        return null;
-      }
-
-      const userData = userDoc.data() as User;
-
-      // Double check status, though revoked token should have caught this.
-      if (userData.status === false) {
+      // Check if user is disabled
+      if (authUser.disabled) {
         console.warn("User is inactive!");
         return null;
       }
 
       // 3. Fetch permissions if not ADMIN
       let permissions: string[] = [];
-      if (userData.role === "ADMIN") {
-        // ADMIN gets all permissions implicitly, but we can ideally leave this empty
-        // and handle it in the checking logic (authorizeRequest already does this).
-        // For frontend convenience, we might want to pass a flag or just rely on role check.
-        // Let's pass a specific permission "ALL" or just rely on 'role' in frontend.
-      } else if (userData.role) {
+      if (role === "ADMIN") {
+        // ADMIN gets all permissions implicitly
+      } else if (role) {
         try {
-          // We need to fetch the role document to get permissions
           const roleDoc = await adminFirestore
             .collection("roles")
-            .doc(userData.role)
+            .doc(role)
             .get();
           if (roleDoc.exists) {
             permissions = roleDoc.data()?.permissions || [];
@@ -179,16 +163,20 @@ export const authorizeAndGetUser = async (req: any): Promise<User | null> => {
         }
       }
 
-      return {
-        ...userData,
+      // Build User object from Firebase Auth data
+      const userData: User = {
+        userId: authUser.uid,
+        email: authUser.email || "",
+        username: authUser.displayName || "",
+        photoURL: authUser.photoURL || "",
+        role: role,
+        status: !authUser.disabled,
         permissions: permissions,
-        createdAt:
-          (userData.createdAt as any)?.toDate?.()?.toLocaleString() ||
-          userData.createdAt,
-        updatedAt:
-          (userData.updatedAt as any)?.toDate?.()?.toLocaleString() ||
-          userData.updatedAt,
-      } as User;
+        createdAt: authUser.metadata.creationTime || "",
+        updatedAt: authUser.metadata.lastSignInTime || "",
+      };
+
+      return userData;
     } else {
       console.warn("Authorization Failed! No token.");
       return null;
@@ -202,31 +190,26 @@ export const authorizeAndGetUser = async (req: any): Promise<User | null> => {
 export const loginUser = async (userId: string) => {
   try {
     console.log(`Logging in user with ID: ${userId}`);
-    // Check if user exists in Auth
-    await adminAuth.getUser(userId);
+    // Get user from Firebase Auth (no Firestore users collection)
+    const authUser = await adminAuth.getUser(userId);
 
-    const userDoc = await adminFirestore.collection("users").doc(userId).get();
-
-    if (!userDoc.exists) {
-      console.warn(`User with ID ${userId} not found`);
-      throw new AppError(`User with ID ${userId} not found`, 404);
+    if (authUser.disabled) {
+      throw new AppError(`User with ID ${authUser.email} is not active`, 403);
     }
 
-    const userData = userDoc.data() as any;
-
-    if (userData.status !== "Active") {
-      throw new AppError(`User with ID ${userData.email} is not active`, 403);
-    }
+    // Get role from custom claims
+    const customClaims = authUser.customClaims || {};
+    const role = customClaims.role as string | undefined;
 
     // Fetch permissions if not ADMIN
     let permissions: string[] = [];
-    if (userData.role === "admin") {
+    if (role?.toUpperCase() === "ADMIN") {
       // ADMIN gets all permissions implicitly
-    } else if (userData.role) {
+    } else if (role) {
       try {
         const roleDoc = await adminFirestore
           .collection("roles")
-          .doc(userData.role)
+          .doc(role)
           .get();
         if (roleDoc.exists) {
           permissions = roleDoc.data()?.permissions || [];
@@ -236,16 +219,20 @@ export const loginUser = async (userId: string) => {
       }
     }
 
-    return {
-      ...userData,
+    // Build User object from Firebase Auth data
+    const userData: User = {
+      userId: authUser.uid,
+      email: authUser.email || "",
+      username: authUser.displayName || "",
+      photoURL: authUser.photoURL || "",
+      role: role || "",
+      status: !authUser.disabled,
       permissions,
-      createdAt:
-        (userData.createdAt as any)?.toDate?.()?.toLocaleString() ||
-        userData.createdAt,
-      updatedAt:
-        (userData.updatedAt as any)?.toDate?.()?.toLocaleString() ||
-        userData.updatedAt,
-    } as User;
+      createdAt: authUser.metadata.creationTime || "",
+      updatedAt: authUser.metadata.lastSignInTime || "",
+    };
+
+    return userData;
   } catch (e) {
     console.error(e);
     if (e instanceof AppError) throw e;
@@ -258,7 +245,7 @@ export const loginUser = async (userId: string) => {
 export const createUser = async (user: User): Promise<string> => {
   let userId = user.userId;
 
-  // 1. Create in Firebase Auth
+  // 1. Create in Firebase Auth (no Firestore users collection)
   if (!userId || user.password) {
     try {
       const authUser = await adminAuth.createUser({
@@ -280,19 +267,7 @@ export const createUser = async (user: User): Promise<string> => {
     }
   }
 
-  // 2. Prepare Firestore data (Profile Storage)
-  const { password, currentPassword, ...userData } = user;
-  const finalUser: User = {
-    ...userData,
-    userId,
-    createdAt: admin.firestore.Timestamp.now(),
-    updatedAt: admin.firestore.Timestamp.now(),
-  };
-
-  // 3. Sync Profile to Firestore
-  await adminFirestore.collection("users").doc(userId).set(finalUser);
-
-  // 4. Set Custom Claims for Auth
+  // 2. Set Custom Claims for Auth (role stored in claims, not Firestore)
   if (user.role) {
     await adminAuth.setCustomUserClaims(userId, { role: user.role });
   }
@@ -304,16 +279,7 @@ export const updateUser = async (
   userId: string,
   data: Partial<User>
 ): Promise<void> => {
-  // 1. Update Firestore (Profile)
-  await adminFirestore
-    .collection("users")
-    .doc(userId)
-    .update({
-      ...data,
-      updatedAt: admin.firestore.Timestamp.now(),
-    });
-
-  // 2. Sync with Firebase Auth (Identity)
+  // 1. Update Firebase Auth (no Firestore users collection)
   const updates: any = {};
   if (typeof data.status === "boolean") {
     updates.disabled = data.status === false;
@@ -327,12 +293,15 @@ export const updateUser = async (
   if (data.password) {
     updates.password = data.password;
   }
+  if (data.photoURL) {
+    updates.photoURL = data.photoURL;
+  }
 
   if (Object.keys(updates).length > 0) {
     await adminAuth.updateUser(userId, updates);
   }
 
-  // 3. Update Custom Claims if role changed
+  // 2. Update Custom Claims if role changed
   if (data.role) {
     await adminAuth.setCustomUserClaims(userId, { role: data.role });
   }
