@@ -6,7 +6,7 @@ import { errorResponse } from "@/utils/apiResponse";
 export const GET = async (req: Request) => {
   try {
     // Verify the ID token
-    const response = await authorizeRequest(req);
+    const response = await authorizeRequest(req, "view_dashboard");
     if (!response) return errorResponse("Unauthorized", 401);
 
     // Get query params

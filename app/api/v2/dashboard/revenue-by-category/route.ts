@@ -5,7 +5,7 @@ import { errorResponse } from "@/utils/apiResponse";
 
 export const GET = async (req: Request) => {
   try {
-    const response = await authorizeRequest(req);
+    const response = await authorizeRequest(req, "view_dashboard");
     if (!response) return errorResponse("Unauthorized", 401);
 
     const data = await getRevenueByCategory();

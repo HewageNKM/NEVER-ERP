@@ -8,7 +8,7 @@ export const POST = async (
   { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
-    const response = await authorizeRequest(req);
+    const response = await authorizeRequest(req, "view_supplier_invoices");
     if (!response) return errorResponse("Unauthorized", 401);
 
     const { id } = await params;
