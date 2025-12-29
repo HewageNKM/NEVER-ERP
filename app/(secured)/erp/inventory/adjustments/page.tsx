@@ -16,6 +16,11 @@ import { getToken } from "@/firebase/firebaseClient";
 import { showNotification } from "@/utils/toast";
 import { useAppSelector } from "@/lib/hooks";
 import { RootState } from "@/lib/store";
+import {
+  ADJUSTMENT_STATUS_COLORS,
+  ADJUSTMENT_STATUS_LABELS,
+  AdjustmentStatus,
+} from "@/model/InventoryAdjustment";
 
 type AdjustmentType = "add" | "remove" | "damage" | "return" | "transfer";
 
@@ -25,6 +30,7 @@ interface Adjustment {
   type: AdjustmentType;
   reason: string;
   items: { productName: string; quantity: number }[];
+  status: AdjustmentStatus;
   createdAt: string;
 }
 
@@ -161,6 +167,9 @@ const AdjustmentsPage = () => {
                     </th>
                     <th className="px-6 py-3 font-bold tracking-wider">Type</th>
                     <th className="px-6 py-3 font-bold tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 font-bold tracking-wider">
                       Reason
                     </th>
                     <th className="px-6 py-3 font-bold tracking-wider text-right">
@@ -191,6 +200,16 @@ const AdjustmentsPage = () => {
                           {TYPE_LABELS[adj.type] || adj.type}
                         </span>
                       </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`px-2 py-1 text-xs font-bold uppercase rounded-full ${
+                            ADJUSTMENT_STATUS_COLORS[adj.status] ||
+                            "bg-gray-100"
+                          }`}
+                        >
+                          {ADJUSTMENT_STATUS_LABELS[adj.status] || adj.status}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 text-gray-600 max-w-xs truncate">
                         {adj.reason}
                       </td>
@@ -199,7 +218,7 @@ const AdjustmentsPage = () => {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <Link
-                          href={`/inventory/adjustments/${adj.id}`}
+                          href={`/erp/inventory/adjustments/${adj.id}`}
                           className="p-2 hover:bg-gray-100 inline-flex transition-colors"
                         >
                           <IconEye size={16} />
@@ -210,7 +229,7 @@ const AdjustmentsPage = () => {
                   {filteredAdjustments.length === 0 && (
                     <tr>
                       <td
-                        colSpan={5}
+                        colSpan={6}
                         className="px-6 py-12 text-center text-gray-500"
                       >
                         <IconAdjustments

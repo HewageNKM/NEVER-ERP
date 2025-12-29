@@ -262,6 +262,8 @@ export const getProductDropdown = async () => {
         id: doc.id,
         label: data.name,
         buyingPrice: data.buyingPrice || 0,
+        variants: data.variants || [],
+        availableSizes: data.availableSizes || [],
       };
     });
   } catch (error) {

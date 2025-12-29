@@ -3,6 +3,7 @@ import {
   InventoryAdjustment,
   AdjustmentItem,
   AdjustmentType,
+  AdjustmentStatus,
 } from "@/model/InventoryAdjustment";
 import { FieldValue } from "firebase-admin/firestore";
 import { AppError } from "@/utils/apiResponse";
@@ -89,17 +90,21 @@ export const createAdjustment = async (
 ): Promise<InventoryAdjustment> => {
   try {
     const adjustmentNumber = await generateAdjustmentNumber();
+    const status = adjustment.status || "DRAFT";
 
     // Create adjustment record
     const docRef = await adminFirestore.collection(COLLECTION).add({
       ...adjustment,
+      status,
       adjustmentNumber,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });
 
-    // Update inventory based on adjustment type
-    await updateInventoryFromAdjustment(adjustment.items, adjustment.type);
+    // We do NOT update inventory here anymore. Only on APPROVAL.
+    if (status === "APPROVED") {
+      await updateInventoryFromAdjustment(adjustment.items, adjustment.type);
+    }
 
     console.log(
       `[AdjustmentService] Created adjustment ${adjustmentNumber} with ${adjustment.items.length} items`
@@ -108,10 +113,51 @@ export const createAdjustment = async (
     return {
       id: docRef.id,
       ...adjustment,
+      status,
       adjustmentNumber,
     };
   } catch (error) {
     console.error("[AdjustmentService] Error creating adjustment:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update adjustment status
+ */
+export const updateAdjustmentStatus = async (
+  id: string,
+  status: AdjustmentStatus,
+  userId: string // Who updated it
+): Promise<void> => {
+  try {
+    const docRef = adminFirestore.collection(COLLECTION).doc(id);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      throw new AppError("Adjustment not found", 404);
+    }
+
+    const currentData = doc.data() as InventoryAdjustment;
+
+    if (currentData.status === "APPROVED") {
+      throw new AppError("Cannot change status of an APPROVED adjustment", 400);
+    }
+
+    const updates: any = {
+      status,
+      updatedAt: FieldValue.serverTimestamp(),
+      adjustedBy: userId, // Track who approved/rejected
+    };
+
+    await docRef.update(updates);
+
+    // If approved, update inventory
+    if (status === "APPROVED") {
+      await updateInventoryFromAdjustment(currentData.items, currentData.type);
+    }
+  } catch (error) {
+    console.error("[AdjustmentService] Error updating status:", error);
     throw error;
   }
 };
@@ -124,6 +170,8 @@ const updateInventoryFromAdjustment = async (
   type: AdjustmentType
 ): Promise<void> => {
   const batch = adminFirestore.batch();
+  /* Use plain object to avoid iteration issues */
+  const productUpdates: Record<string, number> = {};
 
   for (const item of items) {
     if (item.quantity <= 0) continue;
@@ -149,14 +197,18 @@ const updateInventoryFromAdjustment = async (
 
     // Calculate new quantity based on type
     let newQty = currentQty;
+    let change = 0;
+
     switch (type) {
       case "add":
       case "return":
         newQty = currentQty + item.quantity;
+        change = item.quantity;
         break;
       case "remove":
       case "damage":
         newQty = Math.max(0, currentQty - item.quantity);
+        change = -item.quantity;
         break;
       case "transfer":
         newQty = Math.max(0, currentQty - item.quantity);
@@ -164,6 +216,7 @@ const updateInventoryFromAdjustment = async (
         if (item.destinationStockId) {
           await addToDestinationStock(item);
         }
+        change = 0; // Transfer doesn't change total stock
         break;
     }
 
@@ -183,6 +236,27 @@ const updateInventoryFromAdjustment = async (
         updatedAt: FieldValue.serverTimestamp(),
       });
     }
+
+    // Accumulate product updates
+    if (change !== 0) {
+      const current = productUpdates[item.productId] || 0;
+      productUpdates[item.productId] = current + change;
+    }
+  }
+
+  for (const [productId, change] of Object.entries(productUpdates)) {
+    const productRef = adminFirestore.collection("products").doc(productId);
+    const updateData: any = {
+      totalStock: FieldValue.increment(change),
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    // If we are adding stock, ensure inStock is true
+    if (change > 0) {
+      updateData.inStock = true;
+    }
+
+    batch.update(productRef, updateData);
   }
 
   await batch.commit();

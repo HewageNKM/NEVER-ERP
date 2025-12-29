@@ -8,6 +8,7 @@ import {
   IconPlus,
   IconTrash,
   IconAdjustments,
+  IconChevronDown,
 } from "@tabler/icons-react";
 import PageContainer from "@/app/(secured)/erp/components/container/PageContainer";
 import ComponentsLoader from "@/app/components/ComponentsLoader";
@@ -22,6 +23,12 @@ type AdjustmentType = "add" | "remove" | "damage" | "return" | "transfer";
 interface Product {
   id: string;
   label: string;
+  variants: {
+    variantId: string;
+    variantName: string;
+    sizes: string[];
+  }[];
+  availableSizes: string[];
 }
 
 interface Stock {
@@ -32,6 +39,8 @@ interface Stock {
 interface AdjustmentItem {
   productId: string;
   productName: string;
+  variantId?: string;
+  variantName?: string;
   size: string;
   quantity: number;
   stockId: string;
@@ -62,6 +71,7 @@ const NewAdjustmentPage = () => {
 
   // Item form
   const [selectedProduct, setSelectedProduct] = useState("");
+  const [selectedVariant, setSelectedVariant] = useState("");
   const [size, setSize] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [stockId, setStockId] = useState("");
@@ -115,11 +125,20 @@ const NewAdjustmentPage = () => {
     const stock = stocks.find((s) => s.id === stockId);
     const destStock = stocks.find((s) => s.id === destinationStockId);
 
+    // Find variant name if selected
+    let variantName = "";
+    if (selectedVariant && product) {
+      const v = product.variants.find((v) => v.variantId === selectedVariant);
+      if (v) variantName = v.variantName;
+    }
+
     if (!product || !stock) return;
 
     const newItem: AdjustmentItem = {
       productId: product.id,
       productName: product.label,
+      variantId: selectedVariant || undefined,
+      variantName: variantName || undefined,
       size,
       quantity,
       stockId: stock.id,
@@ -134,6 +153,7 @@ const NewAdjustmentPage = () => {
 
     setItems([...items, newItem]);
     setSelectedProduct("");
+    setSelectedVariant("");
     setSize("");
     setQuantity(1);
   };
@@ -142,7 +162,7 @@ const NewAdjustmentPage = () => {
     setItems(items.filter((_, i) => i !== index));
   };
 
-  const handleSave = async () => {
+  const handleSave = async (status: "DRAFT" | "SUBMITTED") => {
     if (!reason.trim()) {
       showNotification("Please enter a reason", "warning");
       return;
@@ -158,11 +178,14 @@ const NewAdjustmentPage = () => {
 
       await axios.post(
         "/api/v2/inventory/adjustments",
-        { type, reason, notes, items },
+        { type, reason, notes, items, status },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      showNotification("Adjustment created and inventory updated", "success");
+      showNotification(
+        `Adjustment ${status === "DRAFT" ? "saved as draft" : "submitted"}`,
+        "success"
+      );
       router.push("/erp/inventory/adjustments");
     } catch (error) {
       console.error(error);
@@ -171,6 +194,30 @@ const NewAdjustmentPage = () => {
       setSaving(false);
     }
   };
+
+  // Helper to get available sizes
+  const getAvailableSizes = () => {
+    const product = products.find((p) => p.id === selectedProduct);
+    if (!product) return [];
+
+    if (selectedVariant) {
+      const v = product.variants.find((v) => v.variantId === selectedVariant);
+      return v ? v.sizes : [];
+    }
+
+    // If product has variants but none selected, show nothing or all?
+    // Usually if variants exist, user MUST select variant.
+    if (product.variants && product.variants.length > 0) return [];
+
+    return product.availableSizes || [];
+  };
+
+  const currentProduct = products.find((p) => p.id === selectedProduct);
+  const showVariantSelect =
+    currentProduct &&
+    currentProduct.variants &&
+    currentProduct.variants.length > 0;
+  const availableSizes = getAvailableSizes();
 
   if (loading) {
     return (
@@ -210,17 +257,22 @@ const NewAdjustmentPage = () => {
               <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5 md:mb-2">
                 Adjustment Type *
               </label>
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value as AdjustmentType)}
-                className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 text-sm focus:outline-none focus:border-black"
-              >
-                {TYPE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={type}
+                  onChange={(e) => setType(e.target.value as AdjustmentType)}
+                  className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 text-sm focus:outline-none focus:border-black appearance-none bg-white"
+                >
+                  {TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-500">
+                  <IconChevronDown size={16} />
+                </div>
+              </div>
             </div>
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5 md:mb-2">
@@ -261,31 +313,122 @@ const NewAdjustmentPage = () => {
               <label className="block text-xs text-gray-500 mb-1 md:hidden">
                 Product
               </label>
-              <select
-                value={selectedProduct}
-                onChange={(e) => setSelectedProduct(e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 text-sm focus:outline-none focus:border-black"
-              >
-                <option value="">Select Product</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={selectedProduct}
+                  onChange={(e) => {
+                    setSelectedProduct(e.target.value);
+                    setSelectedVariant("");
+                    setSize("");
+                  }}
+                  className="w-full px-3 py-2.5 border border-gray-300 text-sm focus:outline-none focus:border-black appearance-none bg-white"
+                >
+                  <option value="">Select Product</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-500">
+                  <IconChevronDown size={16} />
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 md:contents">
+
+            {showVariantSelect && (
+              <div className="md:col-span-1">
+                <label className="block text-xs text-gray-500 mb-1 md:hidden">
+                  Variant
+                </label>
+                <div className="relative">
+                  <select
+                    value={selectedVariant}
+                    onChange={(e) => {
+                      setSelectedVariant(e.target.value);
+                      setSize("");
+                    }}
+                    className="w-full px-3 py-2.5 border border-gray-300 text-sm focus:outline-none focus:border-black appearance-none bg-white"
+                  >
+                    <option value="">Select Variant</option>
+                    {currentProduct?.variants.map((v) => (
+                      <option key={v.variantId} value={v.variantId}>
+                        {v.variantName}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-500">
+                    <IconChevronDown size={16} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className={`grid grid-cols-2 gap-3 md:contents`}>
               <div>
                 <label className="block text-xs text-gray-500 mb-1 md:hidden">
                   Size
                 </label>
-                <input
-                  type="text"
-                  placeholder="Size"
-                  value={size}
-                  onChange={(e) => setSize(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-300 text-sm focus:outline-none focus:border-black"
-                />
+                {/* Dynamic Size Input Logic */}
+                {(() => {
+                  // Case 1: Product has variants, but none selected yet -> Disabled Select
+                  if (
+                    currentProduct &&
+                    currentProduct.variants &&
+                    currentProduct.variants.length > 0 &&
+                    !selectedVariant
+                  ) {
+                    return (
+                      <div className="relative">
+                        <select
+                          disabled
+                          className="w-full px-3 py-2.5 border border-gray-300 text-sm focus:outline-none bg-gray-50 appearance-none text-gray-400"
+                        >
+                          <option>Select Variant First</option>
+                        </select>
+                        <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+                          <IconChevronDown size={16} />
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Case 2: Available sizes exist (either from variant or simple product with sizes) -> Select
+                  if (availableSizes.length > 0) {
+                    return (
+                      <div className="relative">
+                        <select
+                          value={size}
+                          onChange={(e) => setSize(e.target.value)}
+                          className="w-full px-3 py-2.5 border border-gray-300 text-sm focus:outline-none focus:border-black appearance-none bg-white"
+                        >
+                          <option value="">Select Size</option>
+                          {availableSizes.map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-500">
+                          <IconChevronDown size={16} />
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Case 3: No sizes available (simple product without pre-defined sizes) -> Text Input
+                  // Note: We might want to still encourage a size for adjustments?
+                  // If product/variant selected but no fixed sizes, user types it manually.
+                  return (
+                    <input
+                      type="text"
+                      placeholder="Size (e.g. XL, 42)"
+                      value={size}
+                      onChange={(e) => setSize(e.target.value)}
+                      className="w-full px-3 py-2.5 border border-gray-300 text-sm focus:outline-none focus:border-black"
+                    />
+                  );
+                })()}
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1 md:hidden">
@@ -305,38 +448,48 @@ const NewAdjustmentPage = () => {
               <label className="block text-xs text-gray-500 mb-1 md:hidden">
                 Stock Location
               </label>
-              <select
-                value={stockId}
-                onChange={(e) => setStockId(e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 text-sm focus:outline-none focus:border-black"
-              >
-                <option value="">Select Stock</option>
-                {stocks.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={stockId}
+                  onChange={(e) => setStockId(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-300 text-sm focus:outline-none focus:border-black appearance-none bg-white"
+                >
+                  <option value="">Select Stock</option>
+                  {stocks.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-500">
+                  <IconChevronDown size={16} />
+                </div>
+              </div>
             </div>
             {type === "transfer" && (
               <div>
                 <label className="block text-xs text-gray-500 mb-1 md:hidden">
                   Destination
                 </label>
-                <select
-                  value={destinationStockId}
-                  onChange={(e) => setDestinationStockId(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-300 text-sm focus:outline-none focus:border-black"
-                >
-                  <option value="">To Stock</option>
-                  {stocks
-                    .filter((s) => s.id !== stockId)
-                    .map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.label}
-                      </option>
-                    ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={destinationStockId}
+                    onChange={(e) => setDestinationStockId(e.target.value)}
+                    className="w-full px-3 py-2.5 border border-gray-300 text-sm focus:outline-none focus:border-black appearance-none bg-white"
+                  >
+                    <option value="">To Stock</option>
+                    {stocks
+                      .filter((s) => s.id !== stockId)
+                      .map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.label}
+                        </option>
+                      ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-500">
+                    <IconChevronDown size={16} />
+                  </div>
+                </div>
               </div>
             )}
             <div className={type === "transfer" ? "md:col-span-6" : ""}>
@@ -345,7 +498,7 @@ const NewAdjustmentPage = () => {
                 className="w-full px-4 py-2.5 bg-black text-white text-xs font-bold uppercase hover:bg-gray-900 flex items-center justify-center gap-2"
               >
                 <IconPlus size={14} />
-                Add Item
+                Add
               </button>
             </div>
           </div>
@@ -382,6 +535,11 @@ const NewAdjustmentPage = () => {
                     <tr key={idx}>
                       <td className="px-6 py-4 font-medium text-gray-900">
                         {item.productName}
+                        {item.variantName && (
+                          <span className="block text-xs text-gray-500 font-normal">
+                            {item.variantName}
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4">{item.size}</td>
                       <td className="px-6 py-4 text-right font-bold">
@@ -417,6 +575,11 @@ const NewAdjustmentPage = () => {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 truncate">
                       {item.productName}
+                      {item.variantName && (
+                        <span className="block text-xs text-gray-500 font-normal">
+                          {item.variantName}
+                        </span>
+                      )}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
                       Size: {item.size} • {item.stockName}
@@ -450,7 +613,14 @@ const NewAdjustmentPage = () => {
         {/* Actions */}
         <div className="flex justify-end">
           <button
-            onClick={handleSave}
+            onClick={() => handleSave("DRAFT")}
+            disabled={saving}
+            className="w-full md:w-auto px-6 md:px-8 py-3 border border-black text-black text-xs font-bold uppercase tracking-wider hover:bg-gray-50 disabled:opacity-50 flex items-center justify-center gap-2 mr-2"
+          >
+            Save Draft
+          </button>
+          <button
+            onClick={() => handleSave("SUBMITTED")}
             disabled={saving}
             className="w-full md:w-auto px-6 md:px-8 py-3 bg-black text-white text-xs font-bold uppercase tracking-wider hover:bg-gray-900 disabled:opacity-50 flex items-center justify-center gap-2"
           >
@@ -459,7 +629,7 @@ const NewAdjustmentPage = () => {
             ) : (
               <IconAdjustments size={14} />
             )}
-            Create Adjustment
+            Submit Adjustment
           </button>
         </div>
       </div>

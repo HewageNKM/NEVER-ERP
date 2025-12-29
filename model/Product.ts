@@ -32,4 +32,7 @@ export interface Product {
   // We add these later for filtering
   totalStock?: number;
   inStock?: boolean;
+
+  createdAt?: any;
+  updatedAt?: any;
 }
