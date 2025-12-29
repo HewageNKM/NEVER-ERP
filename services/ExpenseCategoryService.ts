@@ -6,8 +6,6 @@ import { AppError } from "@/utils/apiResponse";
 
 const COLLECTION = "expense_categories";
 
-// ...
-
 /**
  * Get category by ID
  */
@@ -65,7 +63,6 @@ export const getExpenseCategories = async (): Promise<ExpenseCategory[]> => {
     const snapshot = await adminFirestore
       .collection(COLLECTION)
       .where("isDeleted", "==", false)
-      .orderBy("name", "asc")
       .get();
 
     return snapshot.docs.map((doc) => ({
@@ -88,8 +85,6 @@ export const updateExpenseCategory = async (
   try {
     const docRef = adminFirestore.collection(COLLECTION).doc(id);
 
-    // Check existence indirectly via update failure? or explicit check?
-    // Explicit check usually better for 404 vs 500
     const docSnap = await docRef.get();
     if (!docSnap.exists) {
       throw new AppError(`Expense Category with ID ${id} not found`, 404);
@@ -149,13 +144,14 @@ export const getExpenseCategoriesDropdown = async (
       query = query.where("type", "==", type);
     }
 
-    query = query.orderBy("name", "asc");
-
     const snapshot = await query.get();
-    return snapshot.docs.map((doc) => ({
+    const docs = snapshot.docs.map((doc) => ({
       id: doc.id,
-      label: doc.data().name,
+      label: doc.data().name as string,
     }));
+
+    // Sort in memory
+    return docs.sort((a, b) => a.label.localeCompare(b.label));
   } catch (error) {
     console.error("[ExpenseCategoryService] Error fetching dropdown:", error);
     return [];

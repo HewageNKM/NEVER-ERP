@@ -68,10 +68,9 @@ const PettyCashFormModal: React.FC<PettyCashFormModalProps> = ({
   const isEditing = !!entry;
   const isDisabled = isEditing && entry?.status === "APPROVED";
 
+  // Initial Data Load
   useEffect(() => {
     if (open) {
-      fetchDropdowns();
-
       if (entry) {
         setFormData({
           amount: String(entry.amount),
@@ -86,25 +85,45 @@ const PettyCashFormModal: React.FC<PettyCashFormModalProps> = ({
       }
       setFile(null);
       setSaving(false);
+      fetchBankAccounts();
     }
   }, [entry, open]);
 
-  const fetchDropdowns = async () => {
+  // Fetch Categories when Type or Open changes
+  useEffect(() => {
+    if (open) {
+      fetchCategories(formData.type);
+    }
+  }, [open, formData.type]);
+
+  const fetchBankAccounts = async () => {
+    try {
+      const token = await getToken();
+      const res = await axios.get(
+        "/api/v2/finance/bank-accounts?dropdown=true",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setBankAccounts(res.data);
+    } catch (error) {
+      console.error("Error fetching banks", error);
+    }
+  };
+
+  const fetchCategories = async (type: "expense" | "income") => {
     setFetchingDropdowns(true);
     try {
       const token = await getToken();
-      const [catsRes, banksRes] = await Promise.all([
-        axios.get("/api/v2/finance/expense-categories?dropdown=true", {
+      const res = await axios.get(
+        `/api/v2/finance/expense-categories?dropdown=true&type=${type}`,
+        {
           headers: { Authorization: `Bearer ${token}` },
-        }),
-        axios.get("/api/v2/finance/bank-accounts?dropdown=true", {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-      ]);
-      setCategories(catsRes.data);
-      setBankAccounts(banksRes.data);
+        }
+      );
+      setCategories(res.data);
     } catch (error) {
-      console.error("Error fetching dropdowns", error);
+      console.error("Error fetching categories", error);
     } finally {
       setFetchingDropdowns(false);
     }
@@ -151,8 +170,6 @@ const PettyCashFormModal: React.FC<PettyCashFormModalProps> = ({
       }
       formPayload.append("type", formData.type);
 
-      // If creating new, set status PENDING. If editing, keep existing or reset?
-      // Usually reset to PENDING if changing critical info, but existing logic forced PENDING
       if (!isEditing) {
         formPayload.append("status", "PENDING");
       }
@@ -378,7 +395,10 @@ const PettyCashFormModal: React.FC<PettyCashFormModalProps> = ({
                     )}
 
                     <div>
-                      <label className={styles.label}>Attachment</label>
+                      <label className={styles.label}>
+                        Attachment{" "}
+                        <span className="text-gray-400">(OPTIONAL)</span>
+                      </label>
                       <label className={styles.fileButton}>
                         <IconUpload size={16} className="mr-2" />
                         {file ? "CHANGE FILE" : "UPLOAD PROOF"}
