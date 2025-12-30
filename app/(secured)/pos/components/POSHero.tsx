@@ -15,10 +15,12 @@ import {
   IconReceipt,
   IconSettings,
   IconRefresh,
+  IconArrowsExchange,
 } from "@tabler/icons-react";
 import { usePOS } from "../context/POSContext";
 import POSInvoiceDialog from "./POSInvoiceDialog";
 import POSSettingsDialog from "./POSSettingsDialog";
+import POSExchangeDialog from "./POSExchangeDialog";
 
 export default function POSHero() {
   const {
@@ -34,6 +36,7 @@ export default function POSHero() {
   const [query, setQuery] = useState("");
   const [showInvoicesForm, setShowInvoicesForm] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [showExchangeDialog, setShowExchangeDialog] = useState(false);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,6 +116,27 @@ export default function POSHero() {
 
           {/* Quick Actions */}
           <Box sx={{ display: "flex", gap: 1 }}>
+            <Tooltip title="Item Exchange">
+              <IconButton
+                onClick={() => setShowExchangeDialog(true)}
+                sx={{
+                  bgcolor: "white",
+                  color: "black",
+                  border: "2px solid",
+                  borderColor: "grey.200",
+                  borderRadius: 0,
+                  width: 40,
+                  height: 40,
+                  "&:hover": {
+                    borderColor: "black",
+                    bgcolor: "black",
+                    color: "white",
+                  },
+                }}
+              >
+                <IconArrowsExchange size={20} />
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Invoices">
               <IconButton
                 onClick={() => setShowInvoicesForm(true)}
@@ -247,6 +271,10 @@ export default function POSHero() {
       <POSSettingsDialog
         open={showSettingsDialog}
         onClose={() => setShowSettingsDialog(false)}
+      />
+      <POSExchangeDialog
+        open={showExchangeDialog}
+        onClose={() => setShowExchangeDialog(false)}
       />
     </>
   );

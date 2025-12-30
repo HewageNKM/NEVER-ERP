@@ -192,6 +192,19 @@ export const getAllPermissions = (): Permission[] => {
       label: "Update Tax Settings",
       group: "Settings",
     },
+
+    // POS System
+    { key: "access_pos", label: "Access POS System", group: "POS" },
+    { key: "create_pos_orders", label: "Create POS Orders", group: "POS" },
+    { key: "view_pos_orders", label: "View POS Orders", group: "POS" },
+    { key: "manage_pos_cart", label: "Manage POS Cart", group: "POS" },
+    { key: "view_pos_inventory", label: "View POS Inventory", group: "POS" },
+    {
+      key: "process_pos_exchange",
+      label: "Process Item Exchanges",
+      group: "POS",
+    },
+    { key: "view_pos_exchanges", label: "View Exchange History", group: "POS" },
   ];
 };
 

@@ -25,12 +25,14 @@ interface POSVariantDialogProps {
   open: boolean;
   onClose: () => void;
   product: any;
+  onAddToCart?: (item: any) => void;
 }
 
 export default function POSVariantDialog({
   open,
   onClose,
   product,
+  onAddToCart,
 }: POSVariantDialogProps) {
   const { selectedStockId, addItemToCart } = usePOS();
 
@@ -137,7 +139,7 @@ export default function POSVariantDialog({
 
     setAdding(true);
     try {
-      await addItemToCart({
+      const itemData = {
         itemId: product.id,
         variantId: selectedVariant.id || selectedVariant.variantId,
         name: product.name,
@@ -153,9 +155,15 @@ export default function POSVariantDialog({
         price: product.sellingPrice,
         bPrice: product.buyingPrice,
         stockId: selectedStockId!,
-      });
+      };
 
-      toast.success("Added to cart");
+      if (onAddToCart) {
+        onAddToCart(itemData);
+      } else {
+        await addItemToCart(itemData);
+      }
+
+      toast.success(onAddToCart ? "Added to exchange" : "Added to cart");
       onClose();
     } catch (error: any) {
       toast.error(error.message || "Failed to add to cart");

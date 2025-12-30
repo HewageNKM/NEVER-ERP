@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
-    await verifyPosAuth();
+    await verifyPosAuth("view_pos_orders");
     const orderId = (await params).orderId;
 
     const order = await getOrderByOrderId(orderId);

@@ -11,7 +11,7 @@ import { errorResponse } from "@/utils/apiResponse";
 // GET - Fetch all cart items
 export async function GET(request: NextRequest) {
   try {
-    const decodedToken = await verifyPosAuth();
+    const decodedToken = await verifyPosAuth("manage_pos_cart");
     const stockId = request.nextUrl.searchParams.get("stockId");
 
     if (!stockId) {
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 // POST - Add item to cart
 export async function POST(request: NextRequest) {
   try {
-    const decodedToken = await verifyPosAuth();
+    const decodedToken = await verifyPosAuth("manage_pos_cart");
     const item = await request.json();
     await addItemToPosCart(item, decodedToken.uid);
     return NextResponse.json({ success: true });
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 // DELETE - Remove item from cart or clear cart
 export async function DELETE(request: NextRequest) {
   try {
-    const decodedToken = await verifyPosAuth();
+    const decodedToken = await verifyPosAuth("manage_pos_cart");
     const body = await request.json();
 
     // If clearAll flag is set, clear entire cart

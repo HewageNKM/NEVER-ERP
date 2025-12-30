@@ -9,6 +9,7 @@ import { useAppSelector } from "@/lib/hooks";
 import { getToken } from "@/firebase/firebaseClient";
 import axios from "axios";
 import { OrderEditForm } from "./components/OrderEditForm";
+import { OrderExchangeHistory } from "./components/OrderExchangeHistory";
 import { showNotification } from "@/utils/toast";
 import Link from "next/link"; // Use Next.js Link instead of MUI
 
@@ -83,8 +84,9 @@ const OrderEditPage = () => {
   return (
     <PageContainer title={`Edit Order #${order.orderId}`}>
       <BreadcrumbNav />
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-5xl mx-auto flex flex-col gap-8">
         <OrderEditForm order={order} onRefresh={fetchOrder} />
+        <OrderExchangeHistory orderId={order.orderId} />
       </div>
     </PageContainer>
   );

@@ -5,7 +5,7 @@ import { verifyPosAuth, handleAuthError } from "@/services/AuthService";
 // GET - Fetch all available stocks
 export async function GET() {
   try {
-    await verifyPosAuth();
+    await verifyPosAuth("access_pos");
     const stocks = await getAvailableStocks();
     return NextResponse.json(stocks);
   } catch (error: any) {

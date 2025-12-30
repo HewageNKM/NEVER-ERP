@@ -9,7 +9,7 @@ import { errorResponse } from "@/utils/apiResponse";
 // GET - Fetch inventory for specific product/variant/size or all inventory for product
 export async function GET(request: NextRequest) {
   try {
-    await verifyPosAuth();
+    await verifyPosAuth("view_pos_inventory");
 
     const { searchParams } = new URL(request.url);
     const stockId = searchParams.get("stockId");

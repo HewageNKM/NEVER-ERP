@@ -146,7 +146,7 @@ export const getInventory = async (
  * Checks if an inventory item already exists for a specific SKU and location.
  * Returns the document ID if found, otherwise null.
  */
-const findExistingInventoryItem = async (
+export const findExistingInventoryItem = async (
   productId: string,
   variantId: string,
   itemSize: string,

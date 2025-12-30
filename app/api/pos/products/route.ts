@@ -9,7 +9,7 @@ import { errorResponse } from "@/utils/apiResponse";
 // GET - Fetch products by stock ID, with optional search
 export async function GET(request: NextRequest) {
   try {
-    await verifyPosAuth();
+    await verifyPosAuth("access_pos");
 
     const { searchParams } = new URL(request.url);
     const stockId = searchParams.get("stockId");

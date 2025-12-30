@@ -22,7 +22,7 @@ export const authorizeOrderRequest = async (req: Request) => {
   }
 };
 
-export const verifyPosAuth = async () => {
+export const verifyPosAuth = async (requiredPermission?: string) => {
   const headersList = await headers();
   const authHeader = headersList.get("authorization");
 
@@ -33,13 +33,37 @@ export const verifyPosAuth = async () => {
   const token = authHeader.split("Bearer ")[1];
   try {
     const decodedToken = await adminAuth.verifyIdToken(token, true);
+    const role = decodedToken.role?.toLowerCase();
 
-    if (!decodedToken.role) {
+    if (!role) {
       throw new AppError("Unauthorized: Role not found in token", 401);
+    }
+
+    // Admin bypasses all permission checks
+    if (role === "admin") {
+      return decodedToken;
+    }
+
+    // If permission required, check against role permissions
+    if (requiredPermission) {
+      const roleDoc = await adminFirestore.collection("roles").doc(role).get();
+
+      if (!roleDoc.exists) {
+        throw new AppError("Unauthorized: Role not found", 401);
+      }
+
+      const roleData = roleDoc.data();
+      if (!roleData?.permissions?.includes(requiredPermission)) {
+        throw new AppError(
+          `Unauthorized: Missing permission '${requiredPermission}'`,
+          403
+        );
+      }
     }
 
     return decodedToken;
   } catch (error: any) {
+    if (error instanceof AppError) throw error;
     console.error("Token verification failed:", error);
     throw new AppError("Unauthorized: Invalid token or user", 401);
   }

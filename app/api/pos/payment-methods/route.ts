@@ -5,7 +5,7 @@ import { handleAuthError, verifyPosAuth } from "@/services/AuthService";
 // GET - Fetch payment methods for POS
 export async function GET() {
   try {
-    await verifyPosAuth();
+    await verifyPosAuth("access_pos");
 
     const methods = await getPaymentMethods();
     return NextResponse.json(methods);

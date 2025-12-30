@@ -2,9 +2,8 @@
 runConfig:
   minInstances: 0
   maxInstances: 2
-  concurrency: 80
   cpu: 2
-  memoryMiB: 1024
+  memoryMiB: 4096
 
 # Public Environment Variables
 env:
