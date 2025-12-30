@@ -191,29 +191,6 @@ export const OrderEditForm: React.FC<OrderEditFormProps> = ({
                   className={styles.input}
                 />
               </div>
-              <div className="flex flex-col">
-                <label className={styles.label}>Estimated Delivery</label>
-                <input
-                  type="date"
-                  name="estimatedDelivery"
-                  value={
-                    formData?.estimatedDelivery
-                      ? new Date(formData.estimatedDelivery as string)
-                          .toISOString()
-                          .split("T")[0]
-                      : ""
-                  }
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      estimatedDelivery: e.target.value
-                        ? new Date(e.target.value).toISOString()
-                        : undefined,
-                    }))
-                  }
-                  className={styles.input}
-                />
-              </div>
             </div>
           </div>
 

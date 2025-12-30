@@ -91,19 +91,6 @@ const OrderView = ({ orderId }: { orderId: string }) => {
     );
   }
 
-  const formatDate = (date: any) => {
-    if (!date) return "—";
-    return new Date(date)
-      .toLocaleString("en-US", {
-        month: "short",
-        day: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-      .toUpperCase();
-  };
-
   return (
     <motion.div
       className="w-full flex flex-col gap-8"
@@ -374,13 +361,13 @@ const OrderView = ({ orderId }: { orderId: string }) => {
                 <div>
                   <span className={styles.label}>Created At</span>
                   <p className={`${styles.value} font-mono`}>
-                    {formatDate(order?.createdAt)}
+                    {order?.createdAt || "N/A"}
                   </p>
                 </div>
                 <div>
                   <span className={styles.label}>Updated At</span>
                   <p className={`${styles.value} font-mono`}>
-                    {formatDate(order?.updatedAt)}
+                    {order?.updatedAt || "N/A"}
                   </p>
                 </div>
                 <div>

@@ -127,9 +127,9 @@ const POSInvoicePDF: React.FC<InvoicePDFProps> = ({ order }) => {
             Discount: -{totalDiscount.toFixed(2)}
           </Text>
           {/* If fee exists */}
-          {/* <Text style={{ fontSize: 8, fontWeight: "bold" }}>
-            Fee: {order.fee?.toFixed(2)}
-          </Text> */}
+          {(order.fee || 0) > 0 && (
+            <Text style={{ fontSize: 7 }}>Fee: {order.fee.toFixed(2)}</Text>
+          )}
           <Text style={{ fontSize: 8, fontWeight: "bold" }}>
             Total: {order.total.toFixed(2)}
           </Text>
